@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>BedsideDx — Digital Physical Exam (Research)</title>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--line:#30363d;--txt:#e6edf3;--mut:#8b949e;--acc:#2f81f7;--ok:#3fb950;--warn:#d29922;--bad:#f85149}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:12px;max-width:680px;margin:0 auto}
+  h1{font-size:18px;margin:0}.brand{color:var(--acc)}
+  .sub{color:var(--mut);font-size:11px;margin:2px 0 8px}
+  .disc{background:#3d2b00;border:1px solid var(--warn);color:#f0d488;font-size:11px;padding:7px 9px;border-radius:8px;margin-bottom:10px;line-height:1.4}
+  .tabs{display:flex;gap:6px;margin-bottom:10px}
+  .tab{flex:1;text-align:center;padding:9px 4px;font-size:13px;font-weight:600;background:#161b22;border:1px solid var(--line);border-radius:8px;color:var(--mut)}
+  .tab.on{background:#15233b;border-color:var(--acc);color:var(--txt)}
+  .tab.lock{opacity:.55}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:11px}
+  label{display:block;font-size:11px;color:var(--mut);margin:7px 0 3px}
+  input,select{width:100%;padding:9px;background:#0d1117;border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:14px}
+  .row{display:flex;gap:8px}.row>div{flex:1}
+  button{width:100%;padding:13px;border:0;border-radius:10px;font-size:15px;font-weight:600;color:#fff;margin-top:11px}
+  .rec{background:var(--bad)}.stop{background:var(--mut)}.dl{background:#21262d;border:1px solid var(--line)}
+  button:disabled{opacity:.45}
+  #status{text-align:center;font-size:12px;color:var(--mut);margin-top:9px;min-height:16px}
+  canvas{width:100%;height:120px;background:#0d1117;border:1px solid var(--line);border-radius:8px;margin-top:11px;display:none}
+  .res{display:none}
+  .cls{font-size:20px;font-weight:700;text-align:center;margin:6px 0;line-height:1.3}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .kv{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:7px;font-size:12px}
+  .kv b{color:var(--acc);display:block;font-size:15px}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;color:var(--txt)}
+  .chk input{width:18px;height:18px}
+  table{width:100%;font-size:10px;border-collapse:collapse;margin-top:8px}
+  th,td{border:1px solid var(--line);padding:3px;text-align:center}th{color:var(--mut)}
+  .note{font-size:11px;color:var(--mut);line-height:1.5}
+  .pane{display:none}.pane.on{display:block}
+  audio{width:100%;margin-top:9px}
+  .warnbox{background:#2d0f0f;border:1px solid var(--bad);color:#ffb3ad;font-size:11px;padding:7px 9px;border-radius:8px;margin-top:8px;line-height:1.4}
+</style>
+</head>
+<body>
+<h1><span class="brand">BedsideDx</span> · digital physical exam</h1>
+<div class="sub">Research instrument · the smartphone as inspection–palpation–percussion–auscultation tool</div>
+<div class="disc"><b>NOT a diagnostic device.</b> Captures percussion-note acoustics + symptoms for study data collection. The on-screen note label is an <b>uncalibrated heuristic</b> — you derive real cut-offs from your ultrasound-labelled data. Always confirm clinically.</div>
+
+<div class="tabs">
+  <div class="tab on" id="t1" onclick="tab(1)">🔊 Percussion</div>
+  <div class="tab lock" id="t2" onclick="tab(2)">❤️ VascAge</div>
+  <div class="tab lock" id="t3" onclick="tab(3)">🎯 EchoLat</div>
+</div>
+
+<!-- ================= PERCUSSION ================= -->
+<div class="pane on" id="p1">
+<div class="card">
+  <div class="row"><div><label>Patient ID</label><input id="pid" placeholder="P001"></div><div><label>Age</label><input id="age" type="number" placeholder="yrs"></div></div>
+  <div class="row"><div><label>Sex</label><select id="sex"><option value="">—</option><option>M</option><option>F</option></select></div>
+  <div><label>Exam site</label><select id="site"><option>R-upper</option><option>R-mid</option><option selected>R-lower</option><option>L-upper</option><option>L-mid</option><option>L-lower</option><option>Abdomen</option></select></div></div>
+  <label>Reference (gold standard)</label><input id="ref" placeholder="e.g. USG: R pleural effusion">
+  <button id="recBtn" class="rec">● Record percussion (9s)</button>
+  <button id="stopBtn" class="stop" disabled>■ Stop</button>
+  <div id="status">Tap the site firmly with ONE finger, 5–6 times, ~1s apart. Quiet room. Phone mic against skin.</div>
+  <canvas id="wave"></canvas>
+  <audio id="player" controls style="display:none"></audio>
+</div>
+
+<div class="card res" id="resCard">
+  <div style="text-align:center;color:var(--mut);font-size:11px">PERCUSSION NOTE (heuristic ⚠)</div>
+  <div class="cls" id="cls">—</div>
+  <div class="grid">
+    <div class="kv">Peak freq<b id="pk">—</b>Hz</div>
+    <div class="kv">Spectral centroid<b id="ce">—</b>Hz</div>
+    <div class="kv">Low:High energy<b id="lh">—</b></div>
+    <div class="kv">Decay time<b id="dc">—</b>ms</div>
+  </div>
+  <div class="note" style="margin-top:6px">Taps detected: <span id="nt">0</span> · values are medians across taps.</div>
+</div>
+
+<div class="card">
+  <b style="font-size:13px">Symptoms / exam (captured for fusion)</b>
+  <div id="sx"></div>
+  <div class="note">Symptom score: <b id="sxs">0</b> — logged separately, not a validated combined probability.</div>
+  <button id="saveBtn" class="dl">＋ Add reading to session log</button>
+  <button id="dlAudio" class="dl">⬇ Download this recording (.wav)</button>
+</div>
+
+<div class="card" id="logCard" style="display:none">
+  <b style="font-size:13px">Session log</b>
+  <div id="logTable"></div>
+  <button id="dlCsv" class="dl">⬇ Download session CSV</button>
+</div>
+</div>
+
+<!-- ================= VASCAGE ================= -->
+<div class="pane" id="p2">
+<div class="card">
+  <b>Module 2 — VascAge (web-buildable, not yet built)</b>
+  <div class="note" style="margin-top:6px">Flashlight + rear camera → fingertip PPG waveform → heart rate + a pulse-morphology "stiffness" estimate, captured alongside CVD risk factors (age, sex, smoking, BP) for later fusion with the WHO non-lab risk equation. Different population, separate validation paper.</div>
+  <div class="warnbox">Reply <b>"build VascAge"</b> and this becomes a working tab. Kept honest and empty until then — no fake numbers.</div>
+</div>
+</div>
+
+<!-- ================= ECHOLAT ================= -->
+<div class="pane" id="p3">
+<div class="card">
+  <b>EchoLat — which-lung sound localisation (Phase 2: native Android)</b>
+  <div class="note" style="margin-top:6px">Beamforming to locate which lung a wheeze/crackle comes from needs <b>raw, synchronised access to all 3 microphones</b>. Web browsers only hand out one mixed audio stream — so true array beamforming is impossible in a PWA. This ships as a native Android module later.</div>
+  <div class="warnbox">Not faked here on purpose. A web "beamformer" reading one mono mic would be exactly the kind of fake instrument we're avoiding.</div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const st=m=>$('status').textContent=m;
+function tab(n){for(let i=1;i<=3;i++){$('t'+i).classList.toggle('on',i===n);$('p'+i).classList.toggle('on',i===n);}}
+
+// symptom checklist
+const SX=['Dyspnoea','Productive cough','Fever','Pleuritic chest pain','Reduced chest expansion (exam)','Decreased breath sounds (exam)','Known/contact TB','Leg swelling'];
+let sxHtml='';SX.forEach((s,i)=>sxHtml+='<label class="chk"><input type="checkbox" class="sxc" data-i="'+i+'" onchange="sxCount()">'+s+'</label>');
+$('sx').innerHTML=sxHtml;
+function sxCount(){let c=0;document.querySelectorAll('.sxc').forEach(x=>{if(x.checked)c++});$('sxs').textContent=c;return c;}
+
+let stream,ctx,proc,zg,buf=[],fs=48000,wavBlob=null,last=null,timer,tLeft,rows=[];
+
+$('recBtn').onclick=async()=>{
+  if(!$('pid').value){st('Enter a Patient ID first.');return;}
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});}
+  catch(e){st('Microphone blocked. Allow mic access and reload.');return;}
+  ctx=new (window.AudioContext||window.webkitAudioContext)();fs=ctx.sampleRate;buf=[];
+  const src=ctx.createMediaStreamSource(stream);
+  proc=ctx.createScriptProcessor(4096,1,1);zg=ctx.createGain();zg.gain.value=0;
+  proc.onaudioprocess=e=>buf.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  src.connect(proc);proc.connect(zg);zg.connect(ctx.destination);
+  $('recBtn').disabled=true;$('stopBtn').disabled=false;$('resCard').style.display='none';
+  tLeft=9;st('● Recording… tap firmly 5–6× ('+tLeft+'s)');
+  timer=setInterval(()=>{tLeft--;st('● Recording… tap firmly 5–6× ('+tLeft+'s)');if(tLeft<=0)stopRec();},1000);
+};
+$('stopBtn').onclick=stopRec;
+
+function stopRec(){
+  clearInterval(timer);try{proc.disconnect();}catch(e){}
+  stream.getTracks().forEach(t=>t.stop());
+  $('recBtn').disabled=false;$('stopBtn').disabled=true;st('Analysing…');
+  let n=0;buf.forEach(b=>n+=b.length);
+  if(n<fs){st('Too short. Try again.');ctx.close();return;}
+  const s=new Float32Array(n);let o=0;buf.forEach(b=>{s.set(b,o);o+=b.length;});
+  ctx.close();
+  wavBlob=encodeWAV(s,fs);
+  const p=$('player');p.src=URL.createObjectURL(wavBlob);p.style.display='block';
+  analyze(s,fs);
+}
+
+// ---- iterative radix-2 FFT ----
+function fft(re,im){
+  const n=re.length;
+  for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){let tr=re[i];re[i]=re[j];re[j]=tr;let ti=im[i];im[i]=im[j];im[j]=ti;}}
+  for(let len=2;len<=n;len<<=1){const ang=-2*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let k=0;k<len/2;k++){
+      const ur=re[i+k],ui=im[i+k],vr=re[i+k+len/2]*cr-im[i+k+len/2]*ci,vi=re[i+k+len/2]*ci+im[i+k+len/2]*cr;
+      re[i+k]=ur+vr;im[i+k]=ui+vi;re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;
+      const ncr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=ncr;}}}
+}
+
+function tapFeatures(s,start,fs){
+  const N=4096,re=new Float32Array(N),im=new Float32Array(N);
+  const seg=Math.min(N,s.length-start);
+  for(let i=0;i<seg;i++){const w=0.5-0.5*Math.cos(2*Math.PI*i/(seg-1||1));re[i]=s[start+i]*w;}
+  fft(re,im);
+  const binHz=fs/N;let pk=0,pkV=0,sumM=0,sumFM=0,lowE=0,highE=0;
+  for(let b=Math.ceil(50/binHz);b<=Math.floor(2000/binHz);b++){
+    const m=Math.hypot(re[b],im[b]),f=b*binHz;
+    if(m>pkV){pkV=m;pk=f;} sumM+=m;sumFM+=f*m;
+    if(f<300)lowE+=m*m; else if(f<1200)highE+=m*m;
+  }
+  const centroid=sumM>0?sumFM/sumM:0, lh=lowE/(highE+1e-9);
+  // decay from time-domain envelope
+  let peakIdx=0,peakAbs=0;const wlen=Math.min(2000,s.length-start);
+  for(let i=0;i<wlen;i++){const a=Math.abs(s[start+i]);if(a>peakAbs){peakAbs=a;peakIdx=i;}}
+  let dEnd=wlen;for(let i=peakIdx;i<wlen;i++){if(Math.abs(s[start+i])<0.1*peakAbs){dEnd=i;break;}}
+  let decayMs=(dEnd-peakIdx)/fs*1000;if(decayMs>400)decayMs=400;
+  return{pk,centroid,lh,decayMs};
+}
+
+function analyze(s,fs){
+  // tap onset detection via frame energy
+  const F=256,nf=Math.floor(s.length/F),en=new Float32Array(nf);
+  let maxE=0;for(let i=0;i<nf;i++){let e=0;for(let j=0;j<F;j++){const v=s[i*F+j];e+=v*v;}en[i]=e;if(e>maxE)maxE=e;}
+  const thr=0.18*maxE,sep=Math.round(0.35*fs/F);let taps=[],lastF=-999;
+  for(let i=1;i<nf-1;i++){if(en[i]>thr&&en[i]>=en[i-1]&&en[i]>=en[i+1]&&i-lastF>=sep){taps.push(i*F);lastF=i;if(taps.length>=10)break;}}
+  if(taps.length===0){st('No clear taps detected. Tap harder / quieter room, retry.');return;}
+  const pks=[],ces=[],lhs=[],dcs=[];
+  taps.forEach(t=>{const f=tapFeatures(s,t,fs);pks.push(f.pk);ces.push(f.centroid);lhs.push(f.lh);dcs.push(f.decayMs);});
+  const med=a=>{a=a.slice().sort((x,y)=>x-y);return a[Math.floor(a.length/2)];};
+  const pk=med(pks),ce=med(ces),lh=med(lhs),dc=med(dcs);
+  // heuristic class (UNCALIBRATED placeholder thresholds)
+  let cls,col;
+  if(dc>=120&&lh>=1.2){cls='Resonant-type (air-filled)';col='var(--ok)';}
+  else if(dc<70||lh<0.6){cls='Dull/flat-type (possible fluid)';col='var(--bad)';}
+  else{cls='Indeterminate / mid';col='var(--warn)';}
+  $('cls').textContent=cls;$('cls').style.color=col;
+  $('pk').textContent=Math.round(pk);$('ce').textContent=Math.round(ce);
+  $('lh').textContent=lh.toFixed(2);$('dc').textContent=Math.round(dc);$('nt').textContent=taps.length;
+  $('resCard').style.display='block';st('Done. Check waveform shows clear separated taps before trusting values.');
+  drawTaps(s,taps);
+  last={pid:$('pid').value,age:$('age').value,sex:$('sex').value,site:$('site').value,ref:$('ref').value,
+        nt:taps.length,pk:Math.round(pk),ce:Math.round(ce),lh:lh.toFixed(2),dc:Math.round(dc),cls:cls,sxs:sxCount(),t:new Date().toISOString()};
+}
+
+function drawTaps(s,taps){
+  const c=$('wave');c.style.display='block';c.width=c.clientWidth*2;c.height=240;
+  const g=c.getContext('2d'),W=c.width,H=c.height,step=Math.floor(s.length/W)||1;
+  g.fillStyle='#0d1117';g.fillRect(0,0,W,H);g.strokeStyle='#2f81f7';g.lineWidth=1;g.beginPath();
+  for(let x=0;x<W;x++){let mn=1,mx=-1;for(let j=0;j<step;j++){const v=s[x*step+j]||0;mn=Math.min(mn,v);mx=Math.max(mx,v);}g.moveTo(x,H/2*(1-mx));g.lineTo(x,H/2*(1-mn));}
+  g.stroke();g.strokeStyle='#3fb950';g.lineWidth=2;
+  taps.forEach(t=>{const x=Math.floor(t/step);g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke();});
+}
+
+$('saveBtn').onclick=()=>{if(!last){st('Record first.');return;}rows.push(last);renderLog();$('logCard').style.display='block';st('Saved to log.');};
+$('dlAudio').onclick=()=>{if(wavBlob)dl(wavBlob,($('pid').value||'rec')+'_'+$('site').value+'_'+Date.now()+'.wav');};
+$('dlCsv').onclick=()=>{let c='patient_id,age,sex,site,reference,n_taps,peak_hz,centroid_hz,low_high,decay_ms,heuristic_class,symptom_score,datetime\n';
+  rows.forEach(r=>c+=[r.pid,r.age,r.sex,r.site,'"'+(r.ref||'')+'"',r.nt,r.pk,r.ce,r.lh,r.dc,'"'+r.cls+'"',r.sxs,r.t].join(',')+'\n');
+  dl(new Blob([c],{type:'text/csv'}),'bedsidedx_percussion.csv');};
+function renderLog(){let h='<table><tr><th>ID</th><th>Site</th><th>Class</th><th>L:H</th><th>Decay</th><th>Sx</th></tr>';
+  rows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.site+'</td><td>'+r.cls.split(' ')[0]+'</td><td>'+r.lh+'</td><td>'+r.dc+'</td><td>'+r.sxs+'</td></tr>');
+  $('logTable').innerHTML=h+'</table>';}
+function dl(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
+
+function encodeWAV(s,rate){
+  const n=s.length,bf=new ArrayBuffer(44+n*2),v=new DataView(bf);
+  const ws=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+n*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);
+  v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);
+  v.setUint16(32,2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,n*2,true);
+  let o=44;for(let i=0;i<n;i++){let x=Math.max(-1,Math.min(1,s[i]));v.setInt16(o,x<0?x*0x8000:x*0x7FFF,true);o+=2;}
+  return new Blob([bf],{type:'audio/wav'});
+}
+</script>
+</body>
+</html>
