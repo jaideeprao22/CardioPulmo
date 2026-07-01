@@ -291,6 +291,7 @@
   <div id="pcStatus" class="vst">Phone mic-edge on the cardiac apex, quiet room, then Start.</div>
   <canvas id="pcWave"></canvas>
   <audio id="pcPlayer" controls style="display:none"></audio>
+  <button id="pcAmp" class="dl" style="display:none;margin-top:6px" data-te='🔊 పెంచి వినండి (గుండె-బ్యాండ్ 20–150Hz)'>🔊 Amplify & listen (heart-band)</button>
 </div>
 <div class="card res" id="pcResCard">
   <div class="cls" id="pcVerdict">—</div>
@@ -787,7 +788,7 @@ function jRenderLog(){let h='<table><tr><th>ID</th><th>Rate/min</th><th>Amp</th>
   $('jLogTable').innerHTML=h+'</table>';}
 
 /* --- Heart sound (PCG) via microphone --- */
-let pcStream,pcCtx,pcProc,pcZg,pcBuf=[],pcSr=48000,pcWav=null,pcRows=[],pcTimer,pcLeft;
+let pcStream,pcCtx,pcProc,pcZg,pcBuf=[],pcSr=48000,pcWav=null,pcRows=[],pcTimer,pcLeft,pcLastBuf=null;
 const pcSt=m=>$('pcStatus').textContent=m;
 $('pcRec').onclick=async()=>{
   if(!$('pid').value){pcSt('Enter Patient ID (top of page) first.');return;}
@@ -809,7 +810,7 @@ function pcStopRec(){
   let n=0;pcBuf.forEach(b=>n+=b.length);
   if(n<pcSr){pcSt('Too short — record ~15s.');try{pcCtx.close();}catch(e){}return;}
   const s=new Float32Array(n);let o=0;pcBuf.forEach(b=>{s.set(b,o);o+=b.length;});try{pcCtx.close();}catch(e){}
-  pcWav=encodeWAV(s,pcSr);const p=$('pcPlayer');p.src=URL.createObjectURL(pcWav);p.style.display='block';
+  pcLastBuf=s;pcWav=encodeWAV(s,pcSr);const p=$('pcPlayer');p.src=URL.createObjectURL(pcWav);p.style.display='block';$('pcAmp').style.display='block';
   pcDraw(s);const pcRow=pcAnalyze(s,pcSr);pcMLScreen(s,pcSr,pcRow);
 }
 function pcAnalyze(s,fs){
@@ -846,10 +847,12 @@ function pcAnalyze(s,fs){
 }
 function pcDraw(s){const c=$('pcWave');c.style.display='block';c.width=c.clientWidth*2;c.height=180;
   const g=c.getContext('2d'),W=c.width,H=c.height,step=Math.floor(s.length/W)||1;
+  let pk=1e-6;for(let i=0;i<s.length;i++){const a=Math.abs(s[i]);if(a>pk)pk=a;}const sc=0.9/pk; // auto-scale to fill
   g.fillStyle='#0d1117';g.fillRect(0,0,W,H);g.strokeStyle='#2f81f7';g.lineWidth=1;g.beginPath();
-  for(let x=0;x<W;x++){let mn=1,mx=-1;for(let j=0;j<step;j++){const v=s[x*step+j]||0;mn=Math.min(mn,v);mx=Math.max(mx,v);}
+  for(let x=0;x<W;x++){let mn=1,mx=-1;for(let j=0;j<step;j++){const v=(s[x*step+j]||0)*sc;mn=Math.min(mn,v);mx=Math.max(mx,v);}
     g.moveTo(x,H/2*(1-mx)+H/4);g.lineTo(x,H/2*(1-mn)+H/4);}g.stroke();}
 $('pcDl').onclick=()=>{if(pcWav)dl(pcWav,($('pid').value||'rec')+'_pcg_'+Date.now()+'.wav');};
+$('pcAmp').onclick=pcAmplifyPlay;
 $('pcCsv').onclick=()=>{let c='patient_id,age,sex,heart_rate_bpm,rhythm,confidence,ai_abnormal_prob,datetime\n';
   pcRows.forEach(r=>c+=[r.pid,r.age,r.sex,r.bpm,r.reg,r.conf,r.ai||'',r.t].join(',')+'\n');
   dl(new Blob([c],{type:'text/csv'}),'bedsidedx_cardioscope_heartsound.csv');};
@@ -924,11 +927,27 @@ function pcHeartSignal(s,fs){
   const ratioLow=eLow/eTot;
   let rms=0;for(let i=0;i<x.length;i++)rms+=x[i]*x[i];rms=Math.sqrt(rms/x.length);
   let verdict,ok,col;
-  if(rms<0.003){verdict='No signal — mic isn\'t picking up anything';ok=false;col='var(--mut)';}
-  else if(ratioLow>=0.55){verdict='Heart-sound signal detected ✓';ok=true;col='var(--ok)';}
+  if(rms<0.0004){verdict='Mic silent — no input at all (check mic permission / port)';ok=false;col='var(--mut)';}
+  else if(ratioLow>=0.5){verdict=(rms<0.006?'Faint but heart-band signal — amplify to check':'Heart-sound signal detected ✓');ok=true;col=(rms<0.006?'var(--warn)':'var(--ok)');}
   else if(ratioLow>=0.35){verdict='Weak / partial heart sound — press firmer, reposition';ok=true;col='var(--warn)';}
-  else{verdict='Mostly room noise — use a stethoscope coupler';ok=false;col='var(--bad)';}
+  else{verdict='Mostly high-freq noise — reposition or use a coupler';ok=false;col='var(--bad)';}
   return {ratioLow:ratioLow,rms:rms,verdict:verdict,ok:ok,col:col};
+}
+async function pcAmplifyPlay(){
+  if(!pcLastBuf){return;}
+  try{
+    const s=pcLastBuf,fs=pcSr,oac=new OfflineAudioContext(1,s.length,fs);
+    const buf=oac.createBuffer(1,s.length,fs);buf.copyToChannel(Float32Array.from(s),0);
+    const src=oac.createBufferSource();src.buffer=buf;
+    const hp=oac.createBiquadFilter();hp.type='highpass';hp.frequency.value=20;
+    const lp=oac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=150;
+    src.connect(hp);hp.connect(lp);lp.connect(oac.destination);src.start();
+    const r=await oac.startRendering();let o=r.getChannelData(0);
+    let mx=1e-6;for(let i=0;i<o.length;i++){const a=Math.abs(o[i]);if(a>mx)mx=a;}
+    const g=0.9/mx,amp=new Float32Array(o.length);for(let i=0;i<o.length;i++)amp[i]=o[i]*g;
+    const wav=encodeWAV(amp,fs),p=$('pcPlayer');p.src=URL.createObjectURL(wav);p.style.display='block';pcDraw(amp);p.play();
+    pcSt('Amplified + heart-band filtered (20–150 Hz). If heart sounds were captured you should now HEAR lub-dub.');
+  }catch(e){console.error(e);pcSt('Amplify failed on this device.');}
 }
 async function pcMLScreen(s,fs,pcRow){
   const el=$('pcAI'),sub=$('pcAIsub'),sig=$('pcSig');
