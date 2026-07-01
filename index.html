@@ -836,15 +836,14 @@ function pcAnalyze(s,fs){
   let bestLag=0,bestC=-1;
   for(let lag=lo;lag<=hi&&lag<L;lag++){let c=0;for(let i=0;i<L-lag;i++)c+=env[i]*env[i+lag];c/=(e0||1);if(c>bestC){bestC=c;bestLag=lag;}}
   const bpm=bestLag?Math.round(60*fd/bestLag):0;
-  const uncertain=(bestC<0.2||rms<0.0015||!bpm);
+  const uncertain=(bestC<0.35||!bpm||rms<0.0003);
   let verdict,col,reg,q;
-  if(uncertain){verdict='Signal too weak / noisy — reposition, quieter room';col='var(--mut)';reg='—';q='Poor';$('pcHR').textContent='—';}
+  if(uncertain){verdict='Beat pattern unclear — reposition, press firmer, quieter room';col='var(--mut)';reg='—';q='Poor';$('pcHR').textContent='—';}
   else{
-    $('pcHR').textContent=bpm;reg=bestC>=0.5?'Regular':'Irregular?';
-    const rateNote=bpm<60?'brady':(bpm>100?'tachy':'60–100');
-    if(bestC>=0.5){verdict='Regular rhythm · '+bpm+' bpm ('+rateNote+')';col=(bpm<60||bpm>100)?'var(--warn)':'var(--ok)';}
-    else{verdict='Irregular / uncertain ⚠ — refer';col='var(--bad)';}
-    q=bestC>=0.5?'Good':(bestC>=0.3?'Fair':'Low');
+    $('pcHR').textContent=bpm;
+    const rateNote=bpm<60?'brady':(bpm>100?'tachy':'normal rate');
+    if(bestC>=0.5){reg='Regular';verdict='Regular beats · '+bpm+' bpm ('+rateNote+')';col=(bpm<60||bpm>100)?'var(--warn)':'var(--ok)';q='Good';}
+    else{reg='Unclear';verdict='Beats detected · '+bpm+' bpm ('+rateNote+') — rhythm unclear, recheck';col='var(--warn)';q='Fair';}
   }
   $('pcVerdict').textContent=verdict;$('pcVerdict').style.color=col;
   $('pcReg').textContent=reg;$('pcConf').textContent=bestC.toFixed(2);$('pcQ').textContent=q;
