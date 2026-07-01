@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>BedsideDx — Digital Physical Exam (Research)</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <style>
   :root{--bg:#0d1117;--card:#161b22;--line:#30363d;--txt:#e6edf3;--mut:#8b949e;--acc:#2f81f7;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--ref:#56d4dd}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -279,10 +280,10 @@
 <!-- ---- Heart sound (PCG) ---- -->
 <div id="csC" style="display:none">
 <div class="card">
-  <div class="howto" data-te='<h3>గుండె శబ్దాలు (PCG) ఎలా రికార్డ్ చేయాలి</h3>రోగి కూర్చొని లేదా పడుకొని, <b>ఛాతీ ఖాళీగా, నిశ్శబ్ద గది.</b> ఫోన్ యొక్క <b>కింది (మైక్) అంచును గట్టిగా చదునుగా</b> గుండెపై — కింది-ఎడమ ఛాతీ, ఎడమ ముచ్చిక కింద (కార్డియాక్ ఎపెక్స్) ఆనించండి. స్థిరంగా ఉంచండి; రోగి మెల్లగా శ్వాస తీసుకుంటారు లేదా కొద్దిసేపు శ్వాస ఆపుతారు.<div class="m"><span class="tag">LISTEN</span>నిజమైన గుండె శబ్దాలను <b>.wav</b> కు రికార్డ్ చేసి రేటు + లయ క్రమబద్ధతను అంచనా వేస్తుంది. మర్మర్‌లు లేదా వాల్వ్ వ్యాధిని <b>గుర్తించదు</b>.</div><div class="m" style="color:var(--mut)">సంఖ్యను నమ్మే ముందు ట్రేస్ శుభ్రమైన లబ్-డబ్ బీట్‌ల్లా ఉందో చూడండి.</div>'>
+  <div class="howto" data-te='<h3>గుండె శబ్దాలు (PCG) ఎలా రికార్డ్ చేయాలి</h3>రోగి కూర్చొని లేదా పడుకొని, <b>ఛాతీ ఖాళీగా, నిశ్శబ్ద గది.</b> ఫోన్ యొక్క <b>కింది (మైక్) అంచును గట్టిగా చదునుగా</b> గుండెపై — కింది-ఎడమ ఛాతీ, ఎడమ ముచ్చిక కింద (కార్డియాక్ ఎపెక్స్) ఆనించండి. స్థిరంగా ఉంచండి; రోగి మెల్లగా శ్వాస తీసుకుంటారు లేదా కొద్దిసేపు శ్వాస ఆపుతారు.<div class="m"><span class="tag">LISTEN</span>నిజమైన గుండె శబ్దాలను <b>.wav</b> కు రికార్డ్ చేసి రేటు + లయను అంచనా వేసి, <b>ఆన్-డివైస్ AI మోడల్</b> మర్మర్/అసాధారణ గుండె శబ్దాల కోసం స్క్రీన్ చేస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.</div><div class="m" style="color:var(--mut)">సంఖ్యను నమ్మే ముందు ట్రేస్ శుభ్రమైన లబ్-డబ్ బీట్‌ల్లా ఉందో చూడండి.</div>'>
     <h3>How to record heart sounds (PCG)</h3>
     Patient sitting or lying, <b>bare chest, quiet room.</b> Press the phone's <b>bottom (mic) edge firmly flat</b> over the heart — lower-left chest, just below the left nipple (cardiac apex). Hold still; patient breathes gently or briefly holds breath.
-    <div class="m"><span class="tag">LISTEN</span>Records the actual heart sounds to a <b>.wav</b> and estimates rate + rhythm regularity. Does <b>not</b> detect murmurs or valve disease.</div>
+    <div class="m"><span class="tag">LISTEN</span>Records the actual heart sounds to a <b>.wav</b>, estimates rate + rhythm, and runs an <b>on-device AI model</b> that screens for murmur / abnormal heart sounds. Screening only — refer positives; not a diagnosis.</div>
     <div class="m" style="color:var(--mut)">Check the trace looks like clean lub-dub beats before trusting the number.</div>
   </div>
   <button id="pcRec" class="rec" data-te='● గుండె శబ్దం రికార్డ్ (15s)'>● Record heart sound (15s)</button>
@@ -293,6 +294,8 @@
 </div>
 <div class="card res" id="pcResCard">
   <div class="cls" id="pcVerdict">—</div>
+  <div class="cls" id="pcAI" style="display:none;margin-top:2px">🧠 AI screen: —</div>
+  <div id="pcAIsub" style="display:none;color:var(--mut);font-size:11px;margin:2px 0 4px" data-te='ఆన్-డివైస్ AI మోడల్ (CirCor + CinC హృదయ-శబ్ద డేటాపై శిక్షణ). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on CirCor + CinC heart-sound data). Screening only — not a diagnosis.</div>
   <div class="grid">
     <div class="kv">Heart rate<b id="pcHR">—</b>bpm</div>
     <div class="kv">Rhythm<b id="pcReg">—</b></div>
@@ -300,7 +303,7 @@
     <div class="kv">Signal quality<b id="pcQ">—</b></div>
   </div>
   <button id="pcDl" class="dl" data-te='⬇ ఈ రికార్డింగ్ డౌన్‌లోడ్ (.wav)'>⬇ Download this recording (.wav)</button>
-  <div class="note" style="margin-top:6px" data-te='రేటు/లయ <b>ఒక స్క్రీన్, నిర్ధారణ కాదు</b>, మరియు ఇది <b>మర్మర్</b> డిటెక్టర్ కాదు. క్లినికల్‌గా నిర్ధారించండి.'>Rate/rhythm is a <b>screen, not a diagnosis</b>, and this is <b>not</b> a murmur detector. Confirm clinically.</div>
+  <div class="note" style="margin-top:6px" data-te='రేటు/లయ మరియు AI మర్మర్ స్క్రీన్ <b>స్క్రీనింగ్ సాధనాలు, నిర్ధారణ కాదు</b>. పాజిటివ్‌లను రెఫర్ చేయండి; క్లినికల్‌గా నిర్ధారించండి.'>Rate/rhythm and the AI murmur screen are <b>screening tools, not a diagnosis</b>. Refer positives; confirm clinically.</div>
 </div>
 <div class="card" id="pcLogCard" style="display:none"><b style="font-size:13px" data-te='గుండె-శబ్దం లాగ్'>Heart-sound log</b><div id="pcLogTable"></div><button id="pcCsv" class="dl" data-te='⬇ గుండె-శబ్దం CSV డౌన్‌లోడ్'>⬇ Download heart-sound CSV</button></div>
 </div>
@@ -806,7 +809,7 @@ function pcStopRec(){
   if(n<pcSr){pcSt('Too short — record ~15s.');try{pcCtx.close();}catch(e){}return;}
   const s=new Float32Array(n);let o=0;pcBuf.forEach(b=>{s.set(b,o);o+=b.length;});try{pcCtx.close();}catch(e){}
   pcWav=encodeWAV(s,pcSr);const p=$('pcPlayer');p.src=URL.createObjectURL(pcWav);p.style.display='block';
-  pcDraw(s);pcAnalyze(s,pcSr);
+  pcDraw(s);const pcRow=pcAnalyze(s,pcSr);pcMLScreen(s,pcSr,pcRow);
 }
 function pcAnalyze(s,fs){
   let rms=0;for(let i=0;i<s.length;i++)rms+=s[i]*s[i];rms=Math.sqrt(rms/s.length);
@@ -835,8 +838,10 @@ function pcAnalyze(s,fs){
   $('pcReg').textContent=reg;$('pcConf').textContent=bestC.toFixed(2);$('pcQ').textContent=q;
   $('pcResCard').style.display='block';
   pcSt('Done. Check the trace looks like clean lub-dub beats before trusting the number.');
-  if(!uncertain){pcRows.push({pid:$('pid').value,age:$('age').value,sex:$('sex').value,bpm:bpm,reg:bestC>=0.5?'reg':'irreg',conf:bestC.toFixed(2),t:new Date().toISOString()});
+  let pcRow=null;
+  if(!uncertain){pcRow={pid:$('pid').value,age:$('age').value,sex:$('sex').value,bpm:bpm,reg:bestC>=0.5?'reg':'irreg',conf:bestC.toFixed(2),ai:'',t:new Date().toISOString()};pcRows.push(pcRow);
     pcRenderLog();$('pcLogCard').style.display='block';}
+  return pcRow;
 }
 function pcDraw(s){const c=$('pcWave');c.style.display='block';c.width=c.clientWidth*2;c.height=180;
   const g=c.getContext('2d'),W=c.width,H=c.height,step=Math.floor(s.length/W)||1;
@@ -844,12 +849,77 @@ function pcDraw(s){const c=$('pcWave');c.style.display='block';c.width=c.clientW
   for(let x=0;x<W;x++){let mn=1,mx=-1;for(let j=0;j<step;j++){const v=s[x*step+j]||0;mn=Math.min(mn,v);mx=Math.max(mx,v);}
     g.moveTo(x,H/2*(1-mx)+H/4);g.lineTo(x,H/2*(1-mn)+H/4);}g.stroke();}
 $('pcDl').onclick=()=>{if(pcWav)dl(pcWav,($('pid').value||'rec')+'_pcg_'+Date.now()+'.wav');};
-$('pcCsv').onclick=()=>{let c='patient_id,age,sex,heart_rate_bpm,rhythm,confidence,datetime\n';
-  pcRows.forEach(r=>c+=[r.pid,r.age,r.sex,r.bpm,r.reg,r.conf,r.t].join(',')+'\n');
+$('pcCsv').onclick=()=>{let c='patient_id,age,sex,heart_rate_bpm,rhythm,confidence,ai_abnormal_prob,datetime\n';
+  pcRows.forEach(r=>c+=[r.pid,r.age,r.sex,r.bpm,r.reg,r.conf,r.ai||'',r.t].join(',')+'\n');
   dl(new Blob([c],{type:'text/csv'}),'bedsidedx_cardioscope_heartsound.csv');};
 function pcRenderLog(){let h='<table><tr><th>ID</th><th>BPM</th><th>Rhythm</th><th>Conf</th></tr>';
   pcRows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.bpm+'</td><td>'+r.reg+'</td><td>'+r.conf+'</td></tr>');
   $('pcLogTable').innerHTML=h+'</table>';}
+
+/* ===== Cardioscope on-device AI: murmur/abnormal heart-sound screen (TF.js) ===== */
+const PC_SR2=2000,PC_NFFT=512,PC_HOP=64,PC_NMEL=64,PC_TFR=157,PC_LWAV=10000,PC_NB=PC_NFFT/2+1,PC_THR=0.084;
+const PC_WIN=new Float32Array(PC_NFFT);for(let n=0;n<PC_NFFT;n++)PC_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/PC_NFFT);
+let pcModel=null,pcMel=null,pcModelLoading=null;
+async function pcLoadModel(){
+  if(pcModel&&pcMel)return true;
+  if(pcModelLoading)return pcModelLoading;
+  pcModelLoading=(async()=>{
+    try{
+      if(typeof tf==='undefined')throw new Error('tfjs not loaded');
+      pcMel=(await (await fetch('mel_filter.json')).json()).mel;
+      pcModel=await tf.loadLayersModel('model.json');
+      pcSelfTest();return true;
+    }catch(e){console.error('AI model load failed',e);return false;}
+  })();
+  return pcModelLoading;
+}
+function pcResample(s,fromR,toR){
+  if(fromR===toR)return Float32Array.from(s);
+  const ratio=toR/fromR,outLen=Math.max(1,Math.round(s.length*ratio)),out=new Float32Array(outLen);
+  for(let i=0;i<outLen;i++){const pos=i/ratio,i0=Math.floor(pos),frac=pos-i0,a=s[i0]||0,b=(i0+1<s.length)?s[i0+1]:a;out[i]=a+(b-a)*frac;}
+  return out;
+}
+function pcLogMel(x){
+  let xf=new Float32Array(PC_LWAV);
+  if(x.length>=PC_LWAV)xf.set(x.subarray(0,PC_LWAV));else xf.set(x);
+  let mx=0;for(let i=0;i<PC_LWAV;i++){const a=Math.abs(xf[i]);if(a>mx)mx=a;}
+  const nrm=1/(mx+1e-9);for(let i=0;i<PC_LWAV;i++)xf[i]*=nrm;
+  const pad=PC_NFFT/2,xp=new Float32Array(PC_LWAV+PC_NFFT);xp.set(xf,pad);
+  const nfr=1+Math.floor(PC_LWAV/PC_HOP);
+  const P=new Float32Array(PC_NB*nfr),re=new Float64Array(PC_NFFT),im=new Float64Array(PC_NFFT);
+  for(let f=0;f<nfr;f++){const off=f*PC_HOP;
+    for(let k=0;k<PC_NFFT;k++){re[k]=xp[off+k]*PC_WIN[k];im[k]=0;}
+    fft(re,im);
+    for(let b=0;b<PC_NB;b++)P[b*nfr+f]=re[b]*re[b]+im[b]*im[b];}
+  const S=new Float32Array(PC_NMEL*nfr);
+  for(let m=0;m<PC_NMEL;m++){const mrow=pcMel[m];
+    for(let f=0;f<nfr;f++){let acc=0;for(let b=0;b<PC_NB;b++)acc+=mrow[b]*P[b*nfr+f];
+      S[m*nfr+f]=10*Math.log10(Math.max(1e-10,acc+1e-10));}}
+  let smax=-Infinity;for(let i=0;i<S.length;i++)if(S[i]>smax)smax=S[i];
+  const fl=smax-80;for(let i=0;i<S.length;i++)if(S[i]<fl)S[i]=fl;
+  let mean=0;for(let i=0;i<S.length;i++)mean+=S[i];mean/=S.length;
+  let vs=0;for(let i=0;i<S.length;i++){const d=S[i]-mean;vs+=d*d;}
+  const std=Math.sqrt(vs/S.length)+1e-6;
+  const out=new Float32Array(PC_NMEL*PC_TFR);
+  for(let m=0;m<PC_NMEL;m++)for(let f=0;f<PC_TFR;f++)out[m*PC_TFR+f]=(f<nfr)?(S[m*nfr+f]-mean)/std:0;
+  return out;
+}
+function pcInfer(feat){return tf.tidy(()=>{const x=tf.tensor4d(feat,[1,PC_NMEL,PC_TFR,1]);return pcModel.predict(x).dataSync()[0];});}
+function pcGenTest(){const n=PC_LWAV,out=new Float32Array(n);for(let i=0;i<n;i++){const t=i/PC_SR2;out[i]=Math.sin(2*Math.PI*50*t)+0.5*Math.sin(2*Math.PI*150*t)+0.25*Math.sin(2*Math.PI*300*t);}return out;}
+function pcSelfTest(){try{const p=pcInfer(pcLogMel(pcGenTest()));console.log('AI engine self-check prob='+p.toFixed(4)+' ('+(Math.abs(p-0.011)<0.03?'PASS':'DRIFT')+')');}catch(e){console.warn('self-test skipped',e);}}
+async function pcMLScreen(s,fs,pcRow){
+  const el=$('pcAI'),sub=$('pcAIsub');el.style.display='block';sub.style.display='block';
+  el.textContent='🧠 AI screen: loading model…';el.style.color='var(--mut)';
+  const ok=await pcLoadModel();
+  if(!ok){el.textContent='🧠 AI screen unavailable (model file not found)';el.style.color='var(--mut)';return;}
+  try{
+    const p=pcInfer(pcLogMel(pcResample(s,fs,PC_SR2))),pos=p>=PC_THR;
+    el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
+    el.style.color=pos?'var(--bad)':'var(--ok)';
+    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic';
+    if(pcRow)pcRow.ai=p.toFixed(3);
+  }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';}
+}
 
 /* ===== bilingual EN/Telugu ===== */
 function applyLang(l){document.body.setAttribute('lang',l);
