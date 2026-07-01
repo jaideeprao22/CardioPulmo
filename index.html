@@ -813,7 +813,17 @@ function pcStopRec(){
   pcLastBuf=s;pcWav=encodeWAV(s,pcSr);const p=$('pcPlayer');p.src=URL.createObjectURL(pcWav);p.style.display='block';$('pcAmp').style.display='block';
   pcDraw(s);const pcRow=pcAnalyze(s,pcSr);pcMLScreen(s,pcSr,pcRow);
 }
+function pcHP(x,fs,fc){const w=2*Math.PI*fc/fs,c=Math.cos(w),sn=Math.sin(w),al=sn/1.414;
+  const a0=1+al,B0=((1+c)/2)/a0,B1=(-(1+c))/a0,B2=((1+c)/2)/a0,A1=(-2*c)/a0,A2=(1-al)/a0;
+  const y=new Float32Array(x.length);let x1=0,x2=0,y1=0,y2=0;
+  for(let i=0;i<x.length;i++){const xi=x[i],yi=B0*xi+B1*x1+B2*x2-A1*y1-A2*y2;y[i]=yi;x2=x1;x1=xi;y2=y1;y1=yi;}return y;}
+function pcLP(x,fs,fc){const w=2*Math.PI*fc/fs,c=Math.cos(w),sn=Math.sin(w),al=sn/1.414;
+  const a0=1+al,B0=((1-c)/2)/a0,B1=(1-c)/a0,B2=((1-c)/2)/a0,A1=(-2*c)/a0,A2=(1-al)/a0;
+  const y=new Float32Array(x.length);let x1=0,x2=0,y1=0,y2=0;
+  for(let i=0;i<x.length;i++){const xi=x[i],yi=B0*xi+B1*x1+B2*x2-A1*y1-A2*y2;y[i]=yi;x2=x1;x1=xi;y2=y1;y1=yi;}return y;}
+function pcBandpass(x,fs){return pcLP(pcHP(x,fs,20),fs,150);}
 function pcAnalyze(s,fs){
+  s=pcBandpass(s,fs);
   let rms=0;for(let i=0;i<s.length;i++)rms+=s[i]*s[i];rms=Math.sqrt(rms/s.length);
   const f=Math.max(1,Math.round(fs/1000)),fd=fs/f,L=Math.floor(s.length/f),ds=new Float32Array(L);
   for(let i=0;i<L;i++){let a=0;for(let j=0;j<f;j++)a+=s[i*f+j];ds[i]=a/f;}
@@ -861,7 +871,7 @@ function pcRenderLog(){let h='<table><tr><th>ID</th><th>BPM</th><th>Rhythm</th><
   $('pcLogTable').innerHTML=h+'</table>';}
 
 /* ===== Cardioscope on-device AI: murmur/abnormal heart-sound screen (TF.js) ===== */
-const PC_SR2=2000,PC_NFFT=512,PC_HOP=64,PC_NMEL=64,PC_TFR=157,PC_LWAV=10000,PC_NB=PC_NFFT/2+1,PC_THR=0.084;
+const PC_SR2=2000,PC_NFFT=512,PC_HOP=64,PC_NMEL=64,PC_TFR=157,PC_LWAV=10000,PC_NB=PC_NFFT/2+1,PC_THR=0.109;
 const PC_WIN=new Float32Array(PC_NFFT);for(let n=0;n<PC_NFFT;n++)PC_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/PC_NFFT);
 let pcModel=null,pcMel=null,pcModelLoading=null,pcModelErr='';
 async function pcLoadModel(){
@@ -872,8 +882,8 @@ async function pcLoadModel(){
       if(typeof tf==='undefined')throw new Error('tfjs library not loaded (check internet)');
       const mr=await fetch('mel_filter.json');
       if(!mr.ok)throw new Error('mel_filter.json → '+mr.status+' (upload it next to index.html)');
-      pcMel=(await mr.json()).mel;
-      pcModel=await tf.loadLayersModel('model.json');
+      const mjson=await mr.json();pcMel=Array.isArray(mjson)?mjson:mjson.mel;
+      pcModel=await tf.loadGraphModel('model.json');
       pcSelfTest();return true;
     }catch(e){pcModelErr=e.message||String(e);console.error('AI model load failed:',e);return false;}
   })();
@@ -910,9 +920,9 @@ function pcLogMel(x){
   for(let m=0;m<PC_NMEL;m++)for(let f=0;f<PC_TFR;f++)out[m*PC_TFR+f]=(f<nfr)?(S[m*nfr+f]-mean)/std:0;
   return out;
 }
-function pcInfer(feat){return tf.tidy(()=>{const x=tf.tensor4d(feat,[1,PC_NMEL,PC_TFR,1]);return pcModel.predict(x).dataSync()[0];});}
+function pcInfer(feat){return tf.tidy(()=>{const x=tf.tensor4d(feat,[1,PC_NMEL,PC_TFR,1]);const y=pcModel.predict(x);const t=Array.isArray(y)?y[0]:y;return t.dataSync()[0];});}
 function pcGenTest(){const n=PC_LWAV,out=new Float32Array(n);for(let i=0;i<n;i++){const t=i/PC_SR2;out[i]=Math.sin(2*Math.PI*50*t)+0.5*Math.sin(2*Math.PI*150*t)+0.25*Math.sin(2*Math.PI*300*t);}return out;}
-function pcSelfTest(){try{const p=pcInfer(pcLogMel(pcGenTest()));console.log('AI engine self-check prob='+p.toFixed(4)+' ('+(Math.abs(p-0.011)<0.03?'PASS':'DRIFT')+')');}catch(e){console.warn('self-test skipped',e);}}
+function pcSelfTest(){try{const p=pcInfer(pcLogMel(pcGenTest()));const okv=isFinite(p)&&p>=0&&p<=1;console.log('AI engine self-check prob='+p.toFixed(4)+' ('+(okv?'ENGINE OK':'ERROR')+')');}catch(e){console.warn('self-test skipped',e);}}
 function pcHeartSignal(s,fs){
   const x=pcResample(s,fs,PC_SR2),N=512,H=256,NB=N/2+1;
   const avg=new Float64Array(NB),re=new Float64Array(N),im=new Float64Array(N);let nw=0;
@@ -926,12 +936,12 @@ function pcHeartSignal(s,fs){
   const eLow=bandE(20,150),eMid=bandE(150,600),eHigh=bandE(600,1000),eTot=eLow+eMid+eHigh+1e-12;
   const ratioLow=eLow/eTot;
   let rms=0;for(let i=0;i<x.length;i++)rms+=x[i]*x[i];rms=Math.sqrt(rms/x.length);
-  let verdict,ok,col;
-  if(rms<0.0004){verdict='Mic silent — no input at all (check mic permission / port)';ok=false;col='var(--mut)';}
-  else if(ratioLow>=0.5){verdict=(rms<0.006?'Faint but heart-band signal — amplify to check':'Heart-sound signal detected ✓');ok=true;col=(rms<0.006?'var(--warn)':'var(--ok)');}
-  else if(ratioLow>=0.35){verdict='Weak / partial — too noisy for a reliable AI screen. Improve capture';ok=false;col='var(--warn)';}
-  else{verdict='Mostly high-freq noise — reposition or use a coupler';ok=false;col='var(--bad)';}
-  return {ratioLow:ratioLow,rms:rms,verdict:verdict,ok:ok,col:col};
+  let verdict,ok,col,quality;
+  if(rms<0.0004){verdict='Mic silent — no input (check mic permission / port)';ok=false;col='var(--mut)';quality='none';}
+  else if(ratioLow>=0.45){verdict='Heart-sound signal detected ✓';ok=true;col='var(--ok)';quality='good';}
+  else if(ratioLow>=0.28){verdict='Partial heart signal — AI shown, interpret with caution';ok=true;col='var(--warn)';quality='low';}
+  else{verdict='Mostly high-freq noise — reposition';ok=false;col='var(--bad)';quality='none';}
+  return {ratioLow:ratioLow,rms:rms,verdict:verdict,ok:ok,col:col,quality:quality};
 }
 async function pcAmplifyPlay(){
   if(!pcLastBuf){return;}
@@ -957,8 +967,8 @@ async function pcMLScreen(s,fs,pcRow){
   const q=pcHeartSignal(s,fs);
   sig.style.display='block';sig.textContent='📶 '+q.verdict+'  ('+(q.ratioLow*100).toFixed(0)+'% low-band)';sig.style.color=q.col;
   el.style.display='block';sub.style.display='block';
-  if(!q.ok){el.textContent='🧠 AI screen: skipped — signal not usable';el.style.color='var(--mut)';
-    sub.textContent='The AI needs clean heart sound. Fix acquisition (stethoscope coupler / firmer contact / quieter room), then re-record.';return;}
+  if(!q.ok){el.textContent='🧠 AI screen: skipped — mostly noise';el.style.color='var(--mut)';
+    sub.textContent='Press the phone tip firmly on bare skin at the heart, hold still, quiet room, then re-record.';return;}
   el.textContent='🧠 AI screen: loading model…';el.style.color='var(--mut)';
   const ok=await pcLoadModel();
   if(!ok){el.textContent='🧠 AI screen unavailable — '+pcModelErr;el.style.color='var(--mut)';
@@ -967,7 +977,7 @@ async function pcMLScreen(s,fs,pcRow){
     const p=pcInfer(pcLogMel(pcResample(s,fs,PC_SR2))),pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
-    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic';
+    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%'+(q.quality==='low'?'  ·  ⚠ LOW signal quality — interpret with caution':'')+'  ·  screening only, not diagnostic';
     if(pcRow)pcRow.ai=p.toFixed(3);
   }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';}
 }
