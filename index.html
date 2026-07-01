@@ -836,7 +836,7 @@ function pcAnalyze(s,fs){
   let bestLag=0,bestC=-1;
   for(let lag=lo;lag<=hi&&lag<L;lag++){let c=0;for(let i=0;i<L-lag;i++)c+=env[i]*env[i+lag];c/=(e0||1);if(c>bestC){bestC=c;bestLag=lag;}}
   const bpm=bestLag?Math.round(60*fd/bestLag):0;
-  const uncertain=(bestC<0.2||rms<0.008||!bpm);
+  const uncertain=(bestC<0.2||rms<0.0015||!bpm);
   let verdict,col,reg,q;
   if(uncertain){verdict='Signal too weak / noisy — reposition, quieter room';col='var(--mut)';reg='—';q='Poor';$('pcHR').textContent='—';}
   else{
@@ -871,7 +871,7 @@ function pcRenderLog(){let h='<table><tr><th>ID</th><th>BPM</th><th>Rhythm</th><
   $('pcLogTable').innerHTML=h+'</table>';}
 
 /* ===== Cardioscope on-device AI: murmur/abnormal heart-sound screen (TF.js) ===== */
-const PC_SR2=2000,PC_NFFT=512,PC_HOP=64,PC_NMEL=64,PC_TFR=157,PC_LWAV=10000,PC_NB=PC_NFFT/2+1,PC_THR=0.109;
+const PC_SR2=2000,PC_NFFT=512,PC_HOP=64,PC_NMEL=64,PC_TFR=157,PC_LWAV=10000,PC_NB=PC_NFFT/2+1,PC_THR=0.25;
 const PC_WIN=new Float32Array(PC_NFFT);for(let n=0;n<PC_NFFT;n++)PC_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/PC_NFFT);
 let pcModel=null,pcMel=null,pcModelLoading=null,pcModelErr='';
 async function pcLoadModel(){
@@ -969,6 +969,8 @@ async function pcMLScreen(s,fs,pcRow){
   el.style.display='block';sub.style.display='block';
   if(!q.ok){el.textContent='🧠 AI screen: skipped — mostly noise';el.style.color='var(--mut)';
     sub.textContent='Press the phone tip firmly on bare skin at the heart, hold still, quiet room, then re-record.';return;}
+  if(q.quality!=='good'){el.textContent='🧠 AI screen: signal too noisy for a reliable result';el.style.color='var(--warn)';
+    sub.textContent='Too much background noise for the AI. Move to a quieter spot, press firmly on bare skin, hold still — aim for the green "Heart-sound signal detected ✓" before trusting the AI.';return;}
   el.textContent='🧠 AI screen: loading model…';el.style.color='var(--mut)';
   const ok=await pcLoadModel();
   if(!ok){el.textContent='🧠 AI screen unavailable — '+pcModelErr;el.style.color='var(--mut)';
@@ -977,7 +979,7 @@ async function pcMLScreen(s,fs,pcRow){
     const p=pcInfer(pcLogMel(pcResample(s,fs,PC_SR2))),pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
-    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%'+(q.quality==='low'?'  ·  ⚠ LOW signal quality — interpret with caution':'')+'  ·  screening only, not diagnostic';
+    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic';
     if(pcRow)pcRow.ai=p.toFixed(3);
   }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';}
 }
