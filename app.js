@@ -836,7 +836,7 @@ async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
   }catch(e){console.warn('upload failed',e);}
 }
 function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');}
-function sbShowLogin(){var o=$('authOverlay');if(o)o.style.display='flex';}
+function sbShowLogin(){var o=$('authOverlay');if(o)o.style.display='flex';initGoogleBtn();}
 async function sbMaybeProfile(){
   if(!sb||!sbUser)return;
   try{const {data}=await sb.from('profiles').select('full_name').eq('id',sbUser.id).maybeSingle();
@@ -850,7 +850,7 @@ async function sbInit(){
   if(sbUser){sbShowApp();sbMaybeProfile();}else{sbShowLogin();}
   sb.auth.onAuthStateChange(function(_e,session){sbUser=session?session.user:null;if(sbUser){sbShowApp();sbMaybeProfile();}else{sbShowLogin();}});
 }
-if($('authGoogle'))$('authGoogle').onclick=async function(){if(sb)await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}});};
+
 if($('authLogin'))$('authLogin').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signInWithPassword({email:$('authEmail').value.trim(),password:$('authPass').value});if(error)$('authMsg').textContent=error.message;};
 if($('authSignup'))$('authSignup').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signUp({email:$('authEmail').value.trim(),password:$('authPass').value});$('authMsg').textContent=error?error.message:'Account created — check your email to confirm, then log in.';};
 if($('authLogout'))$('authLogout').onclick=async function(){if(sb)await sb.auth.signOut();};
@@ -859,4 +859,23 @@ if($('profileSave'))$('profileSave').onclick=async function(){
   await sb.from('profiles').update({full_name:$('pfName').value.trim(),age:parseInt($('pfAge').value)||null,sex:$('pfSex').value||null,phone:$('pfPhone').value.trim()||null,role:$('pfRole').value||null}).eq('id',sbUser.id);
   $('profileOverlay').style.display='none';
 };
+
+/* ===== Google native sign-in (GSI) -> Supabase (no redirect page) ===== */
+const GOOGLE_CLIENT_ID='533637534015-8eob9q94fecugvf6d4rm41hnc1fd6f4u.apps.googleusercontent.com';
+let gsiDone=false;
+function initGoogleBtn(){
+  if(gsiDone)return;
+  if(!(window.google&&google.accounts&&google.accounts.id)){setTimeout(initGoogleBtn,300);return;}
+  gsiDone=true;
+  google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential,auto_select:false,cancel_on_tap_outside:true});
+  var el=document.getElementById('googleSignInBtn');
+  if(el&&!el.hasChildNodes()){google.accounts.id.renderButton(el,{theme:'outline',size:'large',width:320,text:'continue_with',shape:'rectangular'});}
+}
+async function handleGoogleCredential(resp){
+  if(!sb){return;}
+  const {error}=await sb.auth.signInWithIdToken({provider:'google',token:resp.credential});
+  if(error){if($('authMsg'))$('authMsg').textContent='Google login failed — '+error.message;}
+}
+
+initGoogleBtn();
 sbInit();

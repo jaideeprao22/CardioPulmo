@@ -3,19 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>CardioPulmo — Heart & lung screening in your pocket</title>
+<title>CardioPulmo App — Heart & lung screening in your pocket</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="globals.css">
 </head>
 <body>
 <!-- LOGIN -->
 <div id="authOverlay" class="ovl">
   <div class="ovlcard">
-    <div class="ovlbrand">CardioPulmo</div>
+    <div class="ovlbrand">CardioPulmo App</div>
     <div class="ovlsub" data-te='గుండె & ఊపిరితిత్తుల స్క్రీనింగ్ మీ జేబులో'>Heart &amp; lung screening in your pocket</div>
-    <button id="authGoogle" class="gbtn">Continue with Google</button>
+    <div id="googleSignInBtn" style="display:flex;justify-content:center"></div>
     <div class="ordiv">— or —</div>
     <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
     <input id="authPass" type="password" placeholder="Password" autocomplete="current-password">
@@ -39,7 +40,7 @@
 </div>
 
 <button id="langBtn" onclick="toggleLang()">తెలుగు</button>
-<h1 data-te='<span class="brand">CardioPulmo</span> · గుండె & ఊపిరితిత్తుల స్క్రీనింగ్'><span class="brand">CardioPulmo</span> · Heart &amp; lung screening in your pocket</h1>
+<h1 data-te='<span class="brand">CardioPulmo App</span> · గుండె & ఊపిరితిత్తుల స్క్రీనింగ్'><span class="brand">CardioPulmo App</span> · Heart &amp; lung screening in your pocket</h1>
 <div class="sub" data-te='రీసెర్చ్ పరికరం · పెర్కషన్ + ఆస్కల్టేషన్ + PPG, రోగి-లోపల రిఫరెన్స్‌తో'>Research instrument · percussion + auscultation + PPG, with within-patient referencing</div>
 <div class="disc" data-te='<b>ఇది డయాగ్నొస్టిక్ పరికరం కాదు.</b> అన్ని ఫ్లాగ్‌లు/విలువలు <b>అన్‌క్యాలిబ్రేటెడ్</b> — నిజమైన కట్-ఆఫ్‌లు మీ రిఫరెన్స్-స్టాండర్డ్ డేటా నుండి వస్తాయి. ఎల్లప్పుడూ క్లినికల్‌గా నిర్ధారించండి.'><b>NOT a diagnostic device.</b> All flags/indices are <b>uncalibrated</b> — real cut-offs come from your reference-standard data. Always confirm clinically.</div>
 
