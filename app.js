@@ -1,6 +1,27 @@
 const $=id=>document.getElementById(id);
 const st=m=>$('status').textContent=m;
-function tab(n){for(let i=1;i<=6;i++){$('t'+i).classList.toggle('on',i===n);$('p'+i).classList.toggle('on',i===n);}}
+let pulmoCur='lung';
+function hideAllPanes(){['p1','p2','p3','p4','p5','p6'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
+function topTab(name){
+  hideAllPanes();
+  $('tCardio').classList.toggle('on',name==='cardio');
+  $('tPulmo').classList.toggle('on',name==='pulmo');
+  $('tVasc').classList.toggle('on',name==='vasc');
+  $('pulmoSubNav').style.display=(name==='pulmo')?'flex':'none';
+  if(name==='cardio'){$('p4').classList.add('on');}
+  else if(name==='pulmo'){pulmoSub(pulmoCur);}
+  else if(name==='vasc'){$('p2').classList.add('on');}
+  else if(name==='about'){$('p6').classList.add('on');}
+}
+function pulmoSub(which){
+  pulmoCur=which;
+  $('p5').classList.toggle('on',which==='lung');
+  $('p1').classList.toggle('on',which==='perc');
+  $('p3').classList.toggle('on',which==='echo');
+  $('psLung').classList.toggle('on',which==='lung');
+  $('psPerc').classList.toggle('on',which==='perc');
+  $('psEcho').classList.toggle('on',which==='echo');
+}
 function dl(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
 function fft(re,im){const n=re.length;
   for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){let tr=re[i];re[i]=re[j];re[j]=tr;let ti=im[i];im[i]=im[j];im[j]=ti;}}
@@ -819,6 +840,8 @@ function applyLang(l){document.body.setAttribute('lang',l);
   try{localStorage.setItem('cardiopulmo_lang',l);}catch(e){}}
 function toggleLang(){applyLang(document.body.getAttribute('lang')==='te'?'en':'te');}
 applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';}catch(e){return 'en';}})());
+csTab('c');
+topTab('cardio');
 
 
 /* ===== Supabase: login (Google + email), one-time profile, audio upload ===== */

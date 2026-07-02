@@ -39,6 +39,7 @@
   </div>
 </div>
 
+<button id="aboutBtn" onclick="topTab('about')" style="position:fixed;top:8px;left:8px;width:auto;margin:0;padding:6px 12px;font-size:13px;background:#21262d;border:1px solid var(--line);z-index:50;border-radius:8px;color:var(--txt);cursor:pointer">ℹ️ About</button>
 <button id="langBtn" onclick="toggleLang()">తెలుగు</button>
 <h1 data-te='<span class="brand">CardioPulmo App</span> · గుండె & ఊపిరితిత్తుల స్క్రీనింగ్'><span class="brand">CardioPulmo App</span> · Heart &amp; lung screening in your pocket</h1>
 <div class="sub" data-te='రీసెర్చ్ పరికరం · పెర్కషన్ + ఆస్కల్టేషన్ + PPG, రోగి-లోపల రిఫరెన్స్‌తో'>Research instrument · percussion + auscultation + PPG, with within-patient referencing</div>
@@ -49,12 +50,14 @@
 </div>
 
 <div class="tabs">
-  <div class="tab on" id="t1" onclick="tab(1)" data-te='🔊 పెర్కషన్'>🔊 Percussion</div>
-  <div class="tab" id="t2" onclick="tab(2)">❤️ VascAge</div>
-  <div class="tab" id="t3" onclick="tab(3)">🎯 EchoLat</div>
-  <div class="tab" id="t4" onclick="tab(4)" data-te='🫀 కార్డియో'>🫀 Cardio</div>
-  <div class="tab" id="t5" onclick="tab(5)" data-te='🫁 పల్మో'>🫁 PulmoScope</div>
-  <div class="tab" id="t6" onclick="tab(6)" data-te='ℹ️ గురించి'>ℹ️ About</div>
+  <div class="tab on" id="tCardio" onclick="topTab('cardio')" data-te='🫀 కార్డియో'>🫀 Cardioscope</div>
+  <div class="tab" id="tPulmo" onclick="topTab('pulmo')" data-te='🫁 పల్మో'>🫁 PulmoScope</div>
+  <div class="tab" id="tVasc" onclick="topTab('vasc')">❤️ VascAge</div>
+</div>
+<div class="tabs" id="pulmoSubNav" style="display:none">
+  <div class="tab on" id="psLung" onclick="pulmoSub('lung')" data-te='🫁 శబ్దం'>🫁 Lung sound</div>
+  <div class="tab" id="psPerc" onclick="pulmoSub('perc')" data-te='🔊 పెర్కషన్'>🔊 Percussion</div>
+  <div class="tab" id="psEcho" onclick="pulmoSub('echo')">🎯 EchoLat</div>
 </div>
 
 <!-- ================= PERCUSSION ================= -->
@@ -189,9 +192,9 @@
   <b style="font-size:13px" data-te='🫀 Cardioscope · హృదయ-రక్తనాళ పరీక్ష'>🫀 Cardioscope · cardiovascular exam</b>
   <div class="note" style="margin-top:5px" data-te='<b>ఆన్-డిమాండ్</b> గుండె లయ (ఛాతీపై ఫోన్ యాక్సిలరోమీటర్) + <b>మెడ / JVP స్పందన</b> (కెమెరా). కేవలం ఫ్లాగ్‌లు — <b>ఇది</b> నిర్ధారణ కాదు, <b>స్టెతస్కోప్</b> కాదు. రాత్రంతా పాసివ్ మానిటరింగ్‌కు నేటివ్ యాప్ అవసరం (స్క్రీన్ ఆఫ్ అయితే బ్రౌజర్‌లు సెన్సర్‌లను నిలిపివేస్తాయి).'><b>On-demand</b> heart-rhythm (phone accelerometer on the chest) + <b>neck / JVP pulsation</b> (camera). Flags only — <b>not</b> a diagnosis, <b>not</b> a stethoscope. Passive all-night monitoring needs the native app (browsers suspend sensors when the screen is off).</div>
   <div class="row" style="margin-top:9px">
-    <div><button id="csTabA" class="dl" style="margin-top:0;padding:11px 4px;font-size:13px;background:#15233b;border:1px solid var(--acc)" data-te='❤️ లయ'>❤️ Rhythm</button></div>
+    <div><button id="csTabC" class="dl" style="margin-top:0;padding:11px 4px;font-size:13px;background:#15233b;border:1px solid var(--acc)" data-te='🔊 శబ్దం'>🔊 Sound</button></div>
+    <div><button id="csTabA" class="dl" style="margin-top:0;padding:11px 4px;font-size:13px" data-te='❤️ లయ'>❤️ Rhythm</button></div>
     <div><button id="csTabB" class="dl" style="margin-top:0;padding:11px 4px;font-size:13px" data-te='🩸 JVP'>🩸 JVP</button></div>
-    <div><button id="csTabC" class="dl" style="margin-top:0;padding:11px 4px;font-size:13px" data-te='🔊 శబ్దం'>🔊 Sound</button></div>
   </div>
 </div>
 
