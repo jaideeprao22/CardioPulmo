@@ -157,6 +157,7 @@
   </svg>
   <div class="note" style="text-align:center;margin-top:-2px" data-te='హైలైట్ చేసిన <b>చూపుడు వేలికొనను</b> వెనుక కెమెరా + ఫ్లాష్ మీద ఉంచండి.'>Place the highlighted <b>index fingertip</b> on the rear camera + flash.</div>
   <div class="legend"><span><span class="dot" style="background:#1f6feb"></span>ready</span><span><span class="dot" style="background:#d29922"></span>measuring</span><span><span class="dot" style="background:#2ea043"></span>captured</span></div>
+  <div style="text-align:center;margin:8px 0"><img src="phone_placement.jpg" loading="lazy" alt="Fingertip on rear camera" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)"><div class="m" style="color:var(--mut)" data-te='వెనుక కెమెరా + ఫ్లాష్‌పై వేలికొనను తేలికగా ఆనించండి'>Rest the fingertip lightly over the rear camera + flash</div></div>
   <div class="row"><div><label data-te='ధూమపానం'>Smoker</label><select id="vSmoke"><option>No</option><option>Yes</option></select></div>
   <div><label data-te='రక్తపోటు (హైపర్‌టెన్షన్)'>Hypertension</label><select id="vHtn"><option>No</option><option>Yes</option></select></div>
   <div><label data-te='మధుమేహం'>Diabetes</label><select id="vDm"><option>No</option><option>Yes</option></select></div></div>
@@ -230,6 +231,10 @@
     Patient lying down or sitting still. Place the phone <b>flat, screen up, on the centre of the chest (lower breastbone)</b>. Hands off, breathe normally, stay quiet for the countdown — the phone feels each heartbeat as a tiny vibration.
     <div class="m" style="color:var(--mut)">Best lying down. Phone flat on the sternum, thin clothing or bare. No talking or moving during capture.</div>
   </div>
+  <div style="text-align:center;margin:8px 0">
+    <img src="rhythm_phone.jpg" loading="lazy" alt="Phone flat on chest" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)">
+    <div class="m" style="color:var(--mut)" data-te='ఫోన్‌ను చదునుగా, స్క్రీన్ పైకి, ఛాతీ మధ్యలో (ఛాతీ ఎముకపై) ఉంచండి'>Lay the phone flat, screen up, on the centre of the chest (breastbone)</div>
+  </div>
   <button id="csRec" class="rec" data-te='● 60-సెకన్ల లయ క్యాప్చర్ ప్రారంభం'>● Start 60-second rhythm capture</button>
   <button id="csStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
   <div id="csStatus" class="vst">Phone flat on the chest, then Start.</div>
@@ -257,6 +262,10 @@
     <div class="m" style="color:var(--mut)">Good light, steady phone. The app plots the pulsation it sees and its rate — it does <b>not</b> give a JVP height in cm; read height clinically against the sternal angle.</div>
   </div>
   <div class="row"><div><label data-te='స్టెర్నల్ యాంగిల్ పైన JVP ఎత్తు (cm, కంటితో)'>JVP height above sternal angle (cm, by eye)</label><input id="jHeight" type="number" step="0.5" placeholder="e.g. 3"></div><div><label data-te='హెపాటోజుగులర్ రిఫ్లక్స్'>Hepatojugular reflux</label><select id="jHJR"><option value="">—</option><option>Negative</option><option>Positive</option></select></div></div>
+  <div style="text-align:center;margin:8px 0">
+    <img src="jvp_phone.jpg" loading="lazy" alt="Rear camera at neck" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)">
+    <div class="m" style="color:var(--mut)" data-te='వెనుక కెమెరాను మెడ కుడివైపుకు గురిపెట్టండి, ~45° వాలి'>Point the rear camera at the right side of the neck, patient ~45° reclined</div>
+  </div>
   <div class="imgwrap" style="max-width:360px">
     <video id="jVid" playsinline muted style="width:100%;border-radius:10px;background:#000;display:block"></video>
     <div id="jBox" style="position:absolute;left:38%;top:12%;width:24%;height:66%;border:2px dashed #56d4dd;border-radius:6px;pointer-events:none"></div>
@@ -287,13 +296,14 @@
     <div class="m"><span class="tag">LISTEN</span>Records the actual heart sounds to a <b>.wav</b>, estimates rate + rhythm, and runs an <b>on-device AI model</b> that screens for murmur / abnormal heart sounds. Screening only — refer positives; not a diagnosis.</div>
     <div class="m" style="color:var(--mut)">Check the trace looks like clean lub-dub beats before trusting the number.</div>
   </div>
-  <div style="text-align:center;margin:8px 0">
-    <img src="heart_position.jpg" loading="lazy" alt="Heart position" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)">
-    <div class="m" style="color:var(--mut)" data-te='ఛాతీలో గుండె స్థానం — ఎడమ ముచ్చిక కింద (కార్డియాక్ ఎపెక్స్) వద్ద ఫోన్ మైక్ అంచును ఆనించండి'>Heart position — place the phone mic edge at the cardiac apex, just below the left nipple</div>
-    <img src="phone_placement.jpg" loading="lazy" alt="Phone placement" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line);margin-top:6px">
-    <div class="m" style="color:var(--mut)" data-te='ఫోన్ యొక్క కింది (మైక్) అంచును చర్మంపై గట్టిగా ఆనించండి'>Press the phone's bottom (mic) edge firmly on the skin</div>
+  <div class="note" style="text-align:center;margin-bottom:2px" data-te='ఎపెక్స్ చుక్కను టాప్ చేయండి → ఫోన్ మైక్ అంచును అక్కడ ఆనించి రికార్డ్ చేయండి.'>Tap the apex dot → press the phone mic-edge there and record.</div>
+  <div class="imgwrap"><img class="bodyimg" src="heart_phone.jpg" alt="heart"><div id="pcspot" class="overlay"></div></div>
+  <div class="legend">
+    <span><span class="dot" style="background:#1f6feb"></span>not done</span>
+    <span><span class="dot" style="background:#d29922"></span>recording</span>
+    <span><span class="dot" style="background:#2ea043"></span>done</span>
   </div>
-    <button id="pcRec" class="rec" data-te='● గుండె శబ్దం రికార్డ్ (15s)'>● Record heart sound (15s)</button>
+    <button id="pcRec" class="rec" disabled data-te='● గుండె శబ్దం రికార్డ్ (15s)'>● Record heart sound (15s)</button>
   <button id="pcStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
   <div id="pcStatus" class="vst">Phone mic-edge on the cardiac apex, quiet room, then Start.</div>
   <canvas id="pcWave"></canvas>
@@ -322,52 +332,49 @@
 <div class="pane" id="p5">
 <div class="card">
   <b style="font-size:13px" data-te='🫁 PulmoScope · ఊపిరితిత్తుల శబ్ద స్క్రీన్'>🫁 PulmoScope · lung-sound screen</b>
-  <div class="note" style="margin-top:5px" data-te='ఫోన్ మైక్‌తో <b>ఊపిరితిత్తుల శబ్దాలను</b> రికార్డ్ చేసి, ఆన్-డివైస్ AI నమూనా <b>సాధారణ vs అసాధారణ (క్రాకిల్స్/వీజెస్)</b> కోసం స్క్రీన్ చేస్తుంది. <b>4 స్పాట్‌లు</b> రికార్డ్ చేయండి — యాప్ వాటిని సగటు చేసి ఒక ఫలితం ఇస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్ కాదు.'><b>Records lung sounds</b> with the phone mic and an on-device AI model screens for <b>normal vs abnormal (crackles/wheezes)</b>. Record <b>4 spots</b> — the app averages them into one result. Screening only — not a diagnosis, not a stethoscope.</div>
+  <div class="note" style="margin-top:5px" data-te='ఫోన్ మైక్‌తో <b>ఊపిరితిత్తుల శబ్దాలను</b> రికార్డ్ చేసి, ఆన్-డివైస్ AI నమూనా <b>సాధారణ vs అసాధారణ (క్రాకిల్స్/వీజెస్)</b> కోసం స్క్రీన్ చేస్తుంది. వీపుపై <b>6 పాయింట్‌లను</b> టాప్ చేసి రికార్డ్ చేయండి — యాప్ వాటిని సగటు చేసి ఒక ఫలితం ఇస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్ కాదు.'><b>Records lung sounds</b> with the phone mic and an on-device AI model screens for <b>normal vs abnormal (crackles/wheezes)</b>. Tap and record <b>6 points on the back</b> — the app averages them into one result. Screening only — not a diagnosis, not a stethoscope.</div>
 </div>
 
 <div class="card">
-  <div class="howto" data-te='<h3>ఊపిరితిత్తుల శబ్దాలను ఎలా రికార్డ్ చేయాలి</h3>రోగి కూర్చొని, <b>నిశ్శబ్ద గది</b>, వీపు వైపు నుండి రికార్డ్ చేయడం ఉత్తమం. ప్రతి స్పాట్ వద్ద ఫోన్ యొక్క <b>కింది (మైక్) అంచును చర్మంపై గట్టిగా</b> ఆనించి, రోగిని <b>నోటి ద్వారా లోతుగా శ్వాస</b> తీసుకోమనండి. 4 స్పాట్‌లు: <b>కుడి పైభాగం, ఎడమ పైభాగం, కుడి కింది, ఎడమ కింది</b> (వీపుపై). ప్రతి బటన్‌ను నొక్కి 15 సెకన్లు రికార్డ్ చేయండి.<div class="m" style="color:var(--mut)">సన్నని దుస్తులు లేదా ఖాళీ చర్మం. రికార్డింగ్ సమయంలో మాట్లాడవద్దు. 4 స్పాట్‌ల తర్వాత ఫలితం కనిపిస్తుంది.</div>'>
+  <div class="howto" data-te='<h3>ఊపిరితిత్తుల శబ్దాలను ఎలా రికార్డ్ చేయాలి</h3>రోగి <b>కూర్చొని, వీపు ఖాళీగా, కొద్దిగా ముందుకు వంగి</b>, నిశ్శబ్ద గది. దిగువ శరీర చిత్రంపై ఒక పాయింట్‌ను టాప్ చేయండి, ఫోన్ యొక్క <b>కింది (మైక్) అంచును ఆ స్థానంలో చర్మంపై గట్టిగా</b> ఆనించి, రోగిని <b>నోటి ద్వారా లోతుగా శ్వాస</b> తీసుకోమనండి, ఆపై రికార్డ్ నొక్కండి. 6 పాయింట్‌లన్నీ చేయండి.<div class="m"><span class="tag">LISTEN</span>ప్రతి పాయింట్‌ను <b>.wav</b> కు రికార్డ్ చేసి ఆన్-డివైస్ AI నమూనాను నడుపుతుంది. 6 పాయింట్‌ల సగటు అత్యంత నమ్మదగిన స్క్రీన్ ఇస్తుంది.</div><div class="m" style="color:var(--mut)">సన్నని దుస్తులు లేదా ఖాళీ చర్మం. రికార్డింగ్ సమయంలో మాట్లాడవద్దు.</div>'>
     <h3>How to record lung sounds</h3>
-    Patient sitting, <b>quiet room</b>, best recorded from the back. At each spot press the phone's <b>bottom (mic) edge firmly on the skin</b> and ask the patient to <b>breathe deeply through the mouth</b>. The 4 spots: <b>Right upper, Left upper, Right lower, Left lower</b> (on the back). Tap each button to record 15 seconds.
-    <div class="m"><span class="tag">LISTEN</span>Records to a <b>.wav</b> per spot and runs the on-device AI model. Averaging 4 spots gives the most reliable normal/abnormal screen.</div>
-    <div class="m" style="color:var(--mut)">Thin clothing or bare skin. No talking during capture. The result appears after your spots are done.</div>
+    Patient <b>seated, back bared, leaning slightly forward</b>, quiet room. Tap a point on the body image below, press the phone's <b>bottom (mic) edge firmly on the skin</b> at that spot, ask the patient to <b>breathe deeply through the mouth</b>, then press record. Do all 6 points.
+    <div class="m"><span class="tag">LISTEN</span>Records each point to a <b>.wav</b> and runs the on-device AI model. Averaging 6 points gives the most reliable normal/abnormal screen.</div>
+    <div class="m" style="color:var(--mut)">Thin clothing or bare skin. No talking during capture.</div>
   </div>
-  <div style="text-align:center;margin:8px 0">
-    <img src="lung_points.jpg" loading="lazy" alt="Lung auscultation points" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)">
-    <div class="m" style="color:var(--mut)" data-te='ఊపిరితిత్తుల శబ్దాలను వినే స్థానాలు (ప్రతి వైపు పై & కింది జోన్‌లు)'>Lung auscultation points (upper &amp; lower zones, each side)</div>
-    <img src="phone_placement.jpg" loading="lazy" alt="Phone placement" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line);margin-top:6px">
+  <div class="banner">BACK view · image-RIGHT = patient's RIGHT</div>
+  <div class="note" style="text-align:center;margin-bottom:2px" data-te='వీపు చిత్రంపై ఒక పాయింట్‌ను టాప్ చేయండి → 15 సెకన్ల లోతైన శ్వాసను రికార్డ్ చేయండి. ఉత్తమ ఫలితం కోసం 6 పాయింట్‌లన్నీ చేయండి.'>Tap a point on the back image → record 15 s of deep breathing. Do all 6 for the most reliable screen.</div>
+  <div class="imgwrap"><img id="lgImg" class="bodyimg" src="lung_back.jpg" alt="back"><div id="lgzones" class="overlay"></div></div>
+  <div class="legend">
+    <span><span class="dot" style="background:#1f6feb"></span>not done</span>
+    <span><span class="dot" style="background:#d29922"></span>recording</span>
+    <span><span class="dot" style="background:#2ea043"></span>done</span>
+    <span><span class="dot" style="background:#fff;border:1px solid #999"></span>selected</span>
   </div>
-    <div class="row" style="margin-top:4px">
-    <div><button id="lgR_RUL" class="dl" style="margin-top:0" data-te='● కుడి పైభాగం'>● Right upper</button></div>
-    <div><button id="lgR_LUL" class="dl" style="margin-top:0" data-te='● ఎడమ పైభాగం'>● Left upper</button></div>
-  </div>
-  <div class="row">
-    <div><button id="lgR_RLL" class="dl" style="margin-top:0" data-te='● కుడి కింది'>● Right lower</button></div>
-    <div><button id="lgR_LLL" class="dl" style="margin-top:0" data-te='● ఎడమ కింది'>● Left lower</button></div>
-  </div>
+</div>
+
+<div class="card">
+  <div id="lgSelName" class="note" style="text-align:center;margin-bottom:2px">Tap a point on the back above.</div>
+  <button id="lgRec" class="rec" disabled data-te='● ముందుగా ఒక పాయింట్ ఎంచుకోండి'>● Select a point first</button>
   <button id="lgStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
-  <div id="lgStatus" class="vst">Enter Patient ID (top), then tap a spot to record.</div>
+  <div id="lgStatus" class="vst">Quiet room, phone mic on skin, patient breathes deeply through the mouth.</div>
   <canvas id="lgWave"></canvas>
   <audio id="lgPlayer" controls style="display:none"></audio>
 </div>
 
 <div class="card res" id="lgResCard">
   <div class="cls" id="lgVerdict">—</div>
-  <div id="lgAIsub" style="color:var(--mut);font-size:11px;margin:2px 0 6px" data-te='ఆన్-డివైస్ AI నమూనా (ICBHI ఊపిరితిత్తుల శబ్ద డేటాపై శిక్షణ; 4-స్పాట్ సగటు). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on ICBHI lung-sound data; 4-spot average). Screening only — not a diagnosis.</div>
+  <div id="lgAIsub" style="color:var(--mut);font-size:11px;margin:2px 0 6px" data-te='ఆన్-డివైస్ AI నమూనా (ICBHI ఊపిరితిత్తుల శబ్ద డేటాపై శిక్షణ; బహుళ-పాయింట్ సగటు). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on ICBHI lung-sound data; multi-point average). Screening only — not a diagnosis.</div>
+  <div class="grid" id="lgGrid"></div>
   <div class="grid">
-    <div class="kv" data-te='కుడి పైభాగం<b id="lgP_RUL">—</b>'>Right upper<b id="lgP_RUL">—</b></div>
-    <div class="kv" data-te='ఎడమ పైభాగం<b id="lgP_LUL">—</b>'>Left upper<b id="lgP_LUL">—</b></div>
-    <div class="kv" data-te='కుడి కింది<b id="lgP_RLL">—</b>'>Right lower<b id="lgP_RLL">—</b></div>
-    <div class="kv" data-te='ఎడమ కింది<b id="lgP_LLL">—</b>'>Left lower<b id="lgP_LLL">—</b></div>
     <div class="kv" data-te='సగటు అసాధారణ సంభావ్యత<b id="lgAvg">—</b>'>Mean abnormal probability<b id="lgAvg">—</b></div>
-    <div class="kv" data-te='స్పాట్‌లు రికార్డ్ చేయబడ్డాయి<b id="lgN">0/4</b>'>Spots recorded<b id="lgN">0/4</b></div>
+    <div class="kv" data-te='పాయింట్‌లు రికార్డ్ చేయబడ్డాయి<b id="lgN">0/6</b>'>Points recorded<b id="lgN">0/6</b></div>
   </div>
-  <button id="lgReset" class="dl" data-te='↺ ఈ రోగికి స్పాట్‌లు రీసెట్'>↺ Reset spots for this patient</button>
+  <button id="lgReset" class="dl" data-te='↺ ఈ రోగికి పాయింట్‌లు రీసెట్'>↺ Reset points for this patient</button>
   <button id="lgCsv" class="dl" data-te='⬇ ఊపిరితిత్తుల CSV డౌన్‌లోడ్'>⬇ Download lung CSV</button>
   <div class="note" style="margin-top:6px" data-te='AI ఊపిరితిత్తుల స్క్రీన్ ఒక <b>స్క్రీనింగ్ సాధనం, నిర్ధారణ కాదు</b>. పాజిటివ్‌లను క్లినికల్‌గా నిర్ధారించండి. థ్రెషోల్డ్ ప్రొవిజనల్ — మీ స్వంత డేటాతో కాలిబ్రేట్ చేయండి.'>The AI lung screen is a <b>screening tool, not a diagnosis</b>. Confirm positives clinically. Threshold is provisional — calibrate with your own data.</div>
 </div>
 </div>
-
 
 <script>
 const $=id=>document.getElementById(id);
@@ -848,6 +855,11 @@ function jRenderLog(){let h='<table><tr><th>ID</th><th>Rate/min</th><th>Amp</th>
 /* --- Heart sound (PCG) via microphone --- */
 let pcStream,pcCtx,pcProc,pcZg,pcBuf=[],pcSr=48000,pcWav=null,pcRows=[],pcTimer,pcLeft,pcLastBuf=null;
 const pcSt=m=>$('pcStatus').textContent=m;
+/* Cardioscope Sound: single interactive apex dot (same pattern as Percussion) */
+let pcDotState='pending';
+function pcRenderDot(){var g=$('pcspot');if(!g)return;g.innerHTML='';var d=document.createElement('div');d.className='dot2';d.style.left='62%';d.style.top='63%';d.style.width='7%';d.style.background=(pcDotState==='active')?'#d29922':((pcDotState==='done')?'#2ea043':'#1f6feb');if(pcDotState==='active'){d.style.borderColor='#fff';d.style.borderWidth='3px';d.style.boxShadow='0 0 0 4px rgba(255,255,255,.3)';}d.onclick=pcSelectDot;g.appendChild(d);}
+function pcSelectDot(){pcDotState='active';$('pcRec').disabled=false;pcSt('Apex selected. Press the phone mic-edge here, then Record.');pcRenderDot();}
+pcRenderDot();
 $('pcRec').onclick=async()=>{
   if(!$('pid').value){pcSt('Enter Patient ID (top of page) first.');return;}
   try{pcStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});}
@@ -870,6 +882,7 @@ function pcStopRec(){
   const s=new Float32Array(n);let o=0;pcBuf.forEach(b=>{s.set(b,o);o+=b.length;});try{pcCtx.close();}catch(e){}
   pcLastBuf=s;pcWav=encodeWAV(s,pcSr);const p=$('pcPlayer');p.src=URL.createObjectURL(pcWav);p.style.display='block';$('pcAmp').style.display='block';
   pcDraw(s);const pcRow=pcAnalyze(s,pcSr);pcMLScreen(s,pcSr,pcRow);
+  pcDotState='done';pcRenderDot();
 }
 function pcHP(x,fs,fc){const w=2*Math.PI*fc/fs,c=Math.cos(w),sn=Math.sin(w),al=sn/1.414;
   const a0=1+al,B0=((1+c)/2)/a0,B1=(-(1+c))/a0,B2=((1+c)/2)/a0,A1=(-2*c)/a0,A2=(1-al)/a0;
@@ -1100,82 +1113,79 @@ function lgSignalOK(s,fs){
   let rms=0;for(let i=0;i<s.length;i++)rms+=s[i]*s[i];rms=Math.sqrt(rms/s.length);
   return rms>=0.0004;
 }
-/* ---- recording ---- */
-const LG_ZONES=['RUL','LUL','RLL','LLL'];
-const LG_ZLABEL={RUL:'Right upper',LUL:'Left upper',RLL:'Right lower',LLL:'Left lower'};
-let lgStream,lgCtx,lgProc,lgZg,lgBuf=[],lgSr=48000,lgTimer,lgLeft,lgWav=null;
-let lgCurZone=null,lgProbs={},lgRows=[];
+/* ---- PulmoScope interactive lung map (same pattern as Percussion) ---- */
+const LGZ=[
+ {id:'R upper',px:60,py:24},{id:'L upper',px:40,py:24},
+ {id:'R mid',px:58,py:40},{id:'L mid',px:42,py:40},
+ {id:'R lower',px:60,py:56},{id:'L lower',px:40,py:56}
+];
+let lgState={},lgSel=null,lgWav=null;
+function lgResetAll(){lgState={};LGZ.forEach(z=>lgState[z.id]={status:'pending',p:null});lgSel=null;$('lgResCard').style.display='none';$('lgSelName').textContent='Tap a point on the back above.';$('lgRec').textContent='\u25CF Select a point first';$('lgRec').disabled=true;lgRenderMap();lgRenderGrid();}
+function lgColor(st){if(st.status==='active')return '#d29922';if(st.status==='done')return '#2ea043';return '#1f6feb';}
+function lgRenderMap(){const g=$('lgzones');g.innerHTML='';LGZ.forEach(z=>{const stt=lgState[z.id];const d=document.createElement('div');d.className='dot2';d.style.left=z.px+'%';d.style.top=z.py+'%';d.style.width='7%';d.style.background=lgColor(stt);if(z.id===lgSel){d.style.borderColor='#fff';d.style.borderWidth='3px';d.style.boxShadow='0 0 0 4px rgba(255,255,255,.3)';}d.onclick=()=>lgSelect(z.id);g.appendChild(d);});}
+function lgRenderGrid(){const g=$('lgGrid');if(!g)return;g.innerHTML='';LGZ.forEach(z=>{const stt=lgState[z.id];const d=document.createElement('div');d.className='kv';d.innerHTML=z.id+'<b>'+(stt.p!=null?(stt.p*100).toFixed(0)+'%':'\u2014')+'</b>';g.appendChild(d);});}
+function lgSelect(id){LGZ.forEach(z=>{const zs=lgState[z.id];if(z.id!==id&&zs.status==='active')zs.status=zs.p!=null?'done':'pending';});lgSel=id;lgState[id].status='active';$('lgSelName').innerHTML='Selected: <b>'+id+'</b>';$('lgRec').disabled=false;$('lgRec').textContent='\u25CF Record '+id+' (15s)';lgRenderMap();}
+lgResetAll();
+
+let lgStream,lgCtx,lgProc,lgZg,lgBuf=[],lgSr=48000,lgTimer,lgLeft;
 function lgSt(m){$('lgStatus').textContent=m;}
-function lgStartZone(zone){
+$('lgRec').onclick=async function(){
+  if(!lgSel){lgSt('Tap a point on the back first.');return;}
   if(!$('pid').value){lgSt('Enter Patient ID (top of page) first.');return;}
-  if(lgCurZone)return;
-  lgCurZone=zone;
-  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
-    lgStream=stream;lgCtx=new (window.AudioContext||window.webkitAudioContext)();lgSr=lgCtx.sampleRate;lgBuf=[];
-    const srcn=lgCtx.createMediaStreamSource(stream);lgProc=lgCtx.createScriptProcessor(4096,1,1);lgZg=lgCtx.createGain();lgZg.gain.value=0;
-    lgProc.onaudioprocess=function(e){lgBuf.push(Float32Array.from(e.inputBuffer.getChannelData(0)));};
-    srcn.connect(lgProc);lgProc.connect(lgZg);lgZg.connect(lgCtx.destination);
-    LG_ZONES.forEach(function(z){$('lgR_'+z).disabled=true;});$('lgStop').disabled=false;
-    lgLeft=15;lgSt('● Recording '+LG_ZLABEL[zone]+'… deep breaths, quiet, still ('+lgLeft+'s)');
-    lgTimer=setInterval(function(){lgLeft--;lgSt('● Recording '+LG_ZLABEL[zone]+'… ('+lgLeft+'s)');if(lgLeft<=0)lgStopRec();},1000);
-  }).catch(function(e){lgCurZone=null;lgSt('Microphone blocked. Allow mic and reload.');});
-}
+  try{lgStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});}
+  catch(e){lgSt('Microphone blocked. Allow mic and reload.');return;}
+  lgCtx=new (window.AudioContext||window.webkitAudioContext)();lgSr=lgCtx.sampleRate;lgBuf=[];
+  const src=lgCtx.createMediaStreamSource(lgStream);lgProc=lgCtx.createScriptProcessor(4096,1,1);lgZg=lgCtx.createGain();lgZg.gain.value=0;
+  lgProc.onaudioprocess=e=>lgBuf.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  src.connect(lgProc);lgProc.connect(lgZg);lgZg.connect(lgCtx.destination);
+  $('lgRec').disabled=true;$('lgStop').disabled=false;
+  lgLeft=15;lgSt('\u25CF Recording '+lgSel+'\u2026 deep breaths, quiet ('+lgLeft+'s)');
+  lgTimer=setInterval(()=>{lgLeft--;lgSt('\u25CF Recording '+lgSel+'\u2026 ('+lgLeft+'s)');if(lgLeft<=0)lgStopRec();},1000);
+};
+$('lgStop').onclick=lgStopRec;
 function lgStopRec(){
-  if(lgTimer)clearInterval(lgTimer);
-  if(lgStream)lgStream.getTracks().forEach(function(t){t.stop();});
-  LG_ZONES.forEach(function(z){$('lgR_'+z).disabled=false;});$('lgStop').disabled=true;
-  const zone=lgCurZone;lgCurZone=null;
-  let n=0;for(const b of lgBuf)n+=b.length;
-  if(n<lgSr){lgSt('Too short — record ~15s.');try{lgCtx.close();}catch(e){}return;}
-  const s=new Float32Array(n);let o=0;for(const b of lgBuf){s.set(b,o);o+=b.length;}
-  try{lgCtx.close();}catch(e){}
+  clearInterval(lgTimer);try{lgProc.disconnect();}catch(e){}
+  if(lgStream)lgStream.getTracks().forEach(t=>t.stop());
+  $('lgStop').disabled=true;$('lgRec').disabled=false;lgSt('Analysing '+lgSel+'\u2026');
+  let n=0;lgBuf.forEach(b=>n+=b.length);
+  if(n<lgSr){lgSt('Too short \u2014 record ~15s.');try{lgCtx.close();}catch(e){}return;}
+  const s=new Float32Array(n);let o=0;lgBuf.forEach(b=>{s.set(b,o);o+=b.length;});try{lgCtx.close();}catch(e){}
   lgWav=encodeWAV(s,lgSr);const p=$('lgPlayer');p.src=URL.createObjectURL(lgWav);p.style.display='block';
-  lgDraw(s);lgSt('Analysing '+LG_ZLABEL[zone]+'…');
-  lgScreenSpot(s,lgSr,zone);
+  lgDraw(s);lgScreen(s,lgSr,lgSel);
 }
-async function lgScreenSpot(s,fs,zone){
+async function lgScreen(s,fs,zone){
   $('lgResCard').style.display='block';
-  if(!lgSignalOK(s,fs)){$('lgP_'+zone).textContent='silent';lgSt(LG_ZLABEL[zone]+': mic silent — check mic and re-record.');return;}
+  if(!lgSignalOK(s,fs)){lgSt(zone+': mic silent \u2014 press on skin and re-record.');return;}
   const ok=await lgLoadModel();
-  if(!ok){lgSt('AI model unavailable — '+lgModelErr);return;}
+  if(!ok){lgSt('AI model unavailable \u2014 '+lgModelErr);return;}
   try{
     const pr=lgProbForBuffer(s,fs);
-    lgProbs[zone]=pr;
-    $('lgP_'+zone).textContent=(pr*100).toFixed(0)+'%';
-    lgUpdate();
-    lgSt(LG_ZLABEL[zone]+' done ('+(pr*100).toFixed(0)+'%). Record the next spot, or read the result below.');
-  }catch(e){console.error(e);lgSt('Error processing '+LG_ZLABEL[zone]+'.');}
+    lgState[zone].p=pr;lgState[zone].status='done';
+    lgUpdate();lgRenderMap();lgRenderGrid();
+    lgSt(zone+' done ('+(pr*100).toFixed(0)+'%). Tap the next point, or read the result below.');
+  }catch(e){console.error(e);lgSt('Error processing '+zone+'.');}
 }
 function lgUpdate(){
-  const vals=LG_ZONES.filter(function(z){return lgProbs[z]!=null;}).map(function(z){return lgProbs[z];});
-  $('lgN').textContent=vals.length+'/4';
-  if(vals.length===0){$('lgAvg').textContent='—';$('lgVerdict').textContent='—';return;}
-  const avg=vals.reduce(function(a,b){return a+b;},0)/vals.length;
+  const vals=LGZ.filter(z=>lgState[z.id].p!=null).map(z=>lgState[z.id].p);
+  $('lgN').textContent=vals.length+'/'+LGZ.length;
+  if(vals.length===0){$('lgAvg').textContent='\u2014';$('lgVerdict').textContent='\u2014';return;}
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
   $('lgAvg').textContent=(avg*100).toFixed(0)+'%';
   const pos=avg>=LG_THR;
-  const partial=vals.length<4?' (only '+vals.length+'/4 spots — record all 4 for best reliability)':'';
-  $('lgVerdict').textContent=(pos?'🫁 SCREEN POSITIVE — abnormal lung sounds likely, refer for clinical assessment':'🫁 Screen negative — lungs sound normal')+partial;
+  const partial=vals.length<LGZ.length?' ('+vals.length+'/'+LGZ.length+' points \u2014 do all for best reliability)':'';
+  $('lgVerdict').textContent=(pos?'\uD83E\uDEC1 SCREEN POSITIVE \u2014 abnormal lung sounds likely, refer':'\uD83E\uDEC1 Screen negative \u2014 lungs sound normal')+partial;
   $('lgVerdict').style.color=pos?'var(--bad)':'var(--ok)';
 }
-function lgDraw(s){const c=$('lgWave');if(!c)return;c.style.display='block';c.width=c.clientWidth*2;c.height=180;
-  const ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.fillStyle='#0b0f14';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='#56d4dd';ctx.lineWidth=1;ctx.beginPath();const step=Math.max(1,Math.floor(s.length/W));
-  for(let x=0;x<W;x++){const v=s[x*step]||0;const y=H/2-v*H*0.45;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
-LG_ZONES.forEach(function(z){$('lgR_'+z).onclick=function(){lgStartZone(z);};});
-$('lgStop').onclick=lgStopRec;
-$('lgReset').onclick=function(){lgProbs={};LG_ZONES.forEach(function(z){$('lgP_'+z).textContent='—';});$('lgAvg').textContent='—';$('lgN').textContent='0/4';$('lgVerdict').textContent='—';$('lgPlayer').style.display='none';lgSt('Cleared. Tap a spot to record the next patient.');};
+function lgDraw(s){const c=$('lgWave');if(!c)return;c.style.display='block';c.width=c.clientWidth*2;c.height=180;const ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.fillStyle='#0b0f14';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#56d4dd';ctx.lineWidth=1;ctx.beginPath();const step=Math.max(1,Math.floor(s.length/W));for(let x=0;x<W;x++){const v=s[x*step]||0;const y=H/2-v*H*0.45;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
+$('lgReset').onclick=lgResetAll;
 $('lgCsv').onclick=function(){
-  const avgVals=LG_ZONES.filter(function(z){return lgProbs[z]!=null;}).map(function(z){return lgProbs[z];});
-  const avg=avgVals.length?avgVals.reduce(function(a,b){return a+b;},0)/avgVals.length:'';
+  const vals=LGZ.filter(z=>lgState[z.id].p!=null).map(z=>lgState[z.id].p);
+  const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:'';
   const verdict=avg===''?'':(avg>=LG_THR?'screen_positive':'screen_negative');
-  let c='patient_id,age,sex,p_right_upper,p_left_upper,p_right_lower,p_left_lower,mean_abnormal_prob,threshold,verdict,datetime\n';
-  c+=[($('pid').value||''),($('age')?$('age').value:''),($('sex')?$('sex').value:''),
-    (lgProbs.RUL!=null?lgProbs.RUL.toFixed(3):''),(lgProbs.LUL!=null?lgProbs.LUL.toFixed(3):''),
-    (lgProbs.RLL!=null?lgProbs.RLL.toFixed(3):''),(lgProbs.LLL!=null?lgProbs.LLL.toFixed(3):''),
-    (avg===''?'':avg.toFixed(3)),LG_THR,verdict,new Date().toISOString()].join(',')+'\n';
-  dl(new Blob([c],{type:'text/csv'}),($('pid').value||'patient')+'_pulmoscope.csv');
+  const head='patient_id,'+LGZ.map(z=>'p_'+z.id.replace(/ /g,'_')).join(',')+',mean_abnormal_prob,threshold,verdict,datetime\n';
+  const row=[($('pid').value||'')].concat(LGZ.map(z=>lgState[z.id].p!=null?lgState[z.id].p.toFixed(3):'')).concat([avg===''?'':avg.toFixed(3),LG_THR,verdict,new Date().toISOString()]).join(',')+'\n';
+  dl(new Blob([head+row],{type:'text/csv'}),($('pid').value||'patient')+'_pulmoscope.csv');
 };
-
 
 /* ===== bilingual EN/Telugu ===== */
 function applyLang(l){document.body.setAttribute('lang',l);
