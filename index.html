@@ -146,17 +146,6 @@
     <div class="m"><span class="tag">STILL</span>Rest the hand on a table and hold dead still for the whole capture. The flash stays on; no flash → sit in bright daylight.</div>
     <div class="m" style="color:var(--mut)">Wait until the live trace shows regular pulse waves before trusting the heart rate.</div>
   </div>
-  <svg class="figure" viewBox="0 0 200 232" xmlns="http://www.w3.org/2000/svg">
-    <rect x="56" y="120" width="92" height="88" rx="22" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <rect x="84" y="36" width="17" height="92" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <rect x="106" y="48" width="17" height="80" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <rect x="128" y="60" width="17" height="68" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <rect x="30" y="138" width="42" height="17" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <rect x="62" y="48" width="17" height="80" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <circle id="vSpot" cx="70" cy="50" r="13" fill="#1f6feb"/>
-  </svg>
-  <div class="note" style="text-align:center;margin-top:-2px" data-te='హైలైట్ చేసిన <b>చూపుడు వేలికొనను</b> వెనుక కెమెరా + ఫ్లాష్ మీద ఉంచండి.'>Place the highlighted <b>index fingertip</b> on the rear camera + flash.</div>
-  <div class="legend"><span><span class="dot" style="background:#1f6feb"></span>ready</span><span><span class="dot" style="background:#d29922"></span>measuring</span><span><span class="dot" style="background:#2ea043"></span>captured</span></div>
   <div style="text-align:center;margin:8px 0"><img src="phone_placement.jpg" loading="lazy" alt="Fingertip on rear camera" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)"><div class="m" style="color:var(--mut)" data-te='వెనుక కెమెరా + ఫ్లాష్‌పై వేలికొనను తేలికగా ఆనించండి'>Rest the fingertip lightly over the rear camera + flash</div></div>
   <div class="row"><div><label data-te='ధూమపానం'>Smoker</label><select id="vSmoke"><option>No</option><option>Yes</option></select></div>
   <div><label data-te='రక్తపోటు (హైపర్‌టెన్షన్)'>Hypertension</label><select id="vHtn"><option>No</option><option>Yes</option></select></div>
@@ -388,6 +377,24 @@ function fft(re,im){const n=re.length;
     const ur=re[i+k],ui=im[i+k],vr=re[i+k+len/2]*cr-im[i+k+len/2]*ci,vi=re[i+k+len/2]*ci+im[i+k+len/2]*cr;
     re[i+k]=ur+vr;im[i+k]=ui+vi;re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;const ncr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=ncr;}}}}
 
+/* ===== acoustic body-contact gate (blocks air/hand tests) ===== */
+var CONTACT_RMS=0.003;
+function bodyContact(s,fs){
+  var N=1024,H=512,NB=N/2+1,win=new Float32Array(N);
+  for(var n=0;n<N;n++)win[n]=0.5-0.5*Math.cos(2*Math.PI*n/N);
+  var avg=new Float64Array(NB),re=new Float64Array(N),im=new Float64Array(N),nw=0;
+  for(var off=0;off+N<=s.length;off+=H){
+    for(var k=0;k<N;k++){re[k]=s[off+k]*win[k];im[k]=0;}
+    fft(re,im);
+    for(var b=0;b<NB;b++)avg[b]+=re[b]*re[b]+im[b]*im[b];nw++;}
+  if(nw>0)for(var b2=0;b2<NB;b2++)avg[b2]/=nw;
+  var binHz=fs/N,eLow=0,eTot=0;
+  for(var b3=0;b3<NB;b3++){var f=b3*binHz,e=avg[b3];eTot+=e;if(f>=20&&f<200)eLow+=e;}
+  var ratioLow=eLow/(eTot+1e-12),rms=0;
+  for(var i=0;i<s.length;i++)rms+=s[i]*s[i];rms=Math.sqrt(rms/s.length);
+  return {rms:rms,ratioLow:ratioLow,ok:(rms>=CONTACT_RMS&&ratioLow>=0.25)};
+}
+
 /* ===================== PERCUSSION ===================== */
 const Z=[
  {id:'R Supraclavicular',code:'Sc',view:'F',px:41,py:15},{id:'L Supraclavicular',code:'Sc',view:'F',px:60,py:15},
@@ -523,7 +530,7 @@ function encodeWAV(s,rate){const n=s.length,bf=new ArrayBuffer(44+n*2),v=new Dat
 /* ===================== VASCAGE ===================== */
 let vStream=null,vTorch=false,vData=[],vTimes=[],vRAF=null,vRunning=false,vRows=[],vDur=20000,vT0=0,vTmp=null;
 const vst=m=>$('vStatus').textContent=m;
-function vSpot(col){$('vSpot').setAttribute('fill',col);}
+function vSpot(col){var e=$('vSpot');if(e)e.setAttribute('fill',col);}
 function vTally(){
   const sm=$('vSmoke').value==='Yes',ht=$('vHtn').value==='Yes',dm=$('vDm').value==='Yes';
   const h=parseFloat($('vHt').value),w=parseFloat($('vWt').value);
@@ -682,6 +689,8 @@ function eFeatures(s,fs){
   return{hf:pLo>0?pHf/pLo:0,centroid:sumP>0?sumFP/sumP:0,sfm:sfm};
 }
 function eAnalyze(){
+  var cR=bodyContact(eRecR,eFs),cL=bodyContact(eRecL,eFs);
+  if(!cR.ok||!cL.ok){$('eVerdict').textContent='Not on the body \u2014 press the phone firmly on bare skin for both R and L, then re-record.';$('eVerdict').style.color='var(--bad)';$('eResCard').style.display='block';return;}
   eFeatR=eFeatures(eRecR,eFs);eFeatL=eFeatures(eRecL,eFs);
   $('eHFr').textContent=(eFeatR.hf*100).toFixed(0);$('eHFl').textContent=(eFeatL.hf*100).toFixed(0);
   $('eCr').textContent=Math.round(eFeatR.centroid);$('eCl').textContent=Math.round(eFeatL.centroid);
@@ -1008,6 +1017,7 @@ function pcHeartSignal(s,fs){
   let rms=0;for(let i=0;i<x.length;i++)rms+=x[i]*x[i];rms=Math.sqrt(rms/x.length);
   let verdict,ok,col,quality;
   if(rms<0.0004){verdict='Mic silent — no input (check mic permission / port)';ok=false;col='var(--mut)';quality='none';}
+  else if(rms<CONTACT_RMS){verdict='Not on the body — press the phone firmly on bare skin';ok=false;col='var(--bad)';quality='none';}
   else if(ratioLow>=0.45){verdict='Heart-sound signal detected ✓';ok=true;col='var(--ok)';quality='good';}
   else if(ratioLow>=0.28){verdict='Partial heart signal — AI shown, interpret with caution';ok=true;col='var(--warn)';quality='low';}
   else{verdict='Mostly high-freq noise — reposition';ok=false;col='var(--bad)';quality='none';}
@@ -1035,7 +1045,7 @@ async function pcAmplifyPlay(){
 async function pcMLScreen(s,fs,pcRow){
   const el=$('pcAI'),sub=$('pcAIsub'),sig=$('pcSig');
   const q=pcHeartSignal(s,fs);
-  sig.style.display='block';sig.textContent='📶 '+q.verdict+'  ('+(q.ratioLow*100).toFixed(0)+'% low-band)';sig.style.color=q.col;
+  sig.style.display='block';sig.textContent='📶 '+q.verdict+'  ('+(q.ratioLow*100).toFixed(0)+'% low-band · contact '+(q.rms*1000).toFixed(1)+')';sig.style.color=q.col;
   el.style.display='block';sub.style.display='block';
   if(!q.ok){el.textContent='🧠 AI screen: skipped — mostly noise';el.style.color='var(--mut)';
     sub.textContent='Press the phone tip firmly on bare skin at the heart, hold still, quiet room, then re-record.';return;}
@@ -1109,10 +1119,7 @@ function lgProbForBuffer(s,fs){
   let sum=0;for(const st of starts)sum+=lgInfer(lgLogMelWindow(x,st));
   return sum/starts.length;
 }
-function lgSignalOK(s,fs){
-  let rms=0;for(let i=0;i<s.length;i++)rms+=s[i]*s[i];rms=Math.sqrt(rms/s.length);
-  return rms>=0.0004;
-}
+function lgSignalOK(s,fs){return bodyContact(s,fs).ok;}
 /* ---- PulmoScope interactive lung map (same pattern as Percussion) ---- */
 const LGZ=[
  {id:'R upper',px:60,py:24},{id:'L upper',px:40,py:24},
@@ -1155,7 +1162,7 @@ function lgStopRec(){
 }
 async function lgScreen(s,fs,zone){
   $('lgResCard').style.display='block';
-  if(!lgSignalOK(s,fs)){lgSt(zone+': mic silent \u2014 press on skin and re-record.');return;}
+  if(!lgSignalOK(s,fs)){lgSt(zone+': not on the body \u2014 press the phone firmly on bare skin, then re-record.');return;}
   const ok=await lgLoadModel();
   if(!ok){lgSt('AI model unavailable \u2014 '+lgModelErr);return;}
   try{
