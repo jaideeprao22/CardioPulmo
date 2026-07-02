@@ -45,3 +45,16 @@
   .vtog button{margin-top:0;padding:8px 4px;font-size:13px;background:#21262d;border:1px solid var(--line)}
   .vtog button.on{background:#15233b;border-color:var(--acc)}
   .fluid{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:9px;font-size:12px;margin-top:8px;line-height:1.5;color:var(--mut)}
+
+
+/* ===== auth / profile overlays ===== */
+.ovl{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:22px}
+.ovlcard{width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px;text-align:center}
+.ovlbrand{font-size:30px;font-weight:800;letter-spacing:1px;color:var(--acc)}
+.ovlsub{color:var(--mut);font-size:13px;margin-bottom:8px}
+.ovl input,.ovl select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d1117;color:var(--txt);font-size:15px;box-sizing:border-box}
+.gbtn{padding:12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:#111;font-weight:700;font-size:15px;cursor:pointer}
+.pbtn{padding:12px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-weight:700;font-size:15px;cursor:pointer}
+.sbtn{padding:10px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--txt);font-size:14px;cursor:pointer}
+.ordiv{color:var(--mut);font-size:12px;margin:2px 0}
+.ovlmsg{color:var(--warn);font-size:12px;min-height:16px}

@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id);
 const st=m=>$('status').textContent=m;
-function tab(n){for(let i=1;i<=5;i++){$('t'+i).classList.toggle('on',i===n);$('p'+i).classList.toggle('on',i===n);}}
+function tab(n){for(let i=1;i<=6;i++){$('t'+i).classList.toggle('on',i===n);$('p'+i).classList.toggle('on',i===n);}}
 function dl(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
 function fft(re,im){const n=re.length;
   for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){let tr=re[i];re[i]=re[j];re[j]=tr;let ti=im[i];im[i]=im[j];im[j]=ti;}}
@@ -129,7 +129,7 @@ $('dlAudio').onclick=()=>{if(wavBlob)dl(wavBlob,($('pid').value||'rec')+'_'+(sel
 $('newPt').onclick=()=>{resetState();st('Cleared. Ready for next patient.');};
 $('dlCsv').onclick=()=>{let c='patient_id,age,sex,reference_dx,position,zone,is_reference,n_taps,peak_hz,centroid_hz,low_high,decay_ms,ref_low_high,ref_decay_ms,lh_drop_pct,decay_drop_pct,flag,datetime\n';
   rows.forEach(r=>c+=[r.pid,r.age,r.sex,'"'+(r.ref||'')+'"',r.pos,r.zone,r.isRef,r.nt,r.pk,r.ce,r.lh,r.dc,r.rlh,r.rdc,r.lhd,r.dcd,r.flag,r.t].join(',')+'\n');
-  dl(new Blob([c],{type:'text/csv'}),'bedsidedx_percussion.csv');};
+  dl(new Blob([c],{type:'text/csv'}),'cardiopulmo_percussion.csv');};
 function renderLog(){let h='<table><tr><th>ID</th><th>Zone</th><th>Pos</th><th>L:H</th><th>Decay</th><th>Δlh%</th><th>Flag</th></tr>';
   rows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.zone+(r.isRef?'*':'')+'</td><td>'+r.pos.slice(0,3)+'</td><td>'+r.lh+'</td><td>'+r.dc+'</td><td>'+(r.lhd||'')+'</td><td>'+r.flag+'</td></tr>');
   $('logTable').innerHTML=h+'</table>';}
@@ -231,7 +231,7 @@ function vDrawFinal(detr,t,peaks){
 }
 $('vCsv').onclick=()=>{let c='patient_id,age,sex,smoker,hypertension,diabetes,height_cm,weight_kg,bmi,risk_tally,heart_rate_bpm,ibi_ms,sdnn_ms,reflection_index,signal_quality,datetime\n';
   vRows.forEach(r=>c+=[r.pid,r.age,r.sex,r.sm,r.ht,r.dm,r.h,r.w,r.bmi,r.rt,r.hr,r.ibi,r.sdnn,r.ri,r.q,r.t].join(',')+'\n');
-  dl(new Blob([c],{type:'text/csv'}),'bedsidedx_vascage.csv');};
+  dl(new Blob([c],{type:'text/csv'}),'cardiopulmo_vascage.csv');};
 function vRenderLog(){let h='<table><tr><th>ID</th><th>HR</th><th>SDNN</th><th>RI</th><th>BMI</th><th>RF</th><th>Q</th></tr>';
   vRows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.hr+'</td><td>'+r.sdnn+'</td><td>'+r.ri+'</td><td>'+(r.bmi||'')+'</td><td>'+r.rt+'</td><td>'+r.q+'</td></tr>');
   $('vLogTable').innerHTML=h+'</table>';}
@@ -318,7 +318,7 @@ function eAnalyze(){
 }
 $('eCsv').onclick=()=>{let c='patient_id,age,sex,hf_pct_R,hf_pct_L,centroid_R,centroid_L,flatness_R,flatness_L,hf_diff_pp,verdict,datetime\n';
   eRows.forEach(r=>c+=[r.pid,r.age,r.sex,r.hfr,r.hfl,r.cr,r.cl,r.sfmr,r.sfml,r.diff,'"'+r.verdict+'"',r.t].join(',')+'\n');
-  dl(new Blob([c],{type:'text/csv'}),'bedsidedx_echolat.csv');};
+  dl(new Blob([c],{type:'text/csv'}),'cardiopulmo_echolat.csv');};
 function eRenderLog(){let h='<table><tr><th>ID</th><th>HF R%</th><th>HF L%</th><th>Δpp</th><th>Verdict</th></tr>';
   eRows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.hfr+'</td><td>'+r.hfl+'</td><td>'+r.diff+'</td><td>'+r.verdict.split(':')[0]+'</td></tr>');
   $('eLogTable').innerHTML=h+'</table>';}
@@ -397,7 +397,7 @@ function csDrawFinal(d,peaks){const c=$('csWave');c.style.display='block';c.widt
   g.fillStyle='#3fb950';peaks.forEach(p=>{const x=p/(N-1)*W,y=H/2-d[p]*H*0.42;g.beginPath();g.arc(x,y,4,0,6.2832);g.fill();});}
 $('csCsv').onclick=()=>{let c='patient_id,age,sex,heart_rate_bpm,mean_rr_ms,sdnn_ms,irregular_beat_pct,n_beats,sample_hz,verdict,datetime\n';
   csRows.forEach(r=>c+=[r.pid,r.age,r.sex,r.hr,r.meanRR,r.sdnn,r.irr,r.nbeats,r.sr,'"'+r.verdict+'"',r.t].join(',')+'\n');
-  dl(new Blob([c],{type:'text/csv'}),'bedsidedx_cardioscope_rhythm.csv');};
+  dl(new Blob([c],{type:'text/csv'}),'cardiopulmo_rhythm.csv');};
 function csRenderLog(){let h='<table><tr><th>ID</th><th>HR</th><th>RR</th><th>SDNN</th><th>Irr%</th><th>Rhythm</th></tr>';
   csRows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.hr+'</td><td>'+r.meanRR+'</td><td>'+r.sdnn+'</td><td>'+r.irr+'</td><td>'+r.verdict.split(' ')[0]+'</td></tr>');
   $('csLogTable').innerHTML=h+'</table>';}
@@ -468,7 +468,7 @@ function jDrawFinal(d,peaks){const c=$('jWave');c.style.display='block';c.width=
   g.fillStyle='#3fb950';peaks.forEach(p=>{const x=p/(N-1)*W,y=H/2-d[p]*H*0.42;g.beginPath();g.arc(x,y,3.5,0,6.2832);g.fill();});}
 $('jCsv').onclick=()=>{let c='patient_id,age,sex,pulsation_rate_per_min,rel_amplitude_au,sample_fps,jvp_height_cm,hepatojugular_reflux,datetime\n';
   jRows.forEach(r=>c+=[r.pid,r.age,r.sex,r.rate,r.amp,r.sr,r.jvph,r.hjr,r.t].join(',')+'\n');
-  dl(new Blob([c],{type:'text/csv'}),'bedsidedx_cardioscope_jvp.csv');};
+  dl(new Blob([c],{type:'text/csv'}),'cardiopulmo_jvp.csv');};
 function jRenderLog(){let h='<table><tr><th>ID</th><th>Rate/min</th><th>Amp</th></tr>';
   jRows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.rate+'</td><td>'+r.amp+'</td></tr>');
   $('jLogTable').innerHTML=h+'</table>';}
@@ -556,7 +556,7 @@ $('pcDl').onclick=()=>{if(pcWav)dl(pcWav,($('pid').value||'rec')+'_pcg_'+Date.no
 $('pcAmp').onclick=pcAmplifyPlay;
 $('pcCsv').onclick=()=>{let c='patient_id,age,sex,heart_rate_bpm,rhythm,confidence,ai_abnormal_prob,datetime\n';
   pcRows.forEach(r=>c+=[r.pid,r.age,r.sex,r.bpm,r.reg,r.conf,r.ai||'',r.t].join(',')+'\n');
-  dl(new Blob([c],{type:'text/csv'}),'bedsidedx_cardioscope_heartsound.csv');};
+  dl(new Blob([c],{type:'text/csv'}),'cardiopulmo_heartsound.csv');};
 function pcRenderLog(){let h='<table><tr><th>ID</th><th>BPM</th><th>Rhythm</th><th>Conf</th></tr>';
   pcRows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.bpm+'</td><td>'+r.reg+'</td><td>'+r.conf+'</td></tr>');
   $('pcLogTable').innerHTML=h+'</table>';}
@@ -672,6 +672,7 @@ async function pcMLScreen(s,fs,pcRow){
     el.style.color=pos?'var(--bad)':'var(--ok)';
     sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic';
     if(pcRow)pcRow.ai=p.toFixed(3);
+    uploadRecording('cardioscope','apex',makeSmallWav(s,fs,PC_SR2),p,pos?'screen_positive':'screen_negative',{quality:q.quality});
   }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';}
 }
 
@@ -783,6 +784,7 @@ async function lgScreen(s,fs,zone){
     const pr=lgProbForBuffer(s,fs);
     lgState[zone].p=pr;lgState[zone].status='done';
     lgUpdate();lgRenderMap();lgRenderGrid();
+    uploadRecording('pulmoscope',zone,makeSmallWav(s,fs,LG_SR),pr,pr>=LG_THR?'abnormal':'normal',null);
     lgSt(zone+' done ('+(pr*100).toFixed(0)+'%). Tap the next point, or read the result below.');
   }catch(e){console.error(e);lgSt('Error processing '+zone+'.');}
 }
@@ -814,6 +816,47 @@ function applyLang(l){document.body.setAttribute('lang',l);
     if(!el.hasAttribute('data-en'))el.setAttribute('data-en',el.innerHTML);
     el.innerHTML=(l==='te')?el.getAttribute('data-te'):el.getAttribute('data-en');});
   var b=document.getElementById('langBtn');if(b)b.textContent=(l==='te')?'English':'తెలుగు';
-  try{localStorage.setItem('bedsidedx_lang',l);}catch(e){}}
+  try{localStorage.setItem('cardiopulmo_lang',l);}catch(e){}}
 function toggleLang(){applyLang(document.body.getAttribute('lang')==='te'?'en':'te');}
-applyLang((function(){try{return localStorage.getItem('bedsidedx_lang')||'en';}catch(e){return 'en';}})());
+applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';}catch(e){return 'en';}})());
+
+
+/* ===== Supabase: login (Google + email), one-time profile, audio upload ===== */
+const SB_URL='https://cxqvghjdqyvtxdavhzjw.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cXZnaGpkcXl2dHhkYXZoemp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMDY5MzUsImV4cCI6MjA5ODU4MjkzNX0.vSEowF2M4Hv_j0LOSSJto_TulEce-wcA337ffK7kd5s';
+const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_ANON):null;
+let sbUser=null;
+function makeSmallWav(s,fs,targetSR){return encodeWAV(pcResample(s,fs,targetSR),targetSR);}
+async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
+  if(!sb||!sbUser)return;
+  try{
+    const path=sbUser.id+'/'+module+'_'+(zone||'x')+'_'+Date.now()+'.wav';
+    const up=await sb.storage.from('recordings').upload(path,wavBlob,{contentType:'audio/wav',upsert:false});
+    await sb.from('recordings').insert({user_id:sbUser.id,module:module,zone:zone||null,audio_path:up.error?null:path,probability:(probability==null?null:probability),verdict:verdict||null,extra:extra||null,subject_code:(document.getElementById('pid')?document.getElementById('pid').value:null)||null});
+  }catch(e){console.warn('upload failed',e);}
+}
+function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');}
+function sbShowLogin(){var o=$('authOverlay');if(o)o.style.display='flex';}
+async function sbMaybeProfile(){
+  if(!sb||!sbUser)return;
+  try{const {data}=await sb.from('profiles').select('full_name').eq('id',sbUser.id).maybeSingle();
+    if(!data||!data.full_name){if($('profileOverlay'))$('profileOverlay').style.display='flex';}
+    else if($('profileOverlay'))$('profileOverlay').style.display='none';
+  }catch(e){}
+}
+async function sbInit(){
+  if(!sb){sbShowApp();return;}
+  try{const {data}=await sb.auth.getSession();sbUser=data.session?data.session.user:null;}catch(e){sbUser=null;}
+  if(sbUser){sbShowApp();sbMaybeProfile();}else{sbShowLogin();}
+  sb.auth.onAuthStateChange(function(_e,session){sbUser=session?session.user:null;if(sbUser){sbShowApp();sbMaybeProfile();}else{sbShowLogin();}});
+}
+if($('authGoogle'))$('authGoogle').onclick=async function(){if(sb)await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin}});};
+if($('authLogin'))$('authLogin').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signInWithPassword({email:$('authEmail').value.trim(),password:$('authPass').value});if(error)$('authMsg').textContent=error.message;};
+if($('authSignup'))$('authSignup').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signUp({email:$('authEmail').value.trim(),password:$('authPass').value});$('authMsg').textContent=error?error.message:'Account created — check your email to confirm, then log in.';};
+if($('authLogout'))$('authLogout').onclick=async function(){if(sb)await sb.auth.signOut();};
+if($('profileSave'))$('profileSave').onclick=async function(){
+  if(!sb||!sbUser)return;
+  await sb.from('profiles').update({full_name:$('pfName').value.trim(),age:parseInt($('pfAge').value)||null,sex:$('pfSex').value||null,phone:$('pfPhone').value.trim()||null,role:$('pfRole').value||null}).eq('id',sbUser.id);
+  $('profileOverlay').style.display='none';
+};
+sbInit();

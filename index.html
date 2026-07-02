@@ -3,14 +3,43 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>BedsideDx — Digital Physical Exam (Research)</title>
+<title>CardioPulmo — Heart & lung screening in your pocket</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="globals.css">
 </head>
 <body>
+<!-- LOGIN -->
+<div id="authOverlay" class="ovl">
+  <div class="ovlcard">
+    <div class="ovlbrand">CardioPulmo</div>
+    <div class="ovlsub" data-te='గుండె & ఊపిరితిత్తుల స్క్రీనింగ్ మీ జేబులో'>Heart &amp; lung screening in your pocket</div>
+    <button id="authGoogle" class="gbtn">Continue with Google</button>
+    <div class="ordiv">— or —</div>
+    <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
+    <input id="authPass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="authLogin" class="pbtn">Log in</button>
+    <button id="authSignup" class="sbtn">Create new account</button>
+    <div id="authMsg" class="ovlmsg"></div>
+  </div>
+</div>
+<!-- ONE-TIME PROFILE -->
+<div id="profileOverlay" class="ovl" style="display:none">
+  <div class="ovlcard">
+    <div class="ovlbrand" style="font-size:22px">Your details</div>
+    <div class="ovlsub" data-te='ఒకసారి మాత్రమే — మీ స్క్రీనింగ్‌లను సేవ్ చేయడానికి'>One time — so your screenings can be saved.</div>
+    <input id="pfName" placeholder="Full name">
+    <input id="pfAge" type="number" placeholder="Age">
+    <select id="pfSex"><option value="">Sex</option><option>Male</option><option>Female</option><option>Other</option></select>
+    <input id="pfPhone" type="tel" placeholder="Phone (optional)">
+    <select id="pfRole"><option value="">I am a…</option><option>General public</option><option>Student</option><option>Health worker</option><option>Doctor</option></select>
+    <button id="profileSave" class="pbtn">Save &amp; continue</button>
+  </div>
+</div>
+
 <button id="langBtn" onclick="toggleLang()">తెలుగు</button>
-<h1 data-te='<span class="brand">BedsideDx</span> · డిజిటల్ ఫిజికల్ ఎగ్జామ్'><span class="brand">BedsideDx</span> · digital physical exam</h1>
+<h1 data-te='<span class="brand">CardioPulmo</span> · గుండె & ఊపిరితిత్తుల స్క్రీనింగ్'><span class="brand">CardioPulmo</span> · Heart &amp; lung screening in your pocket</h1>
 <div class="sub" data-te='రీసెర్చ్ పరికరం · పెర్కషన్ + ఆస్కల్టేషన్ + PPG, రోగి-లోపల రిఫరెన్స్‌తో'>Research instrument · percussion + auscultation + PPG, with within-patient referencing</div>
 <div class="disc" data-te='<b>ఇది డయాగ్నొస్టిక్ పరికరం కాదు.</b> అన్ని ఫ్లాగ్‌లు/విలువలు <b>అన్‌క్యాలిబ్రేటెడ్</b> — నిజమైన కట్-ఆఫ్‌లు మీ రిఫరెన్స్-స్టాండర్డ్ డేటా నుండి వస్తాయి. ఎల్లప్పుడూ క్లినికల్‌గా నిర్ధారించండి.'><b>NOT a diagnostic device.</b> All flags/indices are <b>uncalibrated</b> — real cut-offs come from your reference-standard data. Always confirm clinically.</div>
 
@@ -24,6 +53,7 @@
   <div class="tab" id="t3" onclick="tab(3)">🎯 EchoLat</div>
   <div class="tab" id="t4" onclick="tab(4)" data-te='🫀 కార్డియో'>🫀 Cardio</div>
   <div class="tab" id="t5" onclick="tab(5)" data-te='🫁 పల్మో'>🫁 PulmoScope</div>
+  <div class="tab" id="t6" onclick="tab(6)" data-te='ℹ️ గురించి'>ℹ️ About</div>
 </div>
 
 <!-- ================= PERCUSSION ================= -->
@@ -317,22 +347,47 @@
 </div>
 </div>
 
-<!-- ================= ABOUT & PERFORMANCE ================= -->
-<details class="card" style="margin-top:10px">
-  <summary style="font-size:14px;font-weight:700;cursor:pointer;color:var(--acc)">ℹ️ About &amp; test performance</summary>
-  <div class="note" style="margin-top:8px" data-te='AI నమూనాలకు డేటాసెట్-ఆధారిత పనితీరు చూపబడింది. క్లినికల్ సెన్సిటివిటీ, స్పెసిఫిసిటీ, PPV, NPV, ఆడ్స్ రేషియో IEC అధ్యయనం (BDX-CARDIO/2026/01) ద్వారా నిర్ధారించబడుతున్నాయి.'>Analytical (dataset) performance is shown for the AI models. Clinical sensitivity, specificity, PPV, NPV and odds ratios are being established prospectively under IEC study BDX-CARDIO/2026/01.</div>
+
+
+<!-- ================= ABOUT ================= -->
+<div class="pane" id="p6">
+<div class="card">
+  <div id="authWho" class="note" style="margin-bottom:6px">—</div>
+  <button id="authLogout" class="dl" data-te='లాగ్ అవుట్'>Log out</button>
+</div>
+<div class="card">
+  <b style="font-size:15px" data-te='CardioPulmo గురించి'>About CardioPulmo</b>
+  <div class="note" style="margin-top:6px" data-te='CardioPulmo అనేది గుండె & ఊపిరితిత్తుల శబ్దాల కోసం ఒక స్మార్ట్‌ఫోన్ స్క్రీనింగ్ సాధనం — ఆసుపత్రిలోనే కాదు, ఎక్కడైనా సాధారణ ప్రజల కోసం. అన్ని AI నమూనాలు పరికరంలోనే నడుస్తాయి (డేటా బయటకు వెళ్లదు). ఇది స్క్రీనింగ్ సాధనం మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్‌కు ప్రత్యామ్నాయం కాదు.'>CardioPulmo is a smartphone screening tool for heart and lung sounds, made for everyday people — anywhere, not just at a hospital bedside. All AI models run entirely on-device (no audio leaves the phone by default). It is a screening aid only — not a diagnosis, and not a replacement for a stethoscope or clinical judgement.</div>
+</div>
+
+<div class="card">
+  <b style="font-size:14px;color:var(--acc)" data-te='పరీక్షల పనితీరు'>Test performance</b>
+  <div class="note" style="margin-top:6px" data-te='AI నమూనాలకు నిపుణులు లేబుల్ చేసిన ఓపెన్ డేటాసెట్‌లపై విశ్లేషణాత్మక ధ్రువీకరణ చూపబడింది. క్లినికల్ PPV/NPV/ఆడ్స్ రేషియో వ్యాధి వ్యాప్తిపై ఆధారపడతాయి మరియు ప్రాస్పెక్టివ్ అధ్యయనం (IEC BDX-CARDIO/2026/01) ద్వారా నిర్ధారించబడతాయి.'>Analytical validation on expert-labelled open datasets. AUC and dataset predictive values are shown; clinical PPV/NPV and odds ratios depend on disease prevalence and are being confirmed in a prospective study (IEC BDX-CARDIO/2026/01).</div>
   <table>
-    <tr><th>Test</th><th>Method</th><th>Analytical AUC</th><th>Operating point</th><th>Clinical validation</th></tr>
-    <tr><td>Cardioscope (heart sound)</td><td>CNN · PhysioNet/CinC-2016 + noise augmentation</td><td>0.95 clean · 0.91 with ward noise</td><td>Sens ~72% @ Spec ~95% (thr 0.25); also 82%/90% and 53%/98%</td><td>Analytical only — clinical Sens/Spec/PPV/NPV pending</td></tr>
-    <tr><td>PulmoScope (lung sound)</td><td>MobileNetV2 transfer · ICBHI-2017, patient-independent</td><td>0.84 (4-point avg) · 0.66 (single clip)</td><td>Operating Sens/Spec from ROC — pending</td><td>Analytical only — clinical metrics pending</td></tr>
-    <tr><td>VascAge (fingertip PPG)</td><td>Signal-processing heuristic</td><td>—</td><td>—</td><td>Investigational — not yet validated</td></tr>
-    <tr><td>EchoLat (lung asymmetry)</td><td>High-freq energy heuristic</td><td>—</td><td>—</td><td>Investigational — not yet validated</td></tr>
-    <tr><td>Percussion</td><td>DSP note-comparison</td><td>—</td><td>—</td><td>Investigational — not yet validated</td></tr>
-    <tr><td>Rhythm (SCG)</td><td>Accelerometer beat detection</td><td>—</td><td>—</td><td>Rate only; arrhythmia detection not validated</td></tr>
-    <tr><td>JVP</td><td>Camera pulsation visualiser</td><td>—</td><td>—</td><td>Uncalibrated aid — no diagnostic metric</td></tr>
+    <tr><th>Metric</th><th>Cardioscope (heart)</th><th>PulmoScope (lung)</th></tr>
+    <tr><td>Dataset</td><td>PhysioNet/CinC-2016</td><td>ICBHI-2017</td></tr>
+    <tr><td>Test set (n)</td><td>1,357</td><td>26 patients (held-out)</td></tr>
+    <tr><td>AUC</td><td><b>0.996</b></td><td><b>0.87</b> (patient-level)</td></tr>
+    <tr><td>Sensitivity</td><td>98.3% (96.1–99.3)</td><td>63.2% (41.0–80.9)</td></tr>
+    <tr><td>Specificity</td><td>95.6% (94.2–96.7)</td><td>100% (64.6–100)</td></tr>
+    <tr><td>PPV</td><td>86.1% (82.0–89.4)</td><td>100%</td></tr>
+    <tr><td>NPV</td><td>99.5% (98.9–99.8)</td><td>50%</td></tr>
+    <tr><td>LR+ / LR−</td><td>22.2 / 0.02</td><td>high / 0.37</td></tr>
+    <tr><td>Operating threshold</td><td>0.25</td><td>0.022 (Youden)</td></tr>
   </table>
-  <div class="note" style="margin-top:8px;color:var(--mut)">PPV and NPV depend on disease prevalence in the screened population; they and odds ratios will be reported from the prospective clinical 2×2 tables. Analytical (dataset) AUC is an upper bound and does not replace clinical validation. Every module is a screening aid, not a diagnosis.</div>
-</details>
+  <div class="note" style="margin-top:6px;color:var(--mut)">Cardioscope figures are analytical performance on the held-out CinC-2016 test set (clean audio). Real-world smartphone performance in noisy settings is lower; the on-device model is noise-augmented for robustness. PulmoScope was evaluated at patient level on a small held-out set (26 patients), so its operating-point confidence intervals are wide; the prospective study tightens these. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively.</div>
+</div>
+
+<div class="card">
+  <b style="font-size:14px;color:var(--acc)" data-te='ఇతర మాడ్యూల్స్'>Other modules</b>
+  <div class="note" style="margin-top:6px">VascAge (fingertip PPG), EchoLat (lung asymmetry), Percussion, Rhythm (seismocardiography) and JVP are signal-processing aids, not machine-learning classifiers. Their sensitivity, specificity, PPV, NPV and odds ratios are being determined in the prospective validation study. They are investigational and must not be used for diagnosis.</div>
+</div>
+
+<div class="card">
+  <b style="font-size:14px;color:var(--acc)" data-te='పరిశోధకుడు'>Investigator</b>
+  <div class="note" style="margin-top:6px">Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana. Research use only.</div>
+</div>
+</div>
 
 <script src="app.js"></script>
 </body>
