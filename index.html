@@ -71,6 +71,7 @@
   <div class="tab" id="t2" onclick="tab(2)">❤️ VascAge</div>
   <div class="tab" id="t3" onclick="tab(3)">🎯 EchoLat</div>
   <div class="tab" id="t4" onclick="tab(4)" data-te='🫀 కార్డియో'>🫀 Cardio</div>
+  <div class="tab" id="t5" onclick="tab(5)" data-te='🫁 పల్మో'>🫁 PulmoScope</div>
 </div>
 
 <!-- ================= PERCUSSION ================= -->
@@ -286,7 +287,13 @@
     <div class="m"><span class="tag">LISTEN</span>Records the actual heart sounds to a <b>.wav</b>, estimates rate + rhythm, and runs an <b>on-device AI model</b> that screens for murmur / abnormal heart sounds. Screening only — refer positives; not a diagnosis.</div>
     <div class="m" style="color:var(--mut)">Check the trace looks like clean lub-dub beats before trusting the number.</div>
   </div>
-  <button id="pcRec" class="rec" data-te='● గుండె శబ్దం రికార్డ్ (15s)'>● Record heart sound (15s)</button>
+  <div style="text-align:center;margin:8px 0">
+    <img src="heart_position.jpg" loading="lazy" alt="Heart position" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)">
+    <div class="m" style="color:var(--mut)" data-te='ఛాతీలో గుండె స్థానం — ఎడమ ముచ్చిక కింద (కార్డియాక్ ఎపెక్స్) వద్ద ఫోన్ మైక్ అంచును ఆనించండి'>Heart position — place the phone mic edge at the cardiac apex, just below the left nipple</div>
+    <img src="phone_placement.jpg" loading="lazy" alt="Phone placement" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line);margin-top:6px">
+    <div class="m" style="color:var(--mut)" data-te='ఫోన్ యొక్క కింది (మైక్) అంచును చర్మంపై గట్టిగా ఆనించండి'>Press the phone's bottom (mic) edge firmly on the skin</div>
+  </div>
+    <button id="pcRec" class="rec" data-te='● గుండె శబ్దం రికార్డ్ (15s)'>● Record heart sound (15s)</button>
   <button id="pcStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
   <div id="pcStatus" class="vst">Phone mic-edge on the cardiac apex, quiet room, then Start.</div>
   <canvas id="pcWave"></canvas>
@@ -311,10 +318,61 @@
 </div>
 </div>
 
+<!-- ================= PULMOSCOPE (LUNGS) ================= -->
+<div class="pane" id="p5">
+<div class="card">
+  <b style="font-size:13px" data-te='🫁 PulmoScope · ఊపిరితిత్తుల శబ్ద స్క్రీన్'>🫁 PulmoScope · lung-sound screen</b>
+  <div class="note" style="margin-top:5px" data-te='ఫోన్ మైక్‌తో <b>ఊపిరితిత్తుల శబ్దాలను</b> రికార్డ్ చేసి, ఆన్-డివైస్ AI నమూనా <b>సాధారణ vs అసాధారణ (క్రాకిల్స్/వీజెస్)</b> కోసం స్క్రీన్ చేస్తుంది. <b>4 స్పాట్‌లు</b> రికార్డ్ చేయండి — యాప్ వాటిని సగటు చేసి ఒక ఫలితం ఇస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్ కాదు.'><b>Records lung sounds</b> with the phone mic and an on-device AI model screens for <b>normal vs abnormal (crackles/wheezes)</b>. Record <b>4 spots</b> — the app averages them into one result. Screening only — not a diagnosis, not a stethoscope.</div>
+</div>
+
+<div class="card">
+  <div class="howto" data-te='<h3>ఊపిరితిత్తుల శబ్దాలను ఎలా రికార్డ్ చేయాలి</h3>రోగి కూర్చొని, <b>నిశ్శబ్ద గది</b>, వీపు వైపు నుండి రికార్డ్ చేయడం ఉత్తమం. ప్రతి స్పాట్ వద్ద ఫోన్ యొక్క <b>కింది (మైక్) అంచును చర్మంపై గట్టిగా</b> ఆనించి, రోగిని <b>నోటి ద్వారా లోతుగా శ్వాస</b> తీసుకోమనండి. 4 స్పాట్‌లు: <b>కుడి పైభాగం, ఎడమ పైభాగం, కుడి కింది, ఎడమ కింది</b> (వీపుపై). ప్రతి బటన్‌ను నొక్కి 15 సెకన్లు రికార్డ్ చేయండి.<div class="m" style="color:var(--mut)">సన్నని దుస్తులు లేదా ఖాళీ చర్మం. రికార్డింగ్ సమయంలో మాట్లాడవద్దు. 4 స్పాట్‌ల తర్వాత ఫలితం కనిపిస్తుంది.</div>'>
+    <h3>How to record lung sounds</h3>
+    Patient sitting, <b>quiet room</b>, best recorded from the back. At each spot press the phone's <b>bottom (mic) edge firmly on the skin</b> and ask the patient to <b>breathe deeply through the mouth</b>. The 4 spots: <b>Right upper, Left upper, Right lower, Left lower</b> (on the back). Tap each button to record 15 seconds.
+    <div class="m"><span class="tag">LISTEN</span>Records to a <b>.wav</b> per spot and runs the on-device AI model. Averaging 4 spots gives the most reliable normal/abnormal screen.</div>
+    <div class="m" style="color:var(--mut)">Thin clothing or bare skin. No talking during capture. The result appears after your spots are done.</div>
+  </div>
+  <div style="text-align:center;margin:8px 0">
+    <img src="lung_points.jpg" loading="lazy" alt="Lung auscultation points" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)">
+    <div class="m" style="color:var(--mut)" data-te='ఊపిరితిత్తుల శబ్దాలను వినే స్థానాలు (ప్రతి వైపు పై & కింది జోన్‌లు)'>Lung auscultation points (upper &amp; lower zones, each side)</div>
+    <img src="phone_placement.jpg" loading="lazy" alt="Phone placement" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line);margin-top:6px">
+  </div>
+    <div class="row" style="margin-top:4px">
+    <div><button id="lgR_RUL" class="dl" style="margin-top:0" data-te='● కుడి పైభాగం'>● Right upper</button></div>
+    <div><button id="lgR_LUL" class="dl" style="margin-top:0" data-te='● ఎడమ పైభాగం'>● Left upper</button></div>
+  </div>
+  <div class="row">
+    <div><button id="lgR_RLL" class="dl" style="margin-top:0" data-te='● కుడి కింది'>● Right lower</button></div>
+    <div><button id="lgR_LLL" class="dl" style="margin-top:0" data-te='● ఎడమ కింది'>● Left lower</button></div>
+  </div>
+  <button id="lgStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
+  <div id="lgStatus" class="vst">Enter Patient ID (top), then tap a spot to record.</div>
+  <canvas id="lgWave"></canvas>
+  <audio id="lgPlayer" controls style="display:none"></audio>
+</div>
+
+<div class="card res" id="lgResCard">
+  <div class="cls" id="lgVerdict">—</div>
+  <div id="lgAIsub" style="color:var(--mut);font-size:11px;margin:2px 0 6px" data-te='ఆన్-డివైస్ AI నమూనా (ICBHI ఊపిరితిత్తుల శబ్ద డేటాపై శిక్షణ; 4-స్పాట్ సగటు). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on ICBHI lung-sound data; 4-spot average). Screening only — not a diagnosis.</div>
+  <div class="grid">
+    <div class="kv" data-te='కుడి పైభాగం<b id="lgP_RUL">—</b>'>Right upper<b id="lgP_RUL">—</b></div>
+    <div class="kv" data-te='ఎడమ పైభాగం<b id="lgP_LUL">—</b>'>Left upper<b id="lgP_LUL">—</b></div>
+    <div class="kv" data-te='కుడి కింది<b id="lgP_RLL">—</b>'>Right lower<b id="lgP_RLL">—</b></div>
+    <div class="kv" data-te='ఎడమ కింది<b id="lgP_LLL">—</b>'>Left lower<b id="lgP_LLL">—</b></div>
+    <div class="kv" data-te='సగటు అసాధారణ సంభావ్యత<b id="lgAvg">—</b>'>Mean abnormal probability<b id="lgAvg">—</b></div>
+    <div class="kv" data-te='స్పాట్‌లు రికార్డ్ చేయబడ్డాయి<b id="lgN">0/4</b>'>Spots recorded<b id="lgN">0/4</b></div>
+  </div>
+  <button id="lgReset" class="dl" data-te='↺ ఈ రోగికి స్పాట్‌లు రీసెట్'>↺ Reset spots for this patient</button>
+  <button id="lgCsv" class="dl" data-te='⬇ ఊపిరితిత్తుల CSV డౌన్‌లోడ్'>⬇ Download lung CSV</button>
+  <div class="note" style="margin-top:6px" data-te='AI ఊపిరితిత్తుల స్క్రీన్ ఒక <b>స్క్రీనింగ్ సాధనం, నిర్ధారణ కాదు</b>. పాజిటివ్‌లను క్లినికల్‌గా నిర్ధారించండి. థ్రెషోల్డ్ ప్రొవిజనల్ — మీ స్వంత డేటాతో కాలిబ్రేట్ చేయండి.'>The AI lung screen is a <b>screening tool, not a diagnosis</b>. Confirm positives clinically. Threshold is provisional — calibrate with your own data.</div>
+</div>
+</div>
+
+
 <script>
 const $=id=>document.getElementById(id);
 const st=m=>$('status').textContent=m;
-function tab(n){for(let i=1;i<=4;i++){$('t'+i).classList.toggle('on',i===n);$('p'+i).classList.toggle('on',i===n);}}
+function tab(n){for(let i=1;i<=5;i++){$('t'+i).classList.toggle('on',i===n);$('p'+i).classList.toggle('on',i===n);}}
 function dl(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
 function fft(re,im){const n=re.length;
   for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){let tr=re[i];re[i]=re[j];re[j]=tr;let ti=im[i];im[i]=im[j];im[j]=ti;}}
@@ -982,6 +1040,142 @@ async function pcMLScreen(s,fs,pcRow){
     if(pcRow)pcRow.ai=p.toFixed(3);
   }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';}
 }
+
+/* ===== PulmoScope on-device AI: lung-sound normal/abnormal screen (TF.js) ===== */
+const LG_SR=4000,LG_NFFT=512,LG_HOP=128,LG_NMEL=64,LG_TFR=157,LG_LWAV=20000,LG_NB=LG_NFFT/2+1,LG_THR=0.5;
+const LG_WIN=new Float32Array(LG_NFFT);for(let n=0;n<LG_NFFT;n++)LG_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/LG_NFFT);
+let lgModel=null,lgMel=null,lgModelLoading=null,lgModelErr='';
+async function lgLoadModel(){
+  if(lgModel&&lgMel)return true;
+  if(lgModelLoading)return lgModelLoading;
+  lgModelLoading=(async()=>{
+    try{
+      if(typeof tf==='undefined')throw new Error('tfjs library not loaded (check internet)');
+      const mr=await fetch('mel_filter_lung.json');
+      if(!mr.ok)throw new Error('mel_filter_lung.json → '+mr.status+' (upload it next to index.html)');
+      const mjson=await mr.json();lgMel=Array.isArray(mjson)?mjson:mjson.mel;
+      lgModel=await tf.loadGraphModel('lung_model.json');
+      lgSelfTest();return true;
+    }catch(e){lgModelErr=e.message||String(e);console.error('Lung model load failed:',e);return false;}
+  })();
+  return lgModelLoading;
+}
+function lgLogMelWindow(x,start){
+  let xf=new Float32Array(LG_LWAV);
+  for(let i=0;i<LG_LWAV;i++){const j=start+i;xf[i]=(j<x.length)?x[j]:0;}
+  let mx=0;for(let i=0;i<LG_LWAV;i++){const a=Math.abs(xf[i]);if(a>mx)mx=a;}
+  const nrm=1/(mx+1e-9);for(let i=0;i<LG_LWAV;i++)xf[i]*=nrm;
+  const pad=LG_NFFT/2,xp=new Float32Array(LG_LWAV+LG_NFFT);xp.set(xf,pad);
+  const nfr=1+Math.floor(LG_LWAV/LG_HOP);
+  const P=new Float32Array(LG_NB*nfr),re=new Float64Array(LG_NFFT),im=new Float64Array(LG_NFFT);
+  for(let f=0;f<nfr;f++){const off=f*LG_HOP;
+    for(let k=0;k<LG_NFFT;k++){re[k]=xp[off+k]*LG_WIN[k];im[k]=0;}
+    fft(re,im);
+    for(let b=0;b<LG_NB;b++)P[b*nfr+f]=re[b]*re[b]+im[b]*im[b];}
+  const S=new Float32Array(LG_NMEL*nfr);
+  for(let m=0;m<LG_NMEL;m++){const mrow=lgMel[m];
+    for(let f=0;f<nfr;f++){let acc=0;for(let b=0;b<LG_NB;b++)acc+=mrow[b]*P[b*nfr+f];
+      S[m*nfr+f]=10*Math.log10(Math.max(1e-10,acc+1e-10));}}
+  let smax=-Infinity;for(let i=0;i<S.length;i++)if(S[i]>smax)smax=S[i];
+  const flo=smax-80;for(let i=0;i<S.length;i++)if(S[i]<flo)S[i]=flo;
+  let mean=0;for(let i=0;i<S.length;i++)mean+=S[i];mean/=S.length;
+  let vs=0;for(let i=0;i<S.length;i++){const d=S[i]-mean;vs+=d*d;}
+  const std=Math.sqrt(vs/S.length)+1e-6;
+  const out=new Float32Array(LG_NMEL*LG_TFR);
+  for(let m=0;m<LG_NMEL;m++)for(let f=0;f<LG_TFR;f++)out[m*LG_TFR+f]=(f<nfr)?(S[m*nfr+f]-mean)/std:0;
+  return out;
+}
+function lgInfer(feat){return tf.tidy(()=>{const x=tf.tensor4d(feat,[1,LG_NMEL,LG_TFR,1]);const y=lgModel.predict(x);const t=Array.isArray(y)?y[0]:y;return t.dataSync()[0];});}
+function lgSelfTest(){try{const n=LG_LWAV,g=new Float32Array(n);for(let i=0;i<n;i++){const t=i/LG_SR;g[i]=Math.sin(2*Math.PI*250*t)+0.4*Math.sin(2*Math.PI*700*t);}const p=lgInfer(lgLogMelWindow(g,0));console.log('Lung AI self-check prob='+p.toFixed(4)+' ('+((isFinite(p)&&p>=0&&p<=1)?'ENGINE OK':'ERROR')+')');}catch(e){console.warn('lung self-test skipped',e);}}
+/* average the model probability over sliding 5s windows (hop 2.5s) across the recording */
+function lgProbForBuffer(s,fs){
+  const x=pcResample(s,fs,LG_SR);
+  const hop=LG_LWAV/2;let starts=[];
+  for(let st=0; st+LG_LWAV<=x.length; st+=hop)starts.push(st);
+  if(starts.length===0)starts=[0];
+  let sum=0;for(const st of starts)sum+=lgInfer(lgLogMelWindow(x,st));
+  return sum/starts.length;
+}
+function lgSignalOK(s,fs){
+  let rms=0;for(let i=0;i<s.length;i++)rms+=s[i]*s[i];rms=Math.sqrt(rms/s.length);
+  return rms>=0.0004;
+}
+/* ---- recording ---- */
+const LG_ZONES=['RUL','LUL','RLL','LLL'];
+const LG_ZLABEL={RUL:'Right upper',LUL:'Left upper',RLL:'Right lower',LLL:'Left lower'};
+let lgStream,lgCtx,lgProc,lgZg,lgBuf=[],lgSr=48000,lgTimer,lgLeft,lgWav=null;
+let lgCurZone=null,lgProbs={},lgRows=[];
+function lgSt(m){$('lgStatus').textContent=m;}
+function lgStartZone(zone){
+  if(!$('pid').value){lgSt('Enter Patient ID (top of page) first.');return;}
+  if(lgCurZone)return;
+  lgCurZone=zone;
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
+    lgStream=stream;lgCtx=new (window.AudioContext||window.webkitAudioContext)();lgSr=lgCtx.sampleRate;lgBuf=[];
+    const srcn=lgCtx.createMediaStreamSource(stream);lgProc=lgCtx.createScriptProcessor(4096,1,1);lgZg=lgCtx.createGain();lgZg.gain.value=0;
+    lgProc.onaudioprocess=function(e){lgBuf.push(Float32Array.from(e.inputBuffer.getChannelData(0)));};
+    srcn.connect(lgProc);lgProc.connect(lgZg);lgZg.connect(lgCtx.destination);
+    LG_ZONES.forEach(function(z){$('lgR_'+z).disabled=true;});$('lgStop').disabled=false;
+    lgLeft=15;lgSt('● Recording '+LG_ZLABEL[zone]+'… deep breaths, quiet, still ('+lgLeft+'s)');
+    lgTimer=setInterval(function(){lgLeft--;lgSt('● Recording '+LG_ZLABEL[zone]+'… ('+lgLeft+'s)');if(lgLeft<=0)lgStopRec();},1000);
+  }).catch(function(e){lgCurZone=null;lgSt('Microphone blocked. Allow mic and reload.');});
+}
+function lgStopRec(){
+  if(lgTimer)clearInterval(lgTimer);
+  if(lgStream)lgStream.getTracks().forEach(function(t){t.stop();});
+  LG_ZONES.forEach(function(z){$('lgR_'+z).disabled=false;});$('lgStop').disabled=true;
+  const zone=lgCurZone;lgCurZone=null;
+  let n=0;for(const b of lgBuf)n+=b.length;
+  if(n<lgSr){lgSt('Too short — record ~15s.');try{lgCtx.close();}catch(e){}return;}
+  const s=new Float32Array(n);let o=0;for(const b of lgBuf){s.set(b,o);o+=b.length;}
+  try{lgCtx.close();}catch(e){}
+  lgWav=encodeWAV(s,lgSr);const p=$('lgPlayer');p.src=URL.createObjectURL(lgWav);p.style.display='block';
+  lgDraw(s);lgSt('Analysing '+LG_ZLABEL[zone]+'…');
+  lgScreenSpot(s,lgSr,zone);
+}
+async function lgScreenSpot(s,fs,zone){
+  $('lgResCard').style.display='block';
+  if(!lgSignalOK(s,fs)){$('lgP_'+zone).textContent='silent';lgSt(LG_ZLABEL[zone]+': mic silent — check mic and re-record.');return;}
+  const ok=await lgLoadModel();
+  if(!ok){lgSt('AI model unavailable — '+lgModelErr);return;}
+  try{
+    const pr=lgProbForBuffer(s,fs);
+    lgProbs[zone]=pr;
+    $('lgP_'+zone).textContent=(pr*100).toFixed(0)+'%';
+    lgUpdate();
+    lgSt(LG_ZLABEL[zone]+' done ('+(pr*100).toFixed(0)+'%). Record the next spot, or read the result below.');
+  }catch(e){console.error(e);lgSt('Error processing '+LG_ZLABEL[zone]+'.');}
+}
+function lgUpdate(){
+  const vals=LG_ZONES.filter(function(z){return lgProbs[z]!=null;}).map(function(z){return lgProbs[z];});
+  $('lgN').textContent=vals.length+'/4';
+  if(vals.length===0){$('lgAvg').textContent='—';$('lgVerdict').textContent='—';return;}
+  const avg=vals.reduce(function(a,b){return a+b;},0)/vals.length;
+  $('lgAvg').textContent=(avg*100).toFixed(0)+'%';
+  const pos=avg>=LG_THR;
+  const partial=vals.length<4?' (only '+vals.length+'/4 spots — record all 4 for best reliability)':'';
+  $('lgVerdict').textContent=(pos?'🫁 SCREEN POSITIVE — abnormal lung sounds likely, refer for clinical assessment':'🫁 Screen negative — lungs sound normal')+partial;
+  $('lgVerdict').style.color=pos?'var(--bad)':'var(--ok)';
+}
+function lgDraw(s){const c=$('lgWave');if(!c)return;c.style.display='block';c.width=c.clientWidth*2;c.height=180;
+  const ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.fillStyle='#0b0f14';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#56d4dd';ctx.lineWidth=1;ctx.beginPath();const step=Math.max(1,Math.floor(s.length/W));
+  for(let x=0;x<W;x++){const v=s[x*step]||0;const y=H/2-v*H*0.45;if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
+LG_ZONES.forEach(function(z){$('lgR_'+z).onclick=function(){lgStartZone(z);};});
+$('lgStop').onclick=lgStopRec;
+$('lgReset').onclick=function(){lgProbs={};LG_ZONES.forEach(function(z){$('lgP_'+z).textContent='—';});$('lgAvg').textContent='—';$('lgN').textContent='0/4';$('lgVerdict').textContent='—';$('lgPlayer').style.display='none';lgSt('Cleared. Tap a spot to record the next patient.');};
+$('lgCsv').onclick=function(){
+  const avgVals=LG_ZONES.filter(function(z){return lgProbs[z]!=null;}).map(function(z){return lgProbs[z];});
+  const avg=avgVals.length?avgVals.reduce(function(a,b){return a+b;},0)/avgVals.length:'';
+  const verdict=avg===''?'':(avg>=LG_THR?'screen_positive':'screen_negative');
+  let c='patient_id,age,sex,p_right_upper,p_left_upper,p_right_lower,p_left_lower,mean_abnormal_prob,threshold,verdict,datetime\n';
+  c+=[($('pid').value||''),($('age')?$('age').value:''),($('sex')?$('sex').value:''),
+    (lgProbs.RUL!=null?lgProbs.RUL.toFixed(3):''),(lgProbs.LUL!=null?lgProbs.LUL.toFixed(3):''),
+    (lgProbs.RLL!=null?lgProbs.RLL.toFixed(3):''),(lgProbs.LLL!=null?lgProbs.LLL.toFixed(3):''),
+    (avg===''?'':avg.toFixed(3)),LG_THR,verdict,new Date().toISOString()].join(',')+'\n';
+  dl(new Blob([c],{type:'text/csv'}),($('pid').value||'patient')+'_pulmoscope.csv');
+};
+
 
 /* ===== bilingual EN/Telugu ===== */
 function applyLang(l){document.body.setAttribute('lang',l);
