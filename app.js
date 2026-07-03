@@ -1115,8 +1115,14 @@ function applyLang(l){document.body.setAttribute('lang',l);
   document.querySelectorAll('[data-te]').forEach(function(el){
     if(!el.hasAttribute('data-en'))el.setAttribute('data-en',el.innerHTML);
     el.innerHTML=(l==='te')?el.getAttribute('data-te'):el.getAttribute('data-en');});
+  document.querySelectorAll('[data-te-ph]').forEach(function(el){
+    if(!el.hasAttribute('data-en-ph'))el.setAttribute('data-en-ph',el.getAttribute('placeholder')||'');
+    el.setAttribute('placeholder',(l==='te')?el.getAttribute('data-te-ph'):el.getAttribute('data-en-ph'));});
+  var en=document.getElementById('langEn'),te=document.getElementById('langTe');
+  if(en&&te){en.classList.toggle('on',l==='en');te.classList.toggle('on',l==='te');}
   var b=document.getElementById('langBtn');if(b)b.textContent=(l==='te')?'English':'తెలుగు';
   try{localStorage.setItem('cardiopulmo_lang',l);}catch(e){}}
+function setLang(l){applyLang(l);}
 function toggleLang(){applyLang(document.body.getAttribute('lang')==='te'?'en':'te');}
 applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';}catch(e){return 'en';}})());
 csTab('c');

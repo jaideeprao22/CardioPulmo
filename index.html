@@ -12,6 +12,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="globals.css?v=3">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CardioPulmo">
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 </head>
 <body data-tab="home">
 
@@ -37,26 +44,26 @@
 <div id="profileOverlay" class="ovl" style="display:none">
   <div class="orb orb-a"></div><div class="orb orb-b"></div>
   <div class="ovlcard" style="max-height:90vh;overflow:auto">
-    <div class="ovlbrand" style="font-size:19px">YOUR DETAILS</div>
+    <div class="ovlbrand" style="font-size:19px" data-te='మీ వివరాలు'>YOUR DETAILS</div>
     <div class="ovlsub" data-te='ఒకసారి మాత్రమే — మీ స్క్రీనింగ్‌లను సేవ్ చేయడానికి మరియు మోడల్‌ను మెరుగుపరచడానికి'>One time — so your screenings can be saved and help improve the model.</div>
-    <input id="pfName" placeholder="Full name">
-    <input id="pfAge" type="number" placeholder="Age (years)">
-    <select id="pfSex"><option value="">Sex</option><option>Male</option><option>Female</option><option>Other</option></select>
+    <input id="pfName" placeholder="Full name" data-te-ph="పూర్తి పేరు">
+    <input id="pfAge" type="number" placeholder="Age (years)" data-te-ph="వయసు (సంవత్సరాలు)">
+    <select id="pfSex"><option value="" data-te='లింగం'>Sex</option><option data-te='పురుషుడు'>Male</option><option data-te='స్త్రీ'>Female</option><option data-te='ఇతర'>Other</option></select>
     <div style="display:flex;gap:8px">
-      <input id="pfHt" type="number" placeholder="Height (cm)" style="flex:1;min-width:0">
-      <input id="pfWt" type="number" placeholder="Weight (kg)" style="flex:1;min-width:0">
+      <input id="pfHt" type="number" placeholder="Height (cm)" data-te-ph="ఎత్తు (సెం.మీ)" style="flex:1;min-width:0">
+      <input id="pfWt" type="number" placeholder="Weight (kg)" data-te-ph="బరువు (కేజీ)" style="flex:1;min-width:0">
     </div>
-    <select id="pfSmoke"><option value="">Smoking status</option><option>Never smoked</option><option>Former smoker</option><option>Current smoker</option></select>
-    <select id="pfCond"><option value="">Known heart or lung condition?</option><option>None</option><option>Heart condition</option><option>Lung condition</option><option>Both</option><option>Other</option></select>
-    <select id="pfSymp"><option value="">Any symptoms right now?</option><option>None</option><option>Cough</option><option>Breathlessness</option><option>Chest pain</option><option>Palpitations</option></select>
-    <input id="pfPhone" type="tel" placeholder="Phone (optional)">
-    <select id="pfRole"><option value="">I am a…</option><option>General public</option><option>Student</option><option>Health worker</option><option>Doctor</option></select>
+    <select id="pfSmoke"><option value="" data-te='ధూమపానం'>Smoking status</option><option data-te='ఎప్పుడూ చేయలేదు'>Never smoked</option><option data-te='గతంలో చేసేవారు'>Former smoker</option><option data-te='ప్రస్తుతం చేస్తున్నారు'>Current smoker</option></select>
+    <select id="pfCond"><option value="" data-te='గుండె లేదా ఊపిరితిత్తుల జబ్బు ఉందా?'>Known heart or lung condition?</option><option data-te='లేదు'>None</option><option data-te='గుండె జబ్బు'>Heart condition</option><option data-te='ఊపిరితిత్తుల జబ్బు'>Lung condition</option><option data-te='రెండూ'>Both</option><option data-te='ఇతర'>Other</option></select>
+    <select id="pfSymp"><option value="" data-te='ప్రస్తుతం ఏవైనా లక్షణాలు ఉన్నాయా?'>Any symptoms right now?</option><option data-te='లేవు'>None</option><option data-te='దగ్గు'>Cough</option><option data-te='ఊపిరి ఆడకపోవడం'>Breathlessness</option><option data-te='ఛాతీ నొప్పి'>Chest pain</option><option data-te='గుండె దడ'>Palpitations</option></select>
+    <input id="pfPhone" type="tel" placeholder="Phone (optional)" data-te-ph="ఫోన్ (ఐచ్ఛికం)">
+    <select id="pfRole"><option value="" data-te='నేను…'>I am a…</option><option data-te='సాధారణ ప్రజలు'>General public</option><option data-te='విద్యార్థి'>Student</option><option data-te='ఆరోగ్య కార్యకర్త'>Health worker</option><option data-te='డాక్టర్'>Doctor</option></select>
     <label style="display:flex;gap:9px;align-items:flex-start;text-align:left;font-size:12px;color:var(--mut);margin:8px 0 4px;line-height:1.45">
       <input id="pfConsent" type="checkbox" style="width:18px;height:18px;margin-top:1px;flex:none;accent-color:var(--acc)">
-      <span>I am 18 years or older (or a parent/guardian giving consent for a minor), and I agree to the <a href="#" onclick="openDoc('terms');return false;" style="color:var(--acc);font-weight:600">Terms &amp; Conditions</a> and <a href="#" onclick="openDoc('privacy');return false;" style="color:var(--acc);font-weight:600">Privacy Policy</a> — including recording and secure storage of my heart &amp; lung sounds and the details above for screening and research.</span>
+      <span data-te='నా వయసు 18 సంవత్సరాలు లేదా అంతకంటే ఎక్కువ (లేదా మైనర్ తరపున సమ్మతిస్తున్న తల్లిదండ్రి/సంరక్షకుడిని), మరియు నా గుండె &amp; ఊపిరితిత్తుల శబ్దాలను మరియు పై వివరాలను స్క్రీనింగ్ మరియు పరిశోధన కోసం రికార్డ్ చేసి భద్రంగా నిల్వ చేయడానికి <a href="#" onclick="openDoc(&#39;terms&#39;);return false;" style="color:var(--acc);font-weight:600">నిబంధనలు &amp; షరతులు</a> మరియు <a href="#" onclick="openDoc(&#39;privacy&#39;);return false;" style="color:var(--acc);font-weight:600">గోప్యతా విధానం</a>‌కు అంగీకరిస్తున్నాను.'>I am 18 years or older (or a parent/guardian giving consent for a minor), and I agree to the <a href="#" onclick="openDoc('terms');return false;" style="color:var(--acc);font-weight:600">Terms &amp; Conditions</a> and <a href="#" onclick="openDoc('privacy');return false;" style="color:var(--acc);font-weight:600">Privacy Policy</a> — including recording and secure storage of my heart &amp; lung sounds and the details above for screening and research.</span>
     </label>
     <div id="pfMsg" style="color:#ff6b6b;font-size:12px;min-height:14px"></div>
-    <button id="profileSave" class="pbtn">Save &amp; continue</button>
+    <button id="profileSave" class="pbtn" data-te='సేవ్ చేసి కొనసాగించండి'>Save &amp; continue</button>
   </div>
 </div>
 
@@ -67,7 +74,10 @@
       <div class="wordmark">CARDIOPULMO</div>
       <div class="wordsub" data-te='గుండె &amp; ఊపిరితిత్తుల స్క్రీనింగ్'>Heart &amp; lung screening</div>
     </div>
-    <button id="langBtn" onclick="toggleLang()">తెలుగు</button>
+    <div id="langSeg" class="langseg">
+      <button id="langEn" class="langopt on" onclick="setLang('en')">EN</button>
+      <button id="langTe" class="langopt" onclick="setLang('te')">తె</button>
+    </div>
   </div>
 </header>
 
@@ -541,8 +551,8 @@
     </div>
 
     <div class="card">
-      <div class="ct" style="color:var(--acc)">Legal</div>
-      <div class="note" style="margin-top:8px"><a href="#" onclick="openDoc('terms');return false;" style="color:var(--acc);font-weight:600">Terms &amp; Conditions</a> &nbsp;·&nbsp; <a href="#" onclick="openDoc('privacy');return false;" style="color:var(--acc);font-weight:600">Privacy Policy</a></div>
+      <div class="ct" style="color:var(--acc)" data-te='చట్టపరమైనవి'>Legal</div>
+      <div class="note" style="margin-top:8px"><a href="#" onclick="openDoc('terms');return false;" style="color:var(--acc);font-weight:600" data-te='నిబంధనలు &amp; షరతులు'>Terms &amp; Conditions</a> &nbsp;·&nbsp; <a href="#" onclick="openDoc('privacy');return false;" style="color:var(--acc);font-weight:600" data-te='గోప్యతా విధానం'>Privacy Policy</a></div>
     </div>
   </section>
 
@@ -550,9 +560,9 @@
   <section class="pane" id="p7" data-screen-label="Terms">
     <div class="mhead">
       <div class="mkicker">CardioPulmo</div>
-      <h2 class="mtitle">Terms &amp; Conditions</h2>
+      <h2 class="mtitle" data-te='నిబంధనలు &amp; షరతులు'>Terms &amp; Conditions</h2>
     </div>
-    <div class="card"><div class="note">Last updated: July 2026. Please read these terms before using CardioPulmo. By ticking the consent box or using the app, you agree to them.</div></div>
+    <div class="card"><div class="note" data-te='ఇది స్క్రీనింగ్ మరియు పరిశోధన కోసం ఒక సాధనం మాత్రమే — వైద్య నిర్ధారణ కాదు, డాక్టర్ లేదా స్టెతస్కోప్‌కు ప్రత్యామ్నాయం కాదు. అత్యవసర పరిస్థితుల్లో వాడవద్దు. ఏదైనా ఫలితాన్ని డాక్టర్‌తో నిర్ధారించుకోండి. యాప్‌ను వాడటం ద్వారా మీరు ఈ నిబంధనలకు అంగీకరిస్తారు.'>Last updated: July 2026. Please read these terms before using CardioPulmo. By ticking the consent box or using the app, you agree to them.</div></div>
 
     <div class="card"><div class="ct" style="color:var(--acc)">1. What CardioPulmo is</div>
       <div class="note" style="margin-top:6px">CardioPulmo is a smartphone <b>screening and research tool</b> that records heart and lung sounds and runs AI models and signal-processing to flag sounds that may be worth a clinician's attention. It is provided for research and educational use.</div></div>
@@ -581,16 +591,16 @@
     <div class="card"><div class="ct" style="color:var(--acc)">9. Contact</div>
       <div class="note" style="margin-top:6px">Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana, India.</div></div>
 
-    <button class="dl" onclick="closeDoc()" style="margin-top:6px">← Back</button>
+    <button class="dl" onclick="closeDoc()" style="margin-top:6px" data-te='← వెనుకకు'>← Back</button>
   </section>
 
   <!-- ================= PRIVACY (p8) ================= -->
   <section class="pane" id="p8" data-screen-label="Privacy">
     <div class="mhead">
       <div class="mkicker">CardioPulmo</div>
-      <h2 class="mtitle">Privacy Policy</h2>
+      <h2 class="mtitle" data-te='గోప్యతా విధానం'>Privacy Policy</h2>
     </div>
-    <div class="card"><div class="note">Last updated: July 2026. This policy explains what CardioPulmo collects, why, and your choices. It is written to align with India's Digital Personal Data Protection Act, 2023.</div></div>
+    <div class="card"><div class="note" data-te='మేము మీ ఇమెయిల్, మీరు ఇచ్చే వివరాలు, మరియు మీ గుండె/ఊపిరితిత్తుల రికార్డింగ్‌లను స్క్రీనింగ్ మరియు పరిశోధన కోసం సురక్షితంగా నిల్వ చేస్తాము. మేము మీ డేటాను అమ్మము, ప్రకటనలు చూపించము. మీరు ఎప్పుడైనా మీ డేటాను చూడవచ్చు, సరిదిద్దవచ్చు, లేదా తొలగించమని అడగవచ్చు.'>Last updated: July 2026. This policy explains what CardioPulmo collects, why, and your choices. It is written to align with India's Digital Personal Data Protection Act, 2023.</div></div>
 
     <div class="card"><div class="ct" style="color:var(--acc)">1. Who we are</div>
       <div class="note" style="margin-top:6px">CardioPulmo is a research project led by Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana, India — the data fiduciary responsible for your information.</div></div>
@@ -625,7 +635,7 @@
     <div class="card"><div class="ct" style="color:var(--acc)">11. Changes &amp; contact</div>
       <div class="note" style="margin-top:6px">This policy may be updated; the "last updated" date will change. For any privacy request, contact Dr. Jaideep Rao M., Government Medical College, Maheshwaram, Telangana, India.</div></div>
 
-    <button class="dl" onclick="closeDoc()" style="margin-top:6px">← Back</button>
+    <button class="dl" onclick="closeDoc()" style="margin-top:6px" data-te='← వెనుకకు'>← Back</button>
   </section>
 
 

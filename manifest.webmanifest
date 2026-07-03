@@ -1,0 +1,15 @@
+{
+  "name": "CardioPulmo — Heart & Lung Screening",
+  "short_name": "CardioPulmo",
+  "description": "Smartphone screening for heart and lung sounds.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05070F",
+  "theme_color": "#05070F",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
