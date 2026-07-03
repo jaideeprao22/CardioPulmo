@@ -1020,7 +1020,7 @@ async function cpLoadMine(){
     body.querySelectorAll('td[data-id]').forEach(function(td){
       var path=td.getAttribute('data-path'),id=td.getAttribute('data-id');
       if(path){var pb=document.createElement('button');pb.className='sbtn';pb.textContent='▶';pb.style.marginRight='6px';pb.onclick=function(){cpPlayMine(path,pb);};td.appendChild(pb);}
-      var db=document.createElement('button');db.className='sbtn';db.textContent='🗑';db.onclick=function(){cpDeleteMine(id,path);};td.appendChild(db);
+      /* user delete temporarily disabled */
     });
   }catch(e){body.innerHTML='<span class="note">Could not load your recordings.</span>';}
 }
