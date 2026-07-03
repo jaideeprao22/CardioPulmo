@@ -2,7 +2,16 @@ const $=id=>document.getElementById(id);
 const st=m=>$('status').textContent=m;
 let pulmoCur='lung';
 function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
+let pendingTab=null;
+function needLogin(name){
+  if(sbUser)return false;
+  pendingTab=name;
+  var o=$('authOverlay');if(o)o.style.display='flex';
+  if(typeof initGoogleBtn==='function')initGoogleBtn();
+  return true;
+}
 function topTab(name){
+  if((name==='cardio'||name==='pulmo'||name==='vasc')&&needLogin(name))return;
   hideAllPanes();
   $('tCardio').classList.toggle('on',name==='cardio');
   $('tPulmo').classList.toggle('on',name==='pulmo');
@@ -504,8 +513,8 @@ let pcStream,pcCtx,pcProc,pcZg,pcBuf=[],pcSr=48000,pcWav=null,pcRows=[],pcTimer,
 const pcSt=m=>$('pcStatus').textContent=m;
 /* Cardioscope Sound: single interactive apex dot (same pattern as Percussion) */
 let pcDotState='pending';
-function pcRenderDot(){var g=$('pcspot');if(!g)return;g.innerHTML='';var d=document.createElement('div');d.className='dot2';d.style.left='62%';d.style.top='63%';d.style.width='7%';d.style.background=(pcDotState==='active')?'#FFB454':((pcDotState==='done')?'#2FBF8F':'#5A6B94');if(pcDotState==='active'){d.style.borderColor='#fff';d.style.borderWidth='3px';d.style.boxShadow='0 0 0 4px rgba(255,255,255,.3)';}d.onclick=pcSelectDot;g.appendChild(d);}
-function pcSelectDot(){pcDotState='active';$('pcRec').disabled=false;pcSt('Apex selected. Press the phone mic-edge here, then Record.');pcRenderDot();}
+function pcRenderDot(){var g=$('pcspot');if(!g)return;g.innerHTML='';var d=document.createElement('div');d.className='dot2';d.style.left='62%';d.style.top='63%';d.style.width='7%';d.style.background=(pcDotState==='active')?'#FFB454':((pcDotState==='done')?'#2FBF8F':'#5A6B94');if(pcDotState==='active'){d.style.borderColor='#fff';d.style.borderWidth='3px';d.style.boxShadow='0 0 0 4px rgba(255,255,255,.3)';}d.onclick=pcSelectDot;g.appendChild(d);if(pcDotState==='pending'){var ar=document.createElement('div');ar.className='dothint';ar.style.left='34%';ar.style.top='52%';ar.innerHTML='<b>\uD83D\uDC49</b> Tap the blue dot to start';g.appendChild(ar);}}
+function pcSelectDot(){pcDotState='active';$('pcRec').disabled=false;pcRenderDot();pcSt('Recording starts now — keep the phone mic-edge on the apex.');setTimeout(function(){$('pcRec').click();},60);}
 pcRenderDot();
 $('pcRec').onclick=async()=>{
   if(!$('pid').value){pcSt('Enter Patient ID (top of page) first.');return;}
@@ -863,7 +872,7 @@ async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
     await sb.from('recordings').insert({user_id:sbUser.id,module:module,zone:zone||null,audio_path:up.error?null:path,probability:(probability==null?null:probability),verdict:verdict||null,extra:extra||null,subject_code:(document.getElementById('pid')?document.getElementById('pid').value:null)||null});
   }catch(e){console.warn('upload failed',e);}
 }
-function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');}
+function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
 function sbShowLogin(){var o=$('authOverlay');if(o)o.style.display='flex';initGoogleBtn();}
 async function sbMaybeProfile(){
   if(!sb||!sbUser)return;
@@ -873,10 +882,16 @@ async function sbMaybeProfile(){
   }catch(e){}
 }
 async function sbInit(){
-  if(!sb){sbShowApp();return;}
+  var _o=$('authOverlay');if(_o)_o.style.display='none';
+  topTab('home');
+  if(!sb){return;}
   try{const {data}=await sb.auth.getSession();sbUser=data.session?data.session.user:null;}catch(e){sbUser=null;}
-  if(sbUser){sbShowApp();sbMaybeProfile();}else{sbShowLogin();}
-  sb.auth.onAuthStateChange(function(_e,session){sbUser=session?session.user:null;if(sbUser){sbShowApp();sbMaybeProfile();}else{sbShowLogin();}});
+  if(sbUser){sbShowApp();sbMaybeProfile();}
+  sb.auth.onAuthStateChange(function(_e,session){
+    sbUser=session?session.user:null;
+    if(sbUser){sbShowApp();sbMaybeProfile();}
+    else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');}
+  });
 }
 
 if($('authLogin'))$('authLogin').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signInWithPassword({email:$('authEmail').value.trim(),password:$('authPass').value});if(error)$('authMsg').textContent=error.message;};
@@ -907,3 +922,19 @@ async function handleGoogleCredential(resp){
 
 initGoogleBtn();
 sbInit();
+
+/* auto patient numbering + persistent age/sex */
+function cpPad(n){return 'P'+String(n).padStart(3,'0');}
+(function cpInitPatient(){
+  try{
+    if($('pid')){var c=parseInt(localStorage.getItem('cp_pid_counter')||'1');$('pid').value=cpPad(c);}
+    var a=localStorage.getItem('cp_age');if(a&&$('age'))$('age').value=a;
+    var s=localStorage.getItem('cp_sex');if(s&&$('sex'))$('sex').value=s;
+    if($('age'))$('age').addEventListener('change',function(){localStorage.setItem('cp_age',$('age').value);});
+    if($('sex'))$('sex').addEventListener('change',function(){localStorage.setItem('cp_sex',$('sex').value);});
+    if($('newPatientBtn'))$('newPatientBtn').onclick=function(){
+      var c2=parseInt(localStorage.getItem('cp_pid_counter')||'1')+1;
+      localStorage.setItem('cp_pid_counter',c2);$('pid').value=cpPad(c2);
+    };
+  }catch(e){}
+})();

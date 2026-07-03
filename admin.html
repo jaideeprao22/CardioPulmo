@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CardioPulmo — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+:root{--bg:#0b0f14;--card:#131a23;--line:#26303d;--txt:#e6edf3;--mut:#8b98a5;--acc:#4aa3ff;--ok:#2fbf8f;--bad:#ff6b6b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0 0 2px}
+.sub{color:var(--mut);font-size:12px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{padding:9px 14px;border-radius:9px;border:1px solid var(--line);background:#1b2531;color:var(--txt);font-size:13px;cursor:pointer}
+button.primary{background:var(--acc);border:none;color:#04121f;font-weight:700}
+button.danger{background:#3a1d1d;border-color:#5a2a2a;color:#ff9a9a}
+input,select{padding:9px;border-radius:8px;border:1px solid var(--line);background:#0d1117;color:var(--txt);font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--mut);font-weight:600;position:sticky;top:0;background:var(--card)}
+.tblwrap{max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;background:#1b2531}
+.pos{background:#3a1d1d;color:#ff9a9a}.neg{background:#12352a;color:#7fe0bd}
+.stat{font-size:26px;font-weight:800}.statl{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:1px}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+#ovl{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.ovlc{max-width:340px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px}
+.msg{color:var(--bad);font-size:12px;min-height:16px}
+audio{height:34px;vertical-align:middle}
+.mut{color:var(--mut)}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0 10px;border-bottom:1px solid var(--line);margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="ovl">
+  <div class="ovlc">
+    <div style="font-size:26px;font-weight:800;color:var(--acc)">CardioPulmo Admin</div>
+    <div class="mut" style="font-size:12px">Authorised staff only</div>
+    <div id="gbtn" style="display:flex;justify-content:center"></div>
+    <div class="mut" style="font-size:11px">— or —</div>
+    <input id="em" type="email" placeholder="Email">
+    <input id="pw" type="password" placeholder="Password">
+    <button class="primary" id="loginBtn">Log in</button>
+    <div id="msg" class="msg"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="wrap" id="dash" style="display:none">
+  <div class="bar row" style="justify-content:space-between">
+    <div><h1>CardioPulmo — Admin</h1><div class="sub" id="who"></div></div>
+    <button id="logoutBtn">Log out</button>
+  </div>
+
+  <div class="card grid4">
+    <div><div class="stat" id="stUsers">—</div><div class="statl">Users</div></div>
+    <div><div class="stat" id="stRecs">—</div><div class="statl">Recordings</div></div>
+    <div><div class="stat" id="stPos">—</div><div class="statl">Flagged abnormal</div></div>
+    <div><div class="stat" id="stSize">—</div><div class="statl">Audio files</div></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <b>Mass export (for ML training)</b>
+      <div class="row">
+        <button id="expCsv">⬇ Metadata CSV</button>
+        <button class="primary" id="expZip">⬇ All audio + labels (ZIP)</button>
+      </div>
+    </div>
+    <div class="mut" style="font-size:11px;margin-top:6px" id="expNote">CSV = one row per recording with labels. ZIP = every audio file + a labels.csv inside, ready for training.</div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <b>All recordings</b>
+      <input id="recFilter" placeholder="Filter (name / module / verdict)" style="min-width:220px">
+    </div>
+    <div class="tblwrap"><table id="recTbl"><thead><tr>
+      <th>Date</th><th>Patient</th><th>User</th><th>Module</th><th>Zone</th><th>Prob</th><th>Verdict</th><th>Audio</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <b>Users</b>
+      <button id="addUserBtn">+ Add user</button>
+    </div>
+    <div class="tblwrap"><table id="usrTbl"><thead><tr>
+      <th>Name</th><th>Email</th><th>Age</th><th>Sex</th><th>Role</th><th>Recordings</th><th>Actions</th>
+    </tr></thead><tbody></tbody></table></div>
+    <div class="mut" style="font-size:11px;margin-top:6px">Edit updates the user's profile. "Delete data" removes all their recordings + profile (their login account is removed from Supabase → Authentication → Users). "Add user" → share the app link for self-signup, or Supabase → Authentication → Add user.</div>
+  </div>
+</div>
+
+<audio id="player" style="display:none"></audio>
+
+<script>
+const $=id=>document.getElementById(id);
+const SB_URL='https://cxqvghjdqyvtxdavhzjw.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cXZnaGpkcXl2dHhkYXZoemp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMDY5MzUsImV4cCI6MjA5ODU4MjkzNX0.vSEowF2M4Hv_j0LOSSJto_TulEce-wcA337ffK7kd5s';
+const GOOGLE_CLIENT_ID='533637534015-8eob9q94fecugvf6d4rm41hnc1fd6f4u.apps.googleusercontent.com';
+const sb=window.supabase.createClient(SB_URL,SB_ANON);
+let recs=[],profs={},profList=[];
+
+/* ---------- auth ---------- */
+let gsiDone=false;
+function initG(){
+  if(gsiDone)return;
+  if(!(window.google&&google.accounts&&google.accounts.id)){setTimeout(initG,300);return;}
+  gsiDone=true;
+  google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:onGoogle});
+  var el=$('gbtn');if(el&&!el.hasChildNodes())google.accounts.id.renderButton(el,{theme:'outline',size:'large',width:300,text:'continue_with'});
+}
+async function onGoogle(r){const {error}=await sb.auth.signInWithIdToken({provider:'google',token:r.credential});if(error)$('msg').textContent=error.message;}
+$('loginBtn').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value});if(error)$('msg').textContent=error.message;};
+$('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload();};
+
+async function gate(){
+  const {data}=await sb.auth.getSession();
+  const u=data.session?data.session.user:null;
+  if(!u){$('ovl').style.display='flex';initG();return;}
+  const {data:a}=await sb.from('admins').select('user_id').eq('user_id',u.id).maybeSingle();
+  if(!a){$('msg').textContent='This account is not an admin.';$('ovl').style.display='flex';initG();await sb.auth.signOut();return;}
+  $('ovl').style.display='none';$('dash').style.display='block';$('who').textContent='Signed in as '+(u.email||u.id);
+  loadAll();
+}
+sb.auth.onAuthStateChange(()=>gate());
+gate();
+
+/* ---------- load ---------- */
+async function loadAll(){
+  const {data:pf}=await sb.from('profiles').select('*');
+  profList=pf||[];profs={};profList.forEach(p=>profs[p.id]=p);
+  const {data:rc}=await sb.from('recordings').select('*').order('created_at',{ascending:false});
+  recs=rc||[];
+  renderStats();renderRecs();renderUsers();
+}
+function renderStats(){
+  $('stUsers').textContent=profList.length;
+  $('stRecs').textContent=recs.length;
+  $('stPos').textContent=recs.filter(r=>r.verdict&&/pos|abnormal/i.test(r.verdict)).length;
+  $('stSize').textContent=recs.filter(r=>r.audio_path).length;
+}
+function fmtDate(s){try{return new Date(s).toLocaleString();}catch(e){return s;}}
+function uname(id){var p=profs[id];return p?(p.full_name||'(no name)'):'(unknown)';}
+function uemail(id){var p=profs[id];return p?(p.email||''):'';}
+
+function renderRecs(){
+  var f=($('recFilter').value||'').toLowerCase();
+  var tb=$('recTbl').querySelector('tbody');tb.innerHTML='';
+  recs.filter(function(r){
+    if(!f)return true;
+    return (uname(r.user_id)+' '+(r.module||'')+' '+(r.verdict||'')+' '+(r.subject_code||'')).toLowerCase().indexOf(f)>=0;
+  }).forEach(function(r){
+    var tr=document.createElement('tr');
+    var vpill=r.verdict?('<span class="pill '+(/pos|abnormal/i.test(r.verdict)?'pos':'neg')+'">'+r.verdict+'</span>'):'';
+    var prob=(r.probability!=null)?Math.round(r.probability*100)+'%':'';
+    tr.innerHTML='<td>'+fmtDate(r.created_at)+'</td><td>'+(r.subject_code||'')+'</td><td>'+uname(r.user_id)+'</td><td>'+(r.module||'')+'</td><td>'+(r.zone||'')+'</td><td>'+prob+'</td><td>'+vpill+'</td><td></td>';
+    var td=tr.lastChild;
+    if(r.audio_path){var b=document.createElement('button');b.textContent='▶ Play';b.onclick=function(){playAudio(r.audio_path,b);};td.appendChild(b);}
+    else td.innerHTML='<span class="mut">—</span>';
+    tb.appendChild(tr);
+  });
+}
+$('recFilter').oninput=renderRecs;
+
+async function playAudio(path,btn){
+  btn.textContent='…';
+  var {data,error}=await sb.storage.from('recordings').createSignedUrl(path,3600);
+  if(error||!data){btn.textContent='✕';return;}
+  var p=$('player');p.src=data.signedUrl;p.style.display='none';p.play();
+  btn.textContent='▶ Play';
+}
+
+/* ---------- users ---------- */
+function renderUsers(){
+  var counts={};recs.forEach(function(r){counts[r.user_id]=(counts[r.user_id]||0)+1;});
+  var tb=$('usrTbl').querySelector('tbody');tb.innerHTML='';
+  profList.forEach(function(p){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(p.full_name||'')+'</td><td>'+(p.email||'')+'</td><td>'+(p.age||'')+'</td><td>'+(p.sex||'')+'</td><td>'+(p.role||'')+'</td><td>'+(counts[p.id]||0)+'</td><td></td>';
+    var td=tr.lastChild;
+    var e=document.createElement('button');e.textContent='Edit';e.onclick=function(){editUser(p);};td.appendChild(e);
+    var d=document.createElement('button');d.className='danger';d.textContent='Delete data';d.style.marginLeft='6px';d.onclick=function(){delUser(p);};td.appendChild(d);
+    tb.appendChild(tr);
+  });
+}
+async function editUser(p){
+  var name=prompt('Full name:',p.full_name||'');if(name===null)return;
+  var age=prompt('Age:',p.age||'');if(age===null)return;
+  var sex=prompt('Sex (Male/Female/Other):',p.sex||'');if(sex===null)return;
+  var role=prompt('Role:',p.role||'');if(role===null)return;
+  var {error}=await sb.from('profiles').update({full_name:name.trim(),age:parseInt(age)||null,sex:sex.trim()||null,role:role.trim()||null}).eq('id',p.id);
+  if(error){alert(error.message);return;}
+  loadAll();
+}
+async function delUser(p){
+  if(!confirm('Delete ALL recordings + profile for '+(p.full_name||p.email||p.id)+'? This cannot be undone.\\n\\n(Their login account is removed separately in Supabase → Authentication → Users.)'))return;
+  var mine=recs.filter(function(r){return r.user_id===p.id&&r.audio_path;}).map(function(r){return r.audio_path;});
+  if(mine.length){try{await sb.storage.from('recordings').remove(mine);}catch(e){}}
+  await sb.from('recordings').delete().eq('user_id',p.id);
+  await sb.from('profiles').delete().eq('id',p.id);
+  loadAll();
+}
+$('addUserBtn').onclick=function(){
+  alert('To add a login account:\\n\\n1) Share the app link — the person signs up themselves (Google or email), or\\n2) Supabase → Authentication → Users → Add user.\\n\\nCreating accounts must be done there (secure); this dashboard manages their data and recordings.');
+};
+
+/* ---------- export ---------- */
+function csvCell(v){v=(v==null?'':String(v));return '"'+v.replace(/"/g,'""')+'"';}
+function buildCsv(){
+  var head=['id','datetime','patient_code','user_name','user_email','user_age','user_sex','module','zone','probability','verdict','audio_path'];
+  var lines=[head.join(',')];
+  recs.forEach(function(r){
+    var p=profs[r.user_id]||{};
+    lines.push([r.id,r.created_at,r.subject_code,uname(r.user_id),uemail(r.user_id),p.age||'',p.sex||'',r.module,r.zone,(r.probability!=null?r.probability:''),r.verdict,r.audio_path].map(csvCell).join(','));
+  });
+  return lines.join('\\n');
+}
+$('expCsv').onclick=function(){
+  var blob=new Blob([buildCsv()],{type:'text/csv'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cardiopulmo_recordings.csv';a.click();
+};
+$('expZip').onclick=async function(){
+  var withAudio=recs.filter(function(r){return r.audio_path;});
+  if(!withAudio.length){alert('No audio to export.');return;}
+  if(!confirm('Export '+withAudio.length+' audio files + labels.csv as a ZIP? Large sets take a while.'))return;
+  var btn=$('expZip');btn.disabled=true;
+  var zip=new JSZip();var folder=zip.folder('audio');
+  for(var i=0;i<withAudio.length;i++){
+    var r=withAudio[i];btn.textContent='Zipping '+(i+1)+'/'+withAudio.length+'…';
+    try{
+      var {data}=await sb.storage.from('recordings').createSignedUrl(r.audio_path,3600);
+      if(data&&data.signedUrl){var buf=await (await fetch(data.signedUrl)).arrayBuffer();
+        var fn=r.module+'_'+(r.zone||'x')+'_'+r.id+'.wav';folder.file(fn,buf);}
+    }catch(e){}
+  }
+  zip.file('labels.csv',buildCsv());
+  btn.textContent='Building ZIP…';
+  var blob=await zip.generateAsync({type:'blob'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cardiopulmo_dataset.zip';a.click();
+  btn.disabled=false;btn.textContent='⬇ All audio + labels (ZIP)';
+};
+</script>
+</body>
+</html>
