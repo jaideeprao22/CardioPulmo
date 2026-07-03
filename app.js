@@ -883,7 +883,7 @@ async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
     await sb.from('recordings').insert({user_id:sbUser.id,module:module,zone:zone||null,audio_path:up.error?null:path,probability:(probability==null?null:probability),verdict:verdict||null,extra:extra||null,subject_code:(document.getElementById('pid')?document.getElementById('pid').value:null)||null});
   }catch(e){console.warn('upload failed',e);}
 }
-function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
+function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if($('authBox'))$('authBox').style.display='block';if($('notLoggedBox'))$('notLoggedBox').style.display='none';if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
 function sbShowLogin(){var o=$('authOverlay');if(o)o.style.display='flex';initGoogleBtn();}
 async function sbMaybeProfile(){
   if(!sb||!sbUser)return;
@@ -898,10 +898,11 @@ async function sbInit(){
   if(!sb){return;}
   try{const {data}=await sb.auth.getSession();sbUser=data.session?data.session.user:null;}catch(e){sbUser=null;}
   if(sbUser){sbShowApp();sbMaybeProfile();}
+  else{if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';}
   sb.auth.onAuthStateChange(function(_e,session){
     sbUser=session?session.user:null;
     if(sbUser){sbShowApp();sbMaybeProfile();}
-    else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');}
+    else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';}
   });
 }
 
