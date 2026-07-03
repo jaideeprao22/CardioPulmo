@@ -546,7 +546,7 @@ function pcStartQuietGate(){
   if(pcGating)return;
   if(!$('pid').value){pcSt('Enter Patient ID (top of page) first.');return;}
   pcGating=true;var meter=$('pcNoise');if(meter)meter.style.display='block';
-  $('pcRec').disabled=true;$('pcStop').disabled=false;$('pcResCard').style.display='none';
+  $('pcRec').style.display='none';$('pcRec').disabled=true;$('pcStop').disabled=false;$('pcResCard').style.display='none';
   pcNoiseLabel('Listening for a quiet moment…','#e6edf3');pcSt('Checking the room is quiet enough…');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
     var ctx=new (window.AudioContext||window.webkitAudioContext)();var src=ctx.createMediaStreamSource(stream);
@@ -566,7 +566,7 @@ function pcStartQuietGate(){
       pcGateRAF=requestAnimationFrame(loop);
     }
     loop();
-  }).catch(function(){pcGating=false;if(meter)meter.style.display='none';pcSt('Microphone blocked. Allow mic and reload.');});
+  }).catch(function(){pcGating=false;if(meter)meter.style.display='none';$('pcRec').style.display='';pcSt('Microphone blocked. Allow mic and reload.');});
 }
 function pcGateArmDone(stream,ctx,src,an,meter,noisy){
   try{cancelAnimationFrame(pcGateRAF);}catch(e){}pcGating=false;pcGateCancel=null;
@@ -586,11 +586,11 @@ function pcBeginRecording(stream,ctx,src,noisy){
   pcTimer=setInterval(function(){pcLeft--;pcSt('● Recording… ('+pcLeft+'s)');if(pcLeft<=0)pcStopRec();},1000);
 }
 $('pcRec').onclick=pcStartQuietGate;
-$('pcStop').onclick=function(){if(pcGating&&pcGateCancel){pcGateCancel();$('pcStop').disabled=true;$('pcRec').disabled=false;pcDotState='pending';pcRenderDot();pcSt('Cancelled — tap the apex dot to try again.');return;}pcStopRec();};
+$('pcStop').onclick=function(){if(pcGating&&pcGateCancel){pcGateCancel();$('pcStop').disabled=true;$('pcRec').style.display='';$('pcRec').disabled=false;pcDotState='pending';pcRenderDot();pcSt('Cancelled — tap the apex dot to try again.');return;}pcStopRec();};
 function pcStopRec(){
   clearInterval(pcTimer);try{pcProc.disconnect();}catch(e){}
   if(pcStream)pcStream.getTracks().forEach(t=>t.stop());
-  $('pcRec').disabled=false;$('pcStop').disabled=true;pcSt('Analysing…');
+  $('pcRec').style.display='';$('pcRec').disabled=false;$('pcStop').disabled=true;pcSt('Analysing…');
   let n=0;pcBuf.forEach(b=>n+=b.length);
   if(n<pcSr){pcSt('Too short — record ~15s.');try{pcCtx.close();}catch(e){}return;}
   const s=new Float32Array(n);let o=0;pcBuf.forEach(b=>{s.set(b,o);o+=b.length;});try{pcCtx.close();}catch(e){}
@@ -881,7 +881,7 @@ function lgStartQuietGate(){
   if(!lgSel){lgSt('Tap a point on the back first.');return;}
   if(!$('pid').value){lgSt('Enter Patient ID (top of page) first.');return;}
   lgGating=true;var meter=$('lgNoise');if(meter)meter.style.display='block';
-  $('lgRec').disabled=true;$('lgStop').disabled=false;
+  $('lgRec').style.display='none';$('lgRec').disabled=true;$('lgStop').disabled=false;
   lgNoiseLabel('Listening for a quiet moment…','#e6edf3');lgSt('Checking the room is quiet enough…');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
     var ctx=new (window.AudioContext||window.webkitAudioContext)();var src=ctx.createMediaStreamSource(stream);
@@ -901,7 +901,7 @@ function lgStartQuietGate(){
       lgGateRAF=requestAnimationFrame(loop);
     }
     loop();
-  }).catch(function(){lgGating=false;if(meter)meter.style.display='none';lgSt('Microphone blocked. Allow mic and reload.');});
+  }).catch(function(){lgGating=false;if(meter)meter.style.display='none';$('lgRec').style.display='';lgSt('Microphone blocked. Allow mic and reload.');});
 }
 function lgGateArmDone(stream,ctx,src,an,meter,noisy){
   try{cancelAnimationFrame(lgGateRAF);}catch(e){}lgGating=false;lgGateCancel=null;
@@ -920,11 +920,11 @@ function lgBeginRecording(stream,ctx,src,noisy){
   lgTimer=setInterval(function(){lgLeft--;lgSt('\u25CF Recording '+lgSel+'\u2026 ('+lgLeft+'s)');if(lgLeft<=0)lgStopRec();},1000);
 }
 $('lgRec').onclick=lgStartQuietGate;
-$('lgStop').onclick=function(){if(lgGating&&lgGateCancel){lgGateCancel();$('lgStop').disabled=true;$('lgRec').disabled=false;lgSt('Cancelled — tap a point and record again.');return;}lgStopRec();};
+$('lgStop').onclick=function(){if(lgGating&&lgGateCancel){lgGateCancel();$('lgStop').disabled=true;$('lgRec').style.display='';$('lgRec').disabled=false;lgSt('Cancelled — tap a point and record again.');return;}lgStopRec();};
 function lgStopRec(){
   clearInterval(lgTimer);try{lgProc.disconnect();}catch(e){}
   if(lgStream)lgStream.getTracks().forEach(t=>t.stop());
-  $('lgStop').disabled=true;$('lgRec').disabled=false;lgSt('Analysing '+lgSel+'\u2026');
+  $('lgStop').disabled=true;$('lgRec').style.display='';$('lgRec').disabled=false;lgSt('Analysing '+lgSel+'\u2026');
   let n=0;lgBuf.forEach(b=>n+=b.length);
   if(n<lgSr){lgSt('Too short \u2014 record ~15s.');try{lgCtx.close();}catch(e){}return;}
   const s=new Float32Array(n);let o=0;lgBuf.forEach(b=>{s.set(b,o);o+=b.length;});try{lgCtx.close();}catch(e){}

@@ -379,12 +379,12 @@
           <span><span class="dot" style="background:#FFB454"></span>recording</span>
           <span><span class="dot" style="background:#2FBF8F"></span>done</span>
         </div>
-        <button id="pcRec" class="rec" disabled data-te='● గుండె శబ్దం రికార్డ్ (15s)'>● Record heart sound (15s)</button>
-        <button id="pcStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
-        <div id="pcNoise" style="display:none;margin:8px 0 2px">
+        <div id="pcNoise" style="display:none;margin:0 0 10px">
           <div id="pcNoiseLbl" style="text-align:center;font-size:13px;font-weight:700;margin-bottom:6px">Listening for a quiet moment…</div>
           <canvas id="pcNoiseCanvas" style="width:100%;height:56px;display:block"></canvas>
         </div>
+        <button id="pcRec" class="rec" disabled data-te='● గుండె శబ్దం రికార్డ్ (15s)'>● Record heart sound (15s)</button>
+        <button id="pcStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
         <div id="pcStatus" class="vst">Phone mic-edge on the cardiac apex, quiet room, then Start.</div>
         <canvas id="pcWave"></canvas>
         <audio id="pcPlayer" controls style="display:none"></audio>
@@ -439,12 +439,12 @@
 
     <div class="card">
       <div id="lgSelName" class="note" style="text-align:center;margin-bottom:2px">Tap a point on the back above.</div>
-      <button id="lgRec" class="rec" disabled data-te='● ముందుగా ఒక పాయింట్ ఎంచుకోండి'>● Select a point first</button>
-      <button id="lgStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
-      <div id="lgNoise" style="display:none;margin:8px 0 2px">
+      <div id="lgNoise" style="display:none;margin:0 0 10px">
         <div id="lgNoiseLbl" style="text-align:center;font-size:13px;font-weight:700;margin-bottom:6px">Listening for a quiet moment…</div>
         <canvas id="lgNoiseCanvas" style="width:100%;height:56px;display:block"></canvas>
       </div>
+      <button id="lgRec" class="rec" disabled data-te='● ముందుగా ఒక పాయింట్ ఎంచుకోండి'>● Select a point first</button>
+      <button id="lgStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
       <div id="lgStatus" class="vst">Quiet room, phone mic on skin, patient breathes deeply through the mouth.</div>
       <canvas id="lgWave"></canvas>
       <audio id="lgPlayer" controls style="display:none"></audio>
