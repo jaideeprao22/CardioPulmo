@@ -680,22 +680,26 @@ function pcHeartSignal(s,fs){
   else{verdict='Mostly high-freq noise — reposition';ok=false;col='var(--bad)';quality='none';}
   return {ratioLow:ratioLow,rms:rms,verdict:verdict,ok:ok,col:col,quality:quality};
 }
+async function pcRenderAmplified(s,fs){
+  const oac=new OfflineAudioContext(1,s.length,fs);
+  const buf=oac.createBuffer(1,s.length,fs);buf.copyToChannel(Float32Array.from(s),0);
+  const src=oac.createBufferSource();src.buffer=buf;
+  const hp1=oac.createBiquadFilter();hp1.type='highpass';hp1.frequency.value=20;
+  const hp2=oac.createBiquadFilter();hp2.type='highpass';hp2.frequency.value=20;
+  const lp1=oac.createBiquadFilter();lp1.type='lowpass';lp1.frequency.value=150;
+  const lp2=oac.createBiquadFilter();lp2.type='lowpass';lp2.frequency.value=150;
+  const comp=oac.createDynamicsCompressor();comp.threshold.value=-45;comp.knee.value=30;comp.ratio.value=12;comp.attack.value=0.003;comp.release.value=0.25;
+  src.connect(hp1);hp1.connect(hp2);hp2.connect(lp1);lp1.connect(lp2);lp2.connect(comp);comp.connect(oac.destination);src.start();
+  const r=await oac.startRendering();let o=r.getChannelData(0);
+  let mx=1e-6;for(let i=0;i<o.length;i++){const a=Math.abs(o[i]);if(a>mx)mx=a;}
+  const g=0.97/mx,amp=new Float32Array(o.length);for(let i=0;i<o.length;i++)amp[i]=o[i]*g;
+  return amp;
+}
 async function pcAmplifyPlay(){
   if(!pcLastBuf){return;}
   try{
-    const s=pcLastBuf,fs=pcSr,oac=new OfflineAudioContext(1,s.length,fs);
-    const buf=oac.createBuffer(1,s.length,fs);buf.copyToChannel(Float32Array.from(s),0);
-    const src=oac.createBufferSource();src.buffer=buf;
-    const hp1=oac.createBiquadFilter();hp1.type='highpass';hp1.frequency.value=20;
-    const hp2=oac.createBiquadFilter();hp2.type='highpass';hp2.frequency.value=20;
-    const lp1=oac.createBiquadFilter();lp1.type='lowpass';lp1.frequency.value=150;
-    const lp2=oac.createBiquadFilter();lp2.type='lowpass';lp2.frequency.value=150;
-    const comp=oac.createDynamicsCompressor();comp.threshold.value=-45;comp.knee.value=30;comp.ratio.value=12;comp.attack.value=0.003;comp.release.value=0.25;
-    src.connect(hp1);hp1.connect(hp2);hp2.connect(lp1);lp1.connect(lp2);lp2.connect(comp);comp.connect(oac.destination);src.start();
-    const r=await oac.startRendering();let o=r.getChannelData(0);
-    let mx=1e-6;for(let i=0;i<o.length;i++){const a=Math.abs(o[i]);if(a>mx)mx=a;}
-    const g=0.97/mx,amp=new Float32Array(o.length);for(let i=0;i<o.length;i++)amp[i]=o[i]*g;
-    const wav=encodeWAV(amp,fs),p=$('pcPlayer');p.src=URL.createObjectURL(wav);p.style.display='block';pcDraw(amp);p.play();
+    const amp=await pcRenderAmplified(pcLastBuf,pcSr);
+    const wav=encodeWAV(amp,pcSr),p=$('pcPlayer');p.src=URL.createObjectURL(wav);p.style.display='block';pcDraw(amp);p.play();
     pcSt('Amplified hard + heart-band filtered (20–150 Hz) + compressed. Listen for lub-dub under the noise.');
   }catch(e){console.error(e);pcSt('Amplify failed on this device.');}
 }
@@ -705,21 +709,35 @@ async function pcMLScreen(s,fs,pcRow){
   sig.style.display='block';sig.textContent='📶 '+q.verdict+'  ('+(q.ratioLow*100).toFixed(0)+'% low-band)';sig.style.color=q.col;
   el.style.display='block';sub.style.display='block';
   if(!q.ok){el.textContent='🧠 AI screen: skipped — mostly noise';el.style.color='var(--mut)';
-    sub.textContent='Press the phone tip firmly on bare skin at the heart, hold still, quiet room, then re-record.';return;}
+    sub.textContent='Press the phone tip firmly on bare skin at the heart, hold still, quiet room, then re-record.';
+    pcUploadSafe('no_signal',null,q,s,fs,sub);return;}
   if(q.quality!=='good'){el.textContent='🧠 AI screen: signal too noisy for a reliable result';el.style.color='var(--warn)';
-    sub.textContent='Too much background noise for the AI. Move to a quieter spot, press firmly on bare skin, hold still — aim for the green "Heart-sound signal detected ✓" before trusting the AI.';return;}
+    sub.textContent='Too much background noise for the AI. Move to a quieter spot, press firmly on bare skin, hold still — aim for the green "Heart-sound signal detected ✓" before trusting the AI.';
+    pcUploadSafe('low_quality',null,q,s,fs,sub);return;}
   el.textContent='🧠 AI screen: loading model…';el.style.color='var(--mut)';
   const ok=await pcLoadModel();
   if(!ok){el.textContent='🧠 AI screen unavailable — '+pcModelErr;el.style.color='var(--mut)';
-    sub.textContent='Model files must sit in the same folder as index.html.';return;}
+    sub.textContent='Model files must sit in the same folder as index.html.';
+    pcUploadSafe('model_unavailable',null,q,s,fs,sub);return;}
   try{
     const p=pcInfer(pcLogMel(pcResample(s,fs,PC_SR2))),pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
     sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic';
     if(pcRow)pcRow.ai=p.toFixed(3);
-    uploadRecording('cardioscope','apex',makeSmallWav(s,fs,PC_SR2),p,pos?'screen_positive':'screen_negative',{quality:q.quality});
-  }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';}
+    pcUploadSafe(pos?'screen_positive':'screen_negative',p,q,s,fs,sub);
+  }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';
+    pcUploadSafe('processing_error',null,q,s,fs,sub);}
+}
+async function pcUploadSafe(verdict,prob,q,s,fs,subEl){
+  const r=await uploadRecording('cardioscope','apex_raw',makeSmallWav(s,fs,PC_SR2),prob,verdict,{quality:q.quality,ratioLow:q.ratioLow,band:'raw'});
+  if(!r.ok&&subEl)subEl.textContent+=' · ⚠ raw not saved — '+r.reason;
+  else if(r.ok&&r.reason&&subEl)subEl.textContent+=' · ⚠ '+r.reason;
+  try{
+    const amp=await pcRenderAmplified(s,fs);
+    const r2=await uploadRecording('cardioscope','apex_ampl_20_150hz',makeSmallWav(amp,fs,PC_SR2),prob,verdict,{quality:q.quality,band:'20-150Hz',amplified:true});
+    if(!r2.ok&&subEl)subEl.textContent+=' · ⚠ amplified not saved — '+r2.reason;
+  }catch(e){console.warn('amplified save failed',e);}
 }
 
 /* ===== PulmoScope on-device AI: lung-sound normal/abnormal screen (TF.js) ===== */
@@ -823,16 +841,21 @@ function lgStopRec(){
 }
 async function lgScreen(s,fs,zone){
   $('lgResCard').style.display='block';
-  if(!lgSignalOK(s,fs)){lgSt(zone+': mic silent \u2014 press on skin and re-record.');return;}
+  if(!lgSignalOK(s,fs)){lgSt(zone+': mic silent \u2014 press on skin and re-record.');lgUploadSafe(zone,'no_signal',null,s,fs);return;}
   const ok=await lgLoadModel();
-  if(!ok){lgSt('AI model unavailable \u2014 '+lgModelErr);return;}
+  if(!ok){lgSt('AI model unavailable \u2014 '+lgModelErr);lgUploadSafe(zone,'model_unavailable',null,s,fs);return;}
   try{
     const pr=lgProbForBuffer(s,fs);
     lgState[zone].p=pr;lgState[zone].status='done';
     lgUpdate();lgRenderMap();lgRenderGrid();
-    uploadRecording('pulmoscope',zone,makeSmallWav(s,fs,LG_SR),pr,pr>=LG_THR?'abnormal':'normal',null);
+    lgUploadSafe(zone,pr>=LG_THR?'abnormal':'normal',pr,s,fs);
     lgSt(zone+' done ('+(pr*100).toFixed(0)+'%). Tap the next point, or read the result below.');
-  }catch(e){console.error(e);lgSt('Error processing '+zone+'.');}
+  }catch(e){console.error(e);lgSt('Error processing '+zone+'.');lgUploadSafe(zone,'processing_error',null,s,fs);}
+}
+async function lgUploadSafe(zone,verdict,prob,s,fs){
+  const r=await uploadRecording('pulmoscope',zone,makeSmallWav(s,fs,LG_SR),prob,verdict,null);
+  if(!r.ok)lgSt(zone+': \u26a0 not saved \u2014 '+r.reason);
+  else if(r.reason)lgSt(zone+': saved, but \u26a0 '+r.reason);
 }
 function lgUpdate(){
   const vals=LGZ.filter(z=>lgState[z.id].p!=null).map(z=>lgState[z.id].p);
@@ -876,20 +899,27 @@ const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createC
 let sbUser=null;
 function makeSmallWav(s,fs,targetSR){return encodeWAV(pcResample(s,fs,targetSR),targetSR);}
 async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
-  if(!sb||!sbUser)return;
+  if(!sb||!sbUser)return {ok:false,reason:'not logged in'};
   try{
     const path=sbUser.id+'/'+module+'_'+(zone||'x')+'_'+Date.now()+'.wav';
     const up=await sb.storage.from('recordings').upload(path,wavBlob,{contentType:'audio/wav',upsert:false});
-    await sb.from('recordings').insert({user_id:sbUser.id,module:module,zone:zone||null,audio_path:up.error?null:path,probability:(probability==null?null:probability),verdict:verdict||null,extra:extra||null,subject_code:(document.getElementById('pid')?document.getElementById('pid').value:null)||null});
-  }catch(e){console.warn('upload failed',e);}
+    const ins=await sb.from('recordings').insert({user_id:sbUser.id,module:module,zone:zone||null,audio_path:up.error?null:path,probability:(probability==null?null:probability),verdict:verdict||null,extra:extra||null,subject_code:(document.getElementById('pid')?document.getElementById('pid').value:null)||null});
+    if(ins.error){console.warn('recordings insert failed',ins.error);return {ok:false,reason:ins.error.message};}
+    if(up.error){console.warn('audio upload failed',up.error);return {ok:true,reason:'audio file not saved — '+up.error.message};}
+    return {ok:true};
+  }catch(e){console.warn('upload failed',e);return {ok:false,reason:(e&&e.message)||'unknown error'};}
 }
 function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if($('authBox'))$('authBox').style.display='block';if($('notLoggedBox'))$('notLoggedBox').style.display='none';if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
 function sbShowLogin(){var o=$('authOverlay');if(o)o.style.display='flex';initGoogleBtn();}
 async function sbMaybeProfile(){
   if(!sb||!sbUser)return;
-  try{const {data}=await sb.from('profiles').select('full_name').eq('id',sbUser.id).maybeSingle();
+  try{const {data}=await sb.from('profiles').select('full_name,age,sex').eq('id',sbUser.id).maybeSingle();
     if(!data||!data.full_name){if($('profileOverlay'))$('profileOverlay').style.display='flex';}
     else if($('profileOverlay'))$('profileOverlay').style.display='none';
+    if(data){
+      if($('age')&&!$('age').value&&data.age){$('age').value=data.age;localStorage.setItem('cp_age',data.age);}
+      if($('sex')&&!$('sex').value&&data.sex){var sv=(data.sex==='Male')?'M':(data.sex==='Female')?'F':'';if(sv){$('sex').value=sv;localStorage.setItem('cp_sex',sv);}}
+    }
   }catch(e){}
 }
 async function sbInit(){
@@ -911,7 +941,11 @@ if($('authSignup'))$('authSignup').onclick=async function(){if(!sb)return;const 
 if($('authLogout'))$('authLogout').onclick=async function(){if(sb)await sb.auth.signOut();};
 if($('profileSave'))$('profileSave').onclick=async function(){
   if(!sb||!sbUser)return;
-  await sb.from('profiles').update({full_name:$('pfName').value.trim(),age:parseInt($('pfAge').value)||null,sex:$('pfSex').value||null,phone:$('pfPhone').value.trim()||null,role:$('pfRole').value||null}).eq('id',sbUser.id);
+  var pfA=parseInt($('pfAge').value)||null;
+  var pfS=$('pfSex').value||null;
+  await sb.from('profiles').update({full_name:$('pfName').value.trim(),age:pfA,sex:pfS,phone:$('pfPhone').value.trim()||null,role:$('pfRole').value||null}).eq('id',sbUser.id);
+  if($('age')&&pfA){$('age').value=pfA;localStorage.setItem('cp_age',pfA);}
+  if($('sex')&&pfS){var sv2=(pfS==='Male')?'M':(pfS==='Female')?'F':'';if(sv2){$('sex').value=sv2;localStorage.setItem('cp_sex',sv2);}}
   $('profileOverlay').style.display='none';
 };
 
@@ -937,13 +971,22 @@ sbInit();
 
 /* auto patient numbering + persistent age/sex */
 function cpPad(n){return 'P'+String(n).padStart(3,'0');}
+function cpSyncProfile(){
+  try{
+    if(!sb||!sbUser)return;
+    var a=parseInt($('age')?$('age').value:'')||null;
+    var sRaw=$('sex')?$('sex').value:'';
+    var s=(sRaw==='M')?'Male':(sRaw==='F')?'Female':null;
+    sb.from('profiles').update({age:a,sex:s}).eq('id',sbUser.id);
+  }catch(e){}
+}
 (function cpInitPatient(){
   try{
     if($('pid')){var c=parseInt(localStorage.getItem('cp_pid_counter')||'1');$('pid').value=cpPad(c);}
     var a=localStorage.getItem('cp_age');if(a&&$('age'))$('age').value=a;
     var s=localStorage.getItem('cp_sex');if(s&&$('sex'))$('sex').value=s;
-    if($('age'))$('age').addEventListener('change',function(){localStorage.setItem('cp_age',$('age').value);});
-    if($('sex'))$('sex').addEventListener('change',function(){localStorage.setItem('cp_sex',$('sex').value);});
+    if($('age'))$('age').addEventListener('change',function(){localStorage.setItem('cp_age',$('age').value);cpSyncProfile();});
+    if($('sex'))$('sex').addEventListener('change',function(){localStorage.setItem('cp_sex',$('sex').value);cpSyncProfile();});
     if($('newPatientBtn'))$('newPatientBtn').onclick=function(){
       var c2=parseInt(localStorage.getItem('cp_pid_counter')||'1')+1;
       localStorage.setItem('cp_pid_counter',c2);$('pid').value=cpPad(c2);

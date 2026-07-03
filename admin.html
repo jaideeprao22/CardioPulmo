@@ -110,16 +110,21 @@ let recs=[],profs={},profList=[];
 $('loginBtn').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value});if(error)$('msg').textContent=error.message;};
 $('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload();};
 
+let gateBusy=false,dashReady=false;
 async function gate(){
-  const {data}=await sb.auth.getSession();
-  const u=data.session?data.session.user:null;
-  if(!u){$('ovl').style.display='flex';return;}
-  const {data:a}=await sb.from('admins').select('user_id').eq('user_id',u.id).maybeSingle();
-  if(!a){$('msg').textContent='This account is not an admin.';$('ovl').style.display='flex';await sb.auth.signOut();return;}
-  $('ovl').style.display='none';$('dash').style.display='block';$('who').textContent='Signed in as '+(u.email||u.id);
-  loadAll();
+  if(gateBusy)return;gateBusy=true;
+  try{
+    const {data}=await sb.auth.getSession();
+    const u=data.session?data.session.user:null;
+    if(!u){dashReady=false;$('dash').style.display='none';$('ovl').style.display='flex';return;}
+    let isAdmin=false;
+    try{const {data:a}=await sb.from('admins').select('user_id').eq('user_id',u.id).maybeSingle();isAdmin=!!a;}catch(e){isAdmin=false;}
+    if(!isAdmin){$('msg').textContent='This account is not an admin.';$('dash').style.display='none';$('ovl').style.display='flex';return;}
+    $('ovl').style.display='none';$('dash').style.display='block';$('who').textContent='Signed in as '+(u.email||u.id);
+    if(!dashReady){dashReady=true;loadAll();}
+  }finally{gateBusy=false;}
 }
-sb.auth.onAuthStateChange(()=>gate());
+sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_OUT'){dashReady=false;$('dash').style.display='none';$('ovl').style.display='flex';return;}gate();});
 gate();
 
 /* ---------- load ---------- */
