@@ -29,21 +29,33 @@
     <button id="authLogin" class="pbtn">Log in</button>
     <button id="authSignup" class="sbtn">Create new account</button>
     <div id="authMsg" class="ovlmsg"></div>
-    <div class="ovlfoot" data-te='రీసెర్చ్ పరికరం · ఆన్-డివైస్ AI · డేటా ఫోన్ దాటదు'>Research instrument · On-device AI · audio never leaves the phone</div>
+    <div class="ovlfoot" data-te='రీసెర్చ్ పరికరం · AI · డేటా ఫోన్ దాటదు'>Research instrument · AI · audio never leaves the phone</div>
   </div>
 </div>
 
 <!-- ================= ONE-TIME PROFILE ================= -->
 <div id="profileOverlay" class="ovl" style="display:none">
   <div class="orb orb-a"></div><div class="orb orb-b"></div>
-  <div class="ovlcard">
+  <div class="ovlcard" style="max-height:90vh;overflow:auto">
     <div class="ovlbrand" style="font-size:19px">YOUR DETAILS</div>
-    <div class="ovlsub" data-te='ఒకసారి మాత్రమే — మీ స్క్రీనింగ్‌లను సేవ్ చేయడానికి'>One time — so your screenings can be saved.</div>
+    <div class="ovlsub" data-te='ఒకసారి మాత్రమే — మీ స్క్రీనింగ్‌లను సేవ్ చేయడానికి మరియు మోడల్‌ను మెరుగుపరచడానికి'>One time — so your screenings can be saved and help improve the model.</div>
     <input id="pfName" placeholder="Full name">
-    <input id="pfAge" type="number" placeholder="Age">
+    <input id="pfAge" type="number" placeholder="Age (years)">
     <select id="pfSex"><option value="">Sex</option><option>Male</option><option>Female</option><option>Other</option></select>
+    <div style="display:flex;gap:8px">
+      <input id="pfHt" type="number" placeholder="Height (cm)" style="flex:1;min-width:0">
+      <input id="pfWt" type="number" placeholder="Weight (kg)" style="flex:1;min-width:0">
+    </div>
+    <select id="pfSmoke"><option value="">Smoking status</option><option>Never smoked</option><option>Former smoker</option><option>Current smoker</option></select>
+    <select id="pfCond"><option value="">Known heart or lung condition?</option><option>None</option><option>Heart condition</option><option>Lung condition</option><option>Both</option><option>Other</option></select>
+    <select id="pfSymp"><option value="">Any symptoms right now?</option><option>None</option><option>Cough</option><option>Breathlessness</option><option>Chest pain</option><option>Palpitations</option></select>
     <input id="pfPhone" type="tel" placeholder="Phone (optional)">
     <select id="pfRole"><option value="">I am a…</option><option>General public</option><option>Student</option><option>Health worker</option><option>Doctor</option></select>
+    <label style="display:flex;gap:9px;align-items:flex-start;text-align:left;font-size:12px;color:var(--mut);margin:8px 0 4px;line-height:1.45">
+      <input id="pfConsent" type="checkbox" style="width:18px;height:18px;margin-top:1px;flex:none;accent-color:var(--acc)">
+      <span>I am 18 years or older (or a parent/guardian giving consent for a minor), and I agree to the <a href="#" onclick="openDoc('terms');return false;" style="color:var(--acc);font-weight:600">Terms &amp; Conditions</a> and <a href="#" onclick="openDoc('privacy');return false;" style="color:var(--acc);font-weight:600">Privacy Policy</a> — including recording and secure storage of my heart &amp; lung sounds and the details above for screening and research.</span>
+    </label>
+    <div id="pfMsg" style="color:#ff6b6b;font-size:12px;min-height:14px"></div>
     <button id="profileSave" class="pbtn">Save &amp; continue</button>
   </div>
 </div>
@@ -83,7 +95,7 @@
   <!-- ================= HOME ================= -->
   <section class="pane" id="p0" data-screen-label="Home">
     <div class="hero">
-      <div class="badge" data-te='రీసెర్చ్ పరికరం · ఆన్-డివైస్ AI'>Research instrument · On-device AI</div>
+      <div class="badge" data-te='రీసెర్చ్ పరికరం · AI'>Research instrument · AI</div>
       <h2 class="heroT" data-te='మీ గుండె &amp; ఊపిరితిత్తులు ఈరోజు ఎలా ఉన్నాయి?'>How are your heart &amp; lungs today?</h2>
       <p class="heroS" data-te='మీ జేబులోని ఫోన్‌తోనే గుండె శబ్దాలు, ఊపిరితిత్తుల శబ్దాలు, లయ మరియు పల్స్ స్క్రీన్ చేయండి — అదనపు పరికరాలు అవసరం లేదు, ఆడియో ఫోన్ దాటదు.'>Screen heart sounds, lung sounds, rhythm and pulse with the phone already in your pocket — no extra hardware, and audio stays on the device.</p>
       <button class="cta" onclick="topTab('cardio')" data-te='స్క్రీనింగ్ ప్రారంభించండి →'>Begin screening →</button>
@@ -402,7 +414,7 @@
         <div class="cls" id="pcVerdict">—</div>
         <div id="pcSig" style="display:none;font-size:13px;font-weight:600;margin-top:3px;text-align:center">📶 —</div>
         <div class="cls" id="pcAI" style="display:none;margin-top:2px;font-size:16px">🧠 AI screen: —</div>
-        <div id="pcAIsub" style="display:none;color:var(--mut);font-size:11px;margin:2px 0 4px;text-align:center" data-te='ఆన్-డివైస్ AI మోడల్ (CirCor + CinC హృదయ-శబ్ద డేటాపై శిక్షణ). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on CirCor + CinC heart-sound data). Screening only — not a diagnosis.</div>
+        <div id="pcAIsub" style="display:none;color:var(--mut);font-size:11px;margin:2px 0 4px;text-align:center" data-te='AI మోడల్. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>AI model. Screening only — not a diagnosis.</div>
         <div class="cls" id="pcMurmur" style="display:none;margin-top:8px;font-size:16px">🫀 Murmur AI: —</div>
         <div id="pcMurmurSub" style="display:none;color:var(--mut);font-size:11px;margin:2px 0 4px;text-align:center">CirCor-trained murmur model · screening only</div>
         <div class="grid">
@@ -462,7 +474,7 @@
 
     <div class="card res" id="lgResCard">
       <div class="cls" id="lgVerdict">—</div>
-      <div id="lgAIsub" style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='ఆన్-డివైస్ AI నమూనా (ICBHI ఊపిరితిత్తుల శబ్ద డేటాపై శిక్షణ; బహుళ-పాయింట్ సగటు). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on ICBHI lung-sound data; multi-point average). Screening only — not a diagnosis.</div>
+      <div id="lgAIsub" style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='AI నమూనా (బహుళ-పాయింట్ సగటు). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>AI model (multi-point average). Screening only — not a diagnosis.</div>
       <div class="grid" id="lgGrid"></div>
       <div class="grid">
         <div class="kv" data-te='సగటు అసాధారణ సంభావ్యత<b id="lgAvg">—</b>'>Mean abnormal probability<b id="lgAvg">—</b></div>
@@ -515,7 +527,7 @@
         <tr><td>LR+ / LR−</td><td>22.2 / 0.02</td><td>high / 0.37</td><td>6.4 / 0.27</td></tr>
         <tr><td>Operating threshold</td><td>0.25</td><td>0.022 (Youden)</td><td>0.62 (Youden)</td></tr>
       </table>
-      <div class="note" style="margin-top:10px;color:var(--mut)">Cardioscope was trained on the PhysioNet/CinC-2016 heart-sound corpus (3,153 recordings, 764 subjects) and figures are analytical performance on a held-out test set (clean audio); real-world smartphone performance in noisy settings is lower, so the on-device model is noise-augmented for robustness. PulmoScope was trained on ICBHI-2017 (920 recordings, 6,898 cycles) and reported at patient level on a held-out patient set. Murmur AI was trained on the CirCor DigiScope dataset (3,003 recordings, patient-level split) and also outputs systolic/diastolic timing. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively (IEC BDX-CARDIO/2026/01).</div>
+      <div class="note" style="margin-top:10px;color:var(--mut)">Cardioscope was trained on the PhysioNet/CinC-2016 heart-sound corpus (3,153 recordings, 764 subjects) and figures are analytical performance on a held-out test set (clean audio); real-world smartphone performance in noisy settings is lower, so the model is noise-augmented for robustness. PulmoScope was trained on ICBHI-2017 (920 recordings, 6,898 cycles) and reported at patient level on a held-out patient set. Murmur AI was trained on the CirCor DigiScope dataset (3,003 recordings, patient-level split) and also outputs systolic/diastolic timing. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively (IEC BDX-CARDIO/2026/01).</div>
     </div>
 
     <div class="card">
@@ -527,6 +539,93 @@
       <div class="ct" style="color:var(--acc)" data-te='పరిశోధకుడు'>Investigator</div>
       <div class="note" style="margin-top:8px">Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana. Research use only.</div>
     </div>
+
+    <div class="card">
+      <div class="ct" style="color:var(--acc)">Legal</div>
+      <div class="note" style="margin-top:8px"><a href="#" onclick="openDoc('terms');return false;" style="color:var(--acc);font-weight:600">Terms &amp; Conditions</a> &nbsp;·&nbsp; <a href="#" onclick="openDoc('privacy');return false;" style="color:var(--acc);font-weight:600">Privacy Policy</a></div>
+    </div>
+  </section>
+
+  <!-- ================= TERMS (p7) ================= -->
+  <section class="pane" id="p7" data-screen-label="Terms">
+    <div class="mhead">
+      <div class="mkicker">CardioPulmo</div>
+      <h2 class="mtitle">Terms &amp; Conditions</h2>
+    </div>
+    <div class="card"><div class="note">Last updated: July 2026. Please read these terms before using CardioPulmo. By ticking the consent box or using the app, you agree to them.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">1. What CardioPulmo is</div>
+      <div class="note" style="margin-top:6px">CardioPulmo is a smartphone <b>screening and research tool</b> that records heart and lung sounds and runs AI models and signal-processing to flag sounds that may be worth a clinician's attention. It is provided for research and educational use.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">2. Not a medical device or diagnosis</div>
+      <div class="note" style="margin-top:6px">CardioPulmo is <b>not a diagnostic device</b> and is <b>not a substitute for a doctor, stethoscope, ECG, echocardiogram, or any clinical test</b>. Results are indicative only and may be wrong (false positives and false negatives). Never start, stop, or change any treatment based on this app. Any positive or concerning result must be confirmed by a qualified clinician.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">3. Not for emergencies</div>
+      <div class="note" style="margin-top:6px">Do not use CardioPulmo in a medical emergency. If you have chest pain, severe breathlessness, fainting, or any emergency, contact local emergency services or go to the nearest hospital immediately.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">4. Eligibility &amp; consent</div>
+      <div class="note" style="margin-top:6px">You must be 18 years or older to use CardioPulmo yourself. A recording may be taken for a person under 18 or a dependent adult only by a parent or legal guardian who consents on their behalf. By using the app you confirm you meet these conditions.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">5. Proper use</div>
+      <div class="note" style="margin-top:6px">Use the app only for lawful, personal, educational, or approved research purposes. Do not misuse it, attempt to reverse-engineer it, upload recordings of people who have not consented, or rely on it for clinical decisions about others.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">6. Your data</div>
+      <div class="note" style="margin-top:6px">Recordings and the details you provide are handled as described in the <a href="#" onclick="openDoc('privacy');return false;" style="color:var(--acc)">Privacy Policy</a>. By using the app you consent to that handling, including use of de-identified data to build and validate screening models and for research publication.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">7. No warranty &amp; limitation of liability</div>
+      <div class="note" style="margin-top:6px">The app is provided "as is", without warranty of accuracy, availability, or fitness for any purpose. To the maximum extent permitted by law, the investigator and contributors are not liable for any loss, harm, or damages arising from use of, or reliance on, the app or its results.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">8. Changes &amp; governing law</div>
+      <div class="note" style="margin-top:6px">These terms may be updated from time to time; continued use means acceptance of the updated terms. These terms are governed by the laws of India, with jurisdiction in Telangana.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">9. Contact</div>
+      <div class="note" style="margin-top:6px">Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana, India.</div></div>
+
+    <button class="dl" onclick="closeDoc()" style="margin-top:6px">← Back</button>
+  </section>
+
+  <!-- ================= PRIVACY (p8) ================= -->
+  <section class="pane" id="p8" data-screen-label="Privacy">
+    <div class="mhead">
+      <div class="mkicker">CardioPulmo</div>
+      <h2 class="mtitle">Privacy Policy</h2>
+    </div>
+    <div class="card"><div class="note">Last updated: July 2026. This policy explains what CardioPulmo collects, why, and your choices. It is written to align with India's Digital Personal Data Protection Act, 2023.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">1. Who we are</div>
+      <div class="note" style="margin-top:6px">CardioPulmo is a research project led by Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana, India — the data fiduciary responsible for your information.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">2. What we collect</div>
+      <div class="note" style="margin-top:6px">• Account: your email address (via Google or email sign-in).<br>• Details you enter: name, age, sex, height, weight, smoking status, any known heart/lung condition, current symptoms, optional phone number, and your role.<br>• Recordings: short heart and lung sound clips (.wav) you choose to record.<br>• Results: the screening outputs computed from your recordings (e.g., rate, rhythm, probabilities, quality).<br>We do <b>not</b> collect precise location, contacts, or other data from your phone.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">3. How it is collected</div>
+      <div class="note" style="margin-top:6px">Recordings are captured on your device. AI screening runs on your device. When you are signed in, your recordings, details, and results are securely uploaded to our protected database so they can be saved to your account and used for research.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">4. Why we use it</div>
+      <div class="note" style="margin-top:6px">To provide and improve the screening tool, to save your results, and to build, train, and validate AI models for heart and lung screening — including characterising sounds in healthy people so the models can tell normal from abnormal. Health details are used to label recordings correctly and to remove confounders.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">5. Legal basis — your consent</div>
+      <div class="note" style="margin-top:6px">We process your data on the basis of the consent you give when you tick the consent box. Health information is sensitive personal data; we collect only what is necessary for the purposes above.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">6. Storage &amp; security</div>
+      <div class="note" style="margin-top:6px">Data is stored on a secured, access-controlled cloud database (hosted in a Mumbai, India region) with authentication and row-level access rules, so each person's data is separated. Access is limited to the investigator and authorised research staff.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">7. Sharing</div>
+      <div class="note" style="margin-top:6px">We do <b>not</b> sell your data or show ads. We may share <b>de-identified</b> data (with direct identifiers such as name, email, and phone removed) for research collaboration, model development, and scientific publication. Aggregated or de-identified results may appear in papers and presentations.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">8. Retention</div>
+      <div class="note" style="margin-top:6px">We keep your data for as long as needed for the research and model validation, or until you ask us to delete it. De-identified research data may be retained to support published findings.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">9. Your rights &amp; choices</div>
+      <div class="note" style="margin-top:6px">You can view your saved recordings in the app (About → My recordings). You can ask us to access, correct, or delete your data, or withdraw your consent at any time by contacting the investigator. Withdrawing consent stops further collection; some de-identified data already used in research may be retained.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">10. Children</div>
+      <div class="note" style="margin-top:6px">Recordings for anyone under 18 must be taken only by a consenting parent or legal guardian. We do not knowingly collect data directly from children.</div></div>
+
+    <div class="card"><div class="ct" style="color:var(--acc)">11. Changes &amp; contact</div>
+      <div class="note" style="margin-top:6px">This policy may be updated; the "last updated" date will change. For any privacy request, contact Dr. Jaideep Rao M., Government Medical College, Maheshwaram, Telangana, India.</div></div>
+
+    <button class="dl" onclick="closeDoc()" style="margin-top:6px">← Back</button>
   </section>
 
 

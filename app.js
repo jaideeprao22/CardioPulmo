@@ -12,7 +12,7 @@ document.addEventListener('click',function(e){
 },true);
 const st=m=>$('status').textContent=m;
 let pulmoCur='lung';
-function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
+function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
 let pendingTab=null;
 function needLogin(name){
   if(sbUser)return false;
@@ -20,6 +20,23 @@ function needLogin(name){
   var o=$('authOverlay');if(o)o.style.display='flex';
   if(typeof initGoogleBtn==='function')initGoogleBtn();
   return true;
+}
+var _docReturn=null;
+function openDoc(which){
+  var ov=$('profileOverlay');
+  if(ov&&ov.style.display!=='none'){_docReturn='profile';ov.style.display='none';}
+  else{_docReturn='about';}
+  hideAllPanes();
+  var e=$((which==='terms')?'p7':'p8');if(e)e.classList.add('on');
+  document.body.setAttribute('data-tab','about');
+  var psn=$('pulmoSubNav');if(psn)psn.style.display='none';
+  try{window.scrollTo(0,0);}catch(_){}
+}
+function closeDoc(){
+  hideAllPanes();
+  if(_docReturn==='profile'){var ov=$('profileOverlay');if(ov)ov.style.display='flex';}
+  else{topTab('about');}
+  try{window.scrollTo(0,0);}catch(_){}
 }
 function topTab(name){
   if((name==='cardio'||name==='pulmo'||name==='vasc')&&needLogin(name))return;
@@ -244,9 +261,19 @@ function vTally(){
   let n=0;if(sm)n++;if(ht)n++;if(dm)n++;if(bmi&&bmi>=25)n++;if(age>=60)n++;
   return{sm,ht,dm,bmi,n};
 }
+async function getRearCameraStream(){
+  try{return await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'},width:{ideal:640},height:{ideal:480}},audio:false});}catch(e){}
+  try{
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    const cams=devs.filter(function(d){return d.kind==='videoinput';});
+    const back=cams.find(function(d){return /back|rear|environment/i.test(d.label);});
+    if(back)return await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:back.deviceId},width:{ideal:640},height:{ideal:480}},audio:false});
+  }catch(e){}
+  return await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480}},audio:false});
+}
 $('vBtn').onclick=async()=>{
   if(!$('pid').value){vst('Enter Patient ID (top of page) first.');return;}
-  try{vStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480}},audio:false});}
+  try{vStream=await getRearCameraStream();}
   catch(e){vst('Camera blocked. Allow camera and reload.');return;}
   const track=vStream.getVideoTracks()[0];vTorch=false;
   try{const caps=track.getCapabilities?track.getCapabilities():{};if(caps.torch){await track.applyConstraints({advanced:[{torch:true}]});vTorch=true;}}catch(e){}
@@ -514,7 +541,7 @@ function jFluidEval(){const h=parseFloat($('jHeight').value);const hjr=$('jHJR')
 if($('jHeight')){$('jHeight').oninput=jFluidEval;}if($('jHJR')){$('jHJR').onchange=jFluidEval;}
 $('jRec').onclick=async()=>{
   if(!$('pid').value){jSt('Enter Patient ID (top of page) first.');return;}
-  try{jStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480}},audio:false});}
+  try{jStream=await getRearCameraStream();}
   catch(e){jSt('Camera blocked. Allow camera and reload.');return;}
   const track=jStream.getVideoTracks()[0];jTorch=false;
   try{const caps=track.getCapabilities?track.getCapabilities():{};if(caps.torch){await track.applyConstraints({advanced:[{torch:true}]});jTorch=true;}}catch(e){}
@@ -1180,9 +1207,18 @@ if($('authSignup'))$('authSignup').onclick=async function(){if(!sb)return;const 
 if($('authLogout'))$('authLogout').onclick=async function(){if(sb)await sb.auth.signOut();};
 if($('profileSave'))$('profileSave').onclick=async function(){
   if(!sb||!sbUser)return;
+  if(!$('pfName').value.trim()){if($('pfMsg'))$('pfMsg').textContent='Please enter your name.';return;}
+  if($('pfConsent')&&!$('pfConsent').checked){if($('pfMsg'))$('pfMsg').textContent='Please tick the consent box to continue.';return;}
+  if($('pfMsg'))$('pfMsg').textContent='';
   var pfA=parseInt($('pfAge').value)||null;
   var pfS=$('pfSex').value||null;
-  await sb.from('profiles').update({full_name:$('pfName').value.trim(),age:pfA,sex:pfS,phone:$('pfPhone').value.trim()||null,role:$('pfRole').value||null}).eq('id',sbUser.id);
+  await sb.from('profiles').update({
+    full_name:$('pfName').value.trim(),age:pfA,sex:pfS,
+    height:parseFloat($('pfHt').value)||null,weight:parseFloat($('pfWt').value)||null,
+    smoker:$('pfSmoke').value||null,condition:$('pfCond').value||null,symptoms:$('pfSymp').value||null,
+    phone:$('pfPhone').value.trim()||null,role:$('pfRole').value||null,
+    consent:true,consent_at:new Date().toISOString()
+  }).eq('id',sbUser.id);
   if($('age')&&pfA){$('age').value=pfA;localStorage.setItem('cp_age',pfA);}
   if($('sex')&&pfS){var sv2=(pfS==='Male')?'M':(pfS==='Female')?'F':'';if(sv2){$('sex').value=sv2;localStorage.setItem('cp_sex',sv2);}}
   $('profileOverlay').style.display='none';
