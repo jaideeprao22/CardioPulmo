@@ -165,7 +165,8 @@ function renderRecs(){
     if(r.audio_path){
       var b=document.createElement('button');b.textContent='▶ Play';b.onclick=function(){playAudio(r.audio_path,b);};td.appendChild(b);
       var d=document.createElement('button');d.textContent='⬇';d.title='Download .wav';d.style.marginLeft='6px';d.onclick=function(){dlAudio(r.audio_path,d);};td.appendChild(d);
-    } else td.innerHTML='<span class="mut">—</span>';
+      var x=document.createElement('button');x.className='danger';x.textContent='🗑';x.title='Delete';x.style.marginLeft='6px';x.onclick=function(){delRec(r,x);};td.appendChild(x);
+    } else {var x2=document.createElement('button');x2.className='danger';x2.textContent='🗑';x2.title='Delete';x2.onclick=function(){delRec(r,x2);};td.appendChild(x2);}
     tb.appendChild(tr);
   });
 }
@@ -184,9 +185,17 @@ async function dlAudio(path,btn){
 async function playAudio(path,btn){
   btn.textContent='…';
   var {data,error}=await sb.storage.from('recordings').createSignedUrl(path,3600);
-  if(error||!data){btn.textContent='✕';return;}
-  var p=$('player');p.src=data.signedUrl;p.style.display='none';p.play();
+  if(error||!data){btn.textContent='✕';alert('Could not load audio: '+((error&&error.message)||'no URL')+'\\n\\nIf this says permission/row-level, run the storage read policy SQL.');return;}
+  var p=$('player');p.src=data.signedUrl;p.style.display='block';p.controls=true;p.play().catch(function(e){alert('Playback blocked: '+e.message);});
   btn.textContent='▶ Play';
+}
+async function delRec(r,btn){
+  if(!confirm('Delete this recording + its audio file? This cannot be undone.'))return;
+  btn.textContent='…';
+  if(r.audio_path){try{await sb.storage.from('recordings').remove([r.audio_path]);}catch(e){}}
+  var {error}=await sb.from('recordings').delete().eq('id',r.id);
+  if(error){alert('Delete failed: '+error.message);btn.textContent='🗑';return;}
+  loadAll();
 }
 
 /* ---------- users ---------- */

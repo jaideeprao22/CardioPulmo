@@ -525,21 +525,68 @@ const pcSt=m=>$('pcStatus').textContent=m;
 /* Cardioscope Sound: single interactive apex dot (same pattern as Percussion) */
 let pcDotState='pending';
 function pcRenderDot(){var g=$('pcspot');if(!g)return;g.innerHTML='';var d=document.createElement('div');d.className='dot2';d.style.left='62%';d.style.top='63%';d.style.width='7%';d.style.background=(pcDotState==='active')?'#FFB454':((pcDotState==='done')?'#2FBF8F':'#5A6B94');if(pcDotState==='active'){d.style.borderColor='#fff';d.style.borderWidth='3px';d.style.boxShadow='0 0 0 4px rgba(255,255,255,.3)';}d.onclick=pcSelectDot;g.appendChild(d);if(pcDotState==='pending'){var ar=document.createElement('div');ar.className='dothint';ar.style.left='34%';ar.style.top='52%';ar.innerHTML='<b>\uD83D\uDC49</b> Tap the blue dot to start';g.appendChild(ar);}}
-function pcSelectDot(){pcDotState='active';$('pcRec').disabled=false;pcRenderDot();pcSt('Recording starts now — keep the phone mic-edge on the apex.');setTimeout(function(){$('pcRec').click();},60);}
+function pcSelectDot(){pcDotState='active';$('pcRec').disabled=false;pcRenderDot();pcStartQuietGate();}
 pcRenderDot();
-$('pcRec').onclick=async()=>{
+
+/* ---- live ambient-noise gate: auto-start recording only when the room is quiet ---- */
+const pcNoiseThresh=32;            /* high-freq noise level 0..~120; LOWER = stricter quiet */
+let pcGating=false,pcGateRAF=null,pcGateCancel=null;
+function pcRR(g,x,y,w,h,r){if(w<0){x+=w;w=-w;}if(r>h/2)r=h/2;if(r>w/2)r=w/2;g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+function pcNoiseLabel(t,c){var l=$('pcNoiseLbl');if(l){l.textContent=t;l.style.color=c||'#e6edf3';}}
+function pcDrawNoise(noise,thresh){
+  var c=$('pcNoiseCanvas');if(!c)return;var W=c.width=c.clientWidth*2,H=c.height=c.clientHeight*2,g=c.getContext('2d');g.clearRect(0,0,W,H);
+  var full=120,norm=Math.min(1,noise/full),tx=Math.min(1,thresh/full)*W;
+  g.fillStyle='rgba(47,191,143,.14)';pcRR(g,0,H*0.30,tx,H*0.40,H*0.20);g.fill();
+  g.fillStyle='rgba(255,107,107,.14)';pcRR(g,tx,H*0.30,W-tx,H*0.40,H*0.20);g.fill();
+  g.fillStyle=(noise<thresh)?'#2FBF8F':'#ff6b6b';pcRR(g,0,H*0.36,Math.max(H*0.28,norm*W),H*0.28,H*0.14);g.fill();
+  g.strokeStyle='#e6edf3';g.lineWidth=3;g.beginPath();g.moveTo(tx,H*0.16);g.lineTo(tx,H*0.84);g.stroke();
+  g.fillStyle='#8b98a5';g.font='600 20px system-ui';g.textAlign='center';g.fillText('quiet',tx*0.5,H*0.14);g.fillText('noisy',(W+tx)/2,H*0.14);
+}
+function pcStartQuietGate(){
+  if(pcGating)return;
   if(!$('pid').value){pcSt('Enter Patient ID (top of page) first.');return;}
-  try{pcStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});}
-  catch(e){pcSt('Microphone blocked. Allow mic and reload.');return;}
-  pcCtx=new (window.AudioContext||window.webkitAudioContext)();pcSr=pcCtx.sampleRate;pcBuf=[];
-  const src=pcCtx.createMediaStreamSource(pcStream);pcProc=pcCtx.createScriptProcessor(4096,1,1);pcZg=pcCtx.createGain();pcZg.gain.value=0;
-  pcProc.onaudioprocess=ev=>pcBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));
-  src.connect(pcProc);pcProc.connect(pcZg);pcZg.connect(pcCtx.destination);
+  pcGating=true;var meter=$('pcNoise');if(meter)meter.style.display='block';
   $('pcRec').disabled=true;$('pcStop').disabled=false;$('pcResCard').style.display='none';
-  pcLeft=15;pcSt('● Recording… mic on the apex, quiet, still ('+pcLeft+'s)');
-  pcTimer=setInterval(()=>{pcLeft--;pcSt('● Recording… ('+pcLeft+'s)');if(pcLeft<=0)pcStopRec();},1000);
-};
-$('pcStop').onclick=pcStopRec;
+  pcNoiseLabel('Listening for a quiet moment…','#e6edf3');pcSt('Checking the room is quiet enough…');
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
+    var ctx=new (window.AudioContext||window.webkitAudioContext)();var src=ctx.createMediaStreamSource(stream);
+    var an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.6;src.connect(an);
+    var freq=new Uint8Array(an.frequencyBinCount),binHz=ctx.sampleRate/an.fftSize,i0=Math.max(1,Math.floor(300/binHz));
+    var quietSince=0,gateStart=performance.now(),HOLD=1200,MAXWAIT=12000;
+    pcGateCancel=function(){try{cancelAnimationFrame(pcGateRAF);}catch(e){}try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}try{ctx.close();}catch(e){}pcGating=false;if(meter)meter.style.display='none';};
+    function loop(){
+      an.getByteFrequencyData(freq);var sum=0,cnt=0;for(var i=i0;i<freq.length;i++){sum+=freq[i];cnt++;}var noise=cnt?sum/cnt:0;
+      pcDrawNoise(noise,pcNoiseThresh);
+      var now=performance.now(),forced=(now-gateStart)>MAXWAIT;
+      if(noise<pcNoiseThresh){if(!quietSince)quietSince=now;var held=now-quietSince;
+        pcNoiseLabel('Quiet ✓ — hold still, starting in '+Math.max(0,Math.ceil((HOLD-held)/1000))+'s','#2FBF8F');
+        if(held>=HOLD){pcGateArmDone(stream,ctx,src,an,meter,false);return;}
+      }else{quietSince=0;pcNoiseLabel('Too noisy — move away from fans/voices, quieten the room','#ff6b6b');}
+      if(forced){pcGateArmDone(stream,ctx,src,an,meter,true);return;}
+      pcGateRAF=requestAnimationFrame(loop);
+    }
+    loop();
+  }).catch(function(){pcGating=false;if(meter)meter.style.display='none';pcSt('Microphone blocked. Allow mic and reload.');});
+}
+function pcGateArmDone(stream,ctx,src,an,meter,noisy){
+  try{cancelAnimationFrame(pcGateRAF);}catch(e){}pcGating=false;pcGateCancel=null;
+  try{an.disconnect();}catch(e){}
+  if(meter)meter.style.display='none';
+  pcBeginRecording(stream,ctx,src,noisy);
+}
+function pcBeginRecording(stream,ctx,src,noisy){
+  pcStream=stream;pcCtx=ctx;pcSr=ctx.sampleRate;pcBuf=[];
+  pcProc=ctx.createScriptProcessor(4096,1,1);pcZg=ctx.createGain();pcZg.gain.value=0;
+  pcProc.onaudioprocess=function(ev){pcBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+  if(!src)src=ctx.createMediaStreamSource(stream);
+  src.connect(pcProc);pcProc.connect(pcZg);pcZg.connect(ctx.destination);
+  $('pcRec').disabled=true;$('pcStop').disabled=false;$('pcResCard').style.display='none';
+  var lead=noisy?'⚠ Noisy room — recording anyway ':'● Recording… hold still ';
+  pcLeft=15;pcSt(lead+'('+pcLeft+'s)');
+  pcTimer=setInterval(function(){pcLeft--;pcSt('● Recording… ('+pcLeft+'s)');if(pcLeft<=0)pcStopRec();},1000);
+}
+$('pcRec').onclick=pcStartQuietGate;
+$('pcStop').onclick=function(){if(pcGating&&pcGateCancel){pcGateCancel();$('pcStop').disabled=true;$('pcRec').disabled=false;pcDotState='pending';pcRenderDot();pcSt('Cancelled — tap the apex dot to try again.');return;}pcStopRec();};
 function pcStopRec(){
   clearInterval(pcTimer);try{pcProc.disconnect();}catch(e){}
   if(pcStream)pcStream.getTracks().forEach(t=>t.stop());
@@ -733,7 +780,7 @@ async function pcMLScreen(s,fs,pcRow){
 }
 function pcExtra(base){var L=pcLastResult||{};return Object.assign({bpm:L.bpm,rhythm:L.rhythm,confidence:L.confidence,signal_quality:L.quality,age:L.age,sex:L.sex},base);}
 async function pcUploadSafe(verdict,prob,q,s,fs,subEl){
-  const r=await uploadRecording('cardioscope','apex_raw',makeSmallWav(s,fs,PC_SR2),prob,verdict,pcExtra({band:'raw',ratioLow:q.ratioLow}));
+  const r=await uploadRecording('cardioscope','apex_raw',makeSmallWavNorm(s,fs,PC_SR2),prob,verdict,pcExtra({band:'raw',ratioLow:q.ratioLow}));
   if(!r.ok&&subEl)subEl.textContent+=' · ⚠ raw not saved — '+r.reason;
   else if(r.ok&&r.reason&&subEl)subEl.textContent+=' · ⚠ '+r.reason;
   try{
@@ -818,20 +865,62 @@ lgResetAll();
 
 let lgStream,lgCtx,lgProc,lgZg,lgBuf=[],lgSr=48000,lgTimer,lgLeft;
 function lgSt(m){$('lgStatus').textContent=m;}
-$('lgRec').onclick=async function(){
+let lgGating=false,lgGateRAF=null,lgGateCancel=null;
+function lgNoiseLabel(t,c){var l=$('lgNoiseLbl');if(l){l.textContent=t;l.style.color=c||'#e6edf3';}}
+function lgDrawNoise(noise,thresh){
+  var c=$('lgNoiseCanvas');if(!c)return;var W=c.width=c.clientWidth*2,H=c.height=c.clientHeight*2,g=c.getContext('2d');g.clearRect(0,0,W,H);
+  var full=120,norm=Math.min(1,noise/full),tx=Math.min(1,thresh/full)*W;
+  g.fillStyle='rgba(47,191,143,.14)';pcRR(g,0,H*0.30,tx,H*0.40,H*0.20);g.fill();
+  g.fillStyle='rgba(255,107,107,.14)';pcRR(g,tx,H*0.30,W-tx,H*0.40,H*0.20);g.fill();
+  g.fillStyle=(noise<thresh)?'#2FBF8F':'#ff6b6b';pcRR(g,0,H*0.36,Math.max(H*0.28,norm*W),H*0.28,H*0.14);g.fill();
+  g.strokeStyle='#e6edf3';g.lineWidth=3;g.beginPath();g.moveTo(tx,H*0.16);g.lineTo(tx,H*0.84);g.stroke();
+  g.fillStyle='#8b98a5';g.font='600 20px system-ui';g.textAlign='center';g.fillText('quiet',tx*0.5,H*0.14);g.fillText('noisy',(W+tx)/2,H*0.14);
+}
+function lgStartQuietGate(){
+  if(lgGating)return;
   if(!lgSel){lgSt('Tap a point on the back first.');return;}
   if(!$('pid').value){lgSt('Enter Patient ID (top of page) first.');return;}
-  try{lgStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});}
-  catch(e){lgSt('Microphone blocked. Allow mic and reload.');return;}
-  lgCtx=new (window.AudioContext||window.webkitAudioContext)();lgSr=lgCtx.sampleRate;lgBuf=[];
-  const src=lgCtx.createMediaStreamSource(lgStream);lgProc=lgCtx.createScriptProcessor(4096,1,1);lgZg=lgCtx.createGain();lgZg.gain.value=0;
-  lgProc.onaudioprocess=e=>lgBuf.push(new Float32Array(e.inputBuffer.getChannelData(0)));
-  src.connect(lgProc);lgProc.connect(lgZg);lgZg.connect(lgCtx.destination);
+  lgGating=true;var meter=$('lgNoise');if(meter)meter.style.display='block';
   $('lgRec').disabled=true;$('lgStop').disabled=false;
-  lgLeft=15;lgSt('\u25CF Recording '+lgSel+'\u2026 deep breaths, quiet ('+lgLeft+'s)');
-  lgTimer=setInterval(()=>{lgLeft--;lgSt('\u25CF Recording '+lgSel+'\u2026 ('+lgLeft+'s)');if(lgLeft<=0)lgStopRec();},1000);
-};
-$('lgStop').onclick=lgStopRec;
+  lgNoiseLabel('Listening for a quiet moment…','#e6edf3');lgSt('Checking the room is quiet enough…');
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
+    var ctx=new (window.AudioContext||window.webkitAudioContext)();var src=ctx.createMediaStreamSource(stream);
+    var an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.6;src.connect(an);
+    var freq=new Uint8Array(an.frequencyBinCount),binHz=ctx.sampleRate/an.fftSize,i0=Math.max(1,Math.floor(300/binHz));
+    var quietSince=0,gateStart=performance.now(),HOLD=1200,MAXWAIT=12000;
+    lgGateCancel=function(){try{cancelAnimationFrame(lgGateRAF);}catch(e){}try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}try{ctx.close();}catch(e){}lgGating=false;if(meter)meter.style.display='none';};
+    function loop(){
+      an.getByteFrequencyData(freq);var sum=0,cnt=0;for(var i=i0;i<freq.length;i++){sum+=freq[i];cnt++;}var noise=cnt?sum/cnt:0;
+      lgDrawNoise(noise,pcNoiseThresh);
+      var now=performance.now(),forced=(now-gateStart)>MAXWAIT;
+      if(noise<pcNoiseThresh){if(!quietSince)quietSince=now;var held=now-quietSince;
+        lgNoiseLabel('Quiet ✓ — breathe deep, starting in '+Math.max(0,Math.ceil((HOLD-held)/1000))+'s','#2FBF8F');
+        if(held>=HOLD){lgGateArmDone(stream,ctx,src,an,meter,false);return;}
+      }else{quietSince=0;lgNoiseLabel('Too noisy — move away from fans/voices, quieten the room','#ff6b6b');}
+      if(forced){lgGateArmDone(stream,ctx,src,an,meter,true);return;}
+      lgGateRAF=requestAnimationFrame(loop);
+    }
+    loop();
+  }).catch(function(){lgGating=false;if(meter)meter.style.display='none';lgSt('Microphone blocked. Allow mic and reload.');});
+}
+function lgGateArmDone(stream,ctx,src,an,meter,noisy){
+  try{cancelAnimationFrame(lgGateRAF);}catch(e){}lgGating=false;lgGateCancel=null;
+  try{an.disconnect();}catch(e){}if(meter)meter.style.display='none';
+  lgBeginRecording(stream,ctx,src,noisy);
+}
+function lgBeginRecording(stream,ctx,src,noisy){
+  lgStream=stream;lgCtx=ctx;lgSr=ctx.sampleRate;lgBuf=[];
+  lgProc=ctx.createScriptProcessor(4096,1,1);lgZg=ctx.createGain();lgZg.gain.value=0;
+  lgProc.onaudioprocess=function(e){lgBuf.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
+  if(!src)src=ctx.createMediaStreamSource(stream);
+  src.connect(lgProc);lgProc.connect(lgZg);lgZg.connect(ctx.destination);
+  $('lgRec').disabled=true;$('lgStop').disabled=false;
+  var lead=noisy?'⚠ Noisy room — recording anyway ':('\u25CF Recording '+lgSel+'\u2026 deep breaths ');
+  lgLeft=15;lgSt(lead+'('+lgLeft+'s)');
+  lgTimer=setInterval(function(){lgLeft--;lgSt('\u25CF Recording '+lgSel+'\u2026 ('+lgLeft+'s)');if(lgLeft<=0)lgStopRec();},1000);
+}
+$('lgRec').onclick=lgStartQuietGate;
+$('lgStop').onclick=function(){if(lgGating&&lgGateCancel){lgGateCancel();$('lgStop').disabled=true;$('lgRec').disabled=false;lgSt('Cancelled — tap a point and record again.');return;}lgStopRec();};
 function lgStopRec(){
   clearInterval(lgTimer);try{lgProc.disconnect();}catch(e){}
   if(lgStream)lgStream.getTracks().forEach(t=>t.stop());
@@ -856,7 +945,7 @@ async function lgScreen(s,fs,zone){
   }catch(e){console.error(e);lgSt('Error processing '+zone+'.');lgUploadSafe(zone,'processing_error',null,s,fs);}
 }
 async function lgUploadSafe(zone,verdict,prob,s,fs){
-  const r=await uploadRecording('pulmoscope',zone,makeSmallWav(s,fs,LG_SR),prob,verdict,null);
+  const r=await uploadRecording('pulmoscope',zone,makeSmallWavNorm(s,fs,LG_SR),prob,verdict,null);
   if(!r.ok)lgSt(zone+': \u26a0 not saved \u2014 '+r.reason);
   else if(r.reason)lgSt(zone+': saved, but \u26a0 '+r.reason);
 }
@@ -901,6 +990,7 @@ const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_ANON):null;
 let sbUser=null;
 function makeSmallWav(s,fs,targetSR){return encodeWAV(pcResample(s,fs,targetSR),targetSR);}
+function makeSmallWavNorm(s,fs,targetSR){var r=pcResample(s,fs,targetSR),mx=1e-6;for(var i=0;i<r.length;i++){var a=Math.abs(r[i]);if(a>mx)mx=a;}var g=0.9/mx,o=new Float32Array(r.length);for(var j=0;j<r.length;j++)o[j]=r[j]*g;return encodeWAV(o,targetSR);}
 async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
   if(!sb||!sbUser)return {ok:false,reason:'not logged in'};
   try{
@@ -908,11 +998,45 @@ async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
     const up=await sb.storage.from('recordings').upload(path,wavBlob,{contentType:'audio/wav',upsert:false});
     const ins=await sb.from('recordings').insert({user_id:sbUser.id,module:module,zone:zone||null,audio_path:up.error?null:path,probability:(probability==null?null:probability),verdict:verdict||null,extra:extra||null,subject_code:(document.getElementById('pid')?document.getElementById('pid').value:null)||null});
     if(ins.error){console.warn('recordings insert failed',ins.error);return {ok:false,reason:ins.error.message};}
+    if(typeof cpLoadMine==='function')cpLoadMine();
     if(up.error){console.warn('audio upload failed',up.error);return {ok:true,reason:'audio file not saved — '+up.error.message};}
     return {ok:true};
   }catch(e){console.warn('upload failed',e);return {ok:false,reason:(e&&e.message)||'unknown error'};}
 }
-function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if($('authBox'))$('authBox').style.display='block';if($('notLoggedBox'))$('notLoggedBox').style.display='none';if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
+function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if($('authBox'))$('authBox').style.display='block';if($('notLoggedBox'))$('notLoggedBox').style.display='none';cpLoadMine();if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
+async function cpLoadMine(){
+  if(!sb||!sbUser){if($('myRecCard'))$('myRecCard').style.display='none';return;}
+  if($('myRecCard'))$('myRecCard').style.display='block';
+  var body=$('myRecBody');if(!body)return;
+  try{
+    const {data}=await sb.from('recordings').select('*').eq('user_id',sbUser.id).order('created_at',{ascending:false});
+    var rows=data||[];
+    if(!rows.length){body.innerHTML='<span class="note">No recordings yet. Record from Cardio or Pulmo.</span>';return;}
+    var h='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--mut)"><th style="text-align:left;padding:6px">Date</th><th style="text-align:left;padding:6px">Module</th><th style="text-align:left;padding:6px">Zone</th><th style="text-align:left;padding:6px">BPM</th><th style="text-align:left;padding:6px">Verdict</th><th style="padding:6px"></th></tr>';
+    rows.forEach(function(r){var ex=r.extra||{};if(typeof ex==='string'){try{ex=JSON.parse(ex);}catch(e){ex={};}}
+      h+='<tr><td style="padding:6px">'+new Date(r.created_at).toLocaleString()+'</td><td style="padding:6px">'+(r.module||'')+'</td><td style="padding:6px">'+(r.zone||'')+'</td><td style="padding:6px">'+(ex.bpm!=null?ex.bpm:'')+'</td><td style="padding:6px">'+(r.verdict||'')+'</td><td style="padding:6px;white-space:nowrap" data-id="'+r.id+'" data-path="'+(r.audio_path||'')+'"></td></tr>';
+    });
+    h+='</table></div>';body.innerHTML=h;
+    body.querySelectorAll('td[data-id]').forEach(function(td){
+      var path=td.getAttribute('data-path'),id=td.getAttribute('data-id');
+      if(path){var pb=document.createElement('button');pb.className='sbtn';pb.textContent='▶';pb.style.marginRight='6px';pb.onclick=function(){cpPlayMine(path,pb);};td.appendChild(pb);}
+      var db=document.createElement('button');db.className='sbtn';db.textContent='🗑';db.onclick=function(){cpDeleteMine(id,path);};td.appendChild(db);
+    });
+  }catch(e){body.innerHTML='<span class="note">Could not load your recordings.</span>';}
+}
+async function cpPlayMine(path,btn){
+  var old=btn.textContent;btn.textContent='…';
+  try{var r=await sb.storage.from('recordings').createSignedUrl(path,3600);
+    if(r.error||!r.data){btn.textContent='✕';return;}
+    var a=new Audio(r.data.signedUrl);a.play();btn.textContent=old;
+  }catch(e){btn.textContent='✕';}
+}
+async function cpDeleteMine(id,path){
+  if(!confirm('Delete this recording? This cannot be undone.'))return;
+  try{if(path){try{await sb.storage.from('recordings').remove([path]);}catch(e){}}
+    await sb.from('recordings').delete().eq('id',id);cpLoadMine();
+  }catch(e){}
+}
 function sbShowLogin(){var o=$('authOverlay');if(o)o.style.display='flex';initGoogleBtn();}
 async function sbMaybeProfile(){
   if(!sb||!sbUser)return;
@@ -935,7 +1059,7 @@ async function sbInit(){
   sb.auth.onAuthStateChange(function(_e,session){
     sbUser=session?session.user:null;
     if(sbUser){sbShowApp();sbMaybeProfile();}
-    else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';}
+    else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';if($('myRecCard'))$('myRecCard').style.display='none';}
   });
 }
 
