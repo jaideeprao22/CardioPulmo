@@ -570,9 +570,12 @@ function pcAnalyze(s,fs){
   const w=Math.max(1,Math.round(0.05*fd)),env=new Float32Array(L);let run=0;
   for(let i=0;i<L;i++){run+=se[i];if(i>=w)run-=se[i-w];env[i]=run/Math.min(i+1,w);}
   let em=0;for(let i=0;i<L;i++)em+=env[i];em/=L;for(let i=0;i<L;i++)env[i]-=em;
-  const lo=Math.round(fd*0.333),hi=Math.round(fd*1.5);let e0=0;for(let i=0;i<L;i++)e0+=env[i]*env[i];
+  const lo=Math.round(fd*0.40),hi=Math.round(fd*1.5);let e0=0;for(let i=0;i<L;i++)e0+=env[i]*env[i];
+  const ac=new Float32Array(hi+2);
+  for(let lag=lo;lag<=hi&&lag<L;lag++){let c=0;for(let i=0;i<L-lag;i++)c+=env[i]*env[i+lag];ac[lag]=c/(e0||1);}
   let bestLag=0,bestC=-1;
-  for(let lag=lo;lag<=hi&&lag<L;lag++){let c=0;for(let i=0;i<L-lag;i++)c+=env[i]*env[i+lag];c/=(e0||1);if(c>bestC){bestC=c;bestLag=lag;}}
+  for(let lag=lo;lag<=hi&&lag<L;lag++){if(ac[lag]>bestC){bestC=ac[lag];bestLag=lag;}}
+  if(bestLag>0){for(let m=3;m>=2;m--){var L2=bestLag*m;if(L2<=hi&&L2<L&&ac[L2]>=0.80*bestC){bestLag=L2;bestC=ac[L2];break;}}}
   const bpm=bestLag?Math.round(60*fd/bestLag):0;
   const uncertain=(bestC<0.35||!bpm||rms<0.0003);
   let verdict,col,reg,q;
@@ -709,20 +712,20 @@ async function pcMLScreen(s,fs,pcRow){
   const q=pcHeartSignal(s,fs);
   sig.style.display='block';sig.textContent='📶 '+q.verdict+'  ('+(q.ratioLow*100).toFixed(0)+'% low-band)';sig.style.color=q.col;
   el.style.display='block';sub.style.display='block';
-  if(!q.ok){el.textContent='🧠 AI screen: skipped — mostly noise';el.style.color='var(--mut)';
-    sub.textContent='Press the phone tip firmly on bare skin at the heart, hold still, quiet room, then re-record.';
-    pcUploadSafe('no_signal',null,q,s,fs,sub);return;}
+  if(q.rms<0.0004){el.textContent='🧠 AI screen: skipped — mic silent';el.style.color='var(--mut)';
+    sub.textContent='No sound reached the mic. Press the phone bottom edge firmly on bare skin over the heart and re-record.';
+    pcUploadSafe('mic_silent',null,q,s,fs,sub);return;}
   el.textContent='🧠 AI screen: loading model…';el.style.color='var(--mut)';
   const ok=await pcLoadModel();
   if(!ok){el.textContent='🧠 AI screen unavailable — '+pcModelErr;el.style.color='var(--mut)';
     sub.textContent='Model files must sit in the same folder as index.html.';
     pcUploadSafe('model_unavailable',null,q,s,fs,sub);return;}
   try{
-    const p=pcInfer(pcLogMel(pcResample(s,fs,PC_SR2))),pos=p>=PC_THR;
+    const p=pcInfer(pcLogMel(pcResample(s,fs,PC_SR2)));
+    var pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
-    var caution=(q.quality==='low')?'  ·  ⚠ partial signal — interpret with extra caution':'';
-    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic'+caution;
+    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic';
     if(pcRow)pcRow.ai=p.toFixed(3);
     pcUploadSafe(pos?'screen_positive':'screen_negative',p,q,s,fs,sub);
   }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';
