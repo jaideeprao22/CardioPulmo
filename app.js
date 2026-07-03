@@ -1,4 +1,15 @@
 const $=id=>document.getElementById(id);
+/* bulletproof logout (delegated, attached before anything else) */
+document.addEventListener('click',function(e){
+  var t=e.target;while(t&&t.id!=='authLogout')t=t.parentElement;
+  if(t){e.preventDefault();
+    (async function(){
+      try{if(typeof sb!=='undefined'&&sb)await sb.auth.signOut();}catch(_){}
+      try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf('sb-')===0)localStorage.removeItem(k);}}catch(_){}
+      location.reload();
+    })();
+  }
+},true);
 const st=m=>$('status').textContent=m;
 let pulmoCur='lung';
 function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}

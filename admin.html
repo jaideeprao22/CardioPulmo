@@ -103,7 +103,7 @@ const $=id=>document.getElementById(id);
 const SB_URL='https://cxqvghjdqyvtxdavhzjw.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cXZnaGpkcXl2dHhkYXZoemp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMDY5MzUsImV4cCI6MjA5ODU4MjkzNX0.vSEowF2M4Hv_j0LOSSJto_TulEce-wcA337ffK7kd5s';
 const GOOGLE_CLIENT_ID='533637534015-8eob9q94fecugvf6d4rm41hnc1fd6f4u.apps.googleusercontent.com';
-const sb=window.supabase.createClient(SB_URL,SB_ANON);
+const sb=window.supabase.createClient(SB_URL,SB_ANON,{auth:{storageKey:"cp-admin-auth",autoRefreshToken:true,persistSession:true}});
 let recs=[],profs={},profList=[];
 
 /* ---------- auth ---------- */
