@@ -465,7 +465,7 @@
 
     <div class="card">
       <div id="authWho" class="note" style="margin-bottom:8px">—</div>
-      <button id="authLogout" class="dl" style="margin-top:0" data-te='లాగ్ అవుట్'>Log out</button>
+      <button id="authLogout" class="dl" style="margin-top:0" data-te='లాగ్ అవుట్' onclick="try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&(k.indexOf('sb-')===0||k.toLowerCase().indexOf('supabase')>=0))localStorage.removeItem(k);}}catch(e){}try{sessionStorage.clear();}catch(e){}location.href=location.pathname;">Log out</button>
     </div>
 
     <div class="card">
