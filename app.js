@@ -529,7 +529,7 @@ function pcSelectDot(){pcDotState='active';$('pcRec').disabled=false;pcRenderDot
 pcRenderDot();
 
 /* ---- live ambient-noise gate: auto-start recording only when the room is quiet ---- */
-const pcNoiseThresh=40;            /* high-freq noise level 0..~120; LOWER = stricter quiet */
+const pcNoiseThresh=60;            /* high-freq noise level 0..~120; LOWER = stricter quiet */
 let pcGating=false,pcGateRAF=null,pcGateCancel=null;
 function pcRR(g,x,y,w,h,r){if(w<0){x+=w;w=-w;}if(r>h/2)r=h/2;if(r>w/2)r=w/2;g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
 function pcNoiseLabel(t,c){var l=$('pcNoiseLbl');if(l){l.textContent=t;l.style.color=c||'#e6edf3';}}
@@ -550,12 +550,12 @@ function pcStartQuietGate(){
   pcNoiseLabel('Listening for a quiet moment…','#e6edf3');pcSt('Checking the room is quiet enough…');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
     var ctx=new (window.AudioContext||window.webkitAudioContext)();var src=ctx.createMediaStreamSource(stream);
-    var an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.6;src.connect(an);
+    var an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.8;src.connect(an);
     var freq=new Uint8Array(an.frequencyBinCount),binHz=ctx.sampleRate/an.fftSize,i0=Math.max(1,Math.floor(500/binHz));
-    var quietSince=0,gateStart=performance.now(),HOLD=1500,MAXWAIT=12000;
+    var quietSince=0,gateStart=performance.now(),HOLD=1500,MAXWAIT=15000;
     pcGateCancel=function(){try{cancelAnimationFrame(pcGateRAF);}catch(e){}try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}try{ctx.close();}catch(e){}pcGating=false;if(meter)meter.style.display='none';};
     function loop(){
-      an.getByteFrequencyData(freq);var noise=0;for(var i=i0;i<freq.length;i++){if(freq[i]>noise)noise=freq[i];}
+      an.getByteFrequencyData(freq);var vs=[];for(var i=i0;i<freq.length;i++)vs.push(freq[i]);vs.sort(function(a,b){return b-a;});var kk=Math.min(8,vs.length),ns=0;for(var j=0;j<kk;j++)ns+=vs[j];var noise=kk?ns/kk:0;
       pcDrawNoise(noise,pcNoiseThresh);
       var now=performance.now(),forced=(now-gateStart)>MAXWAIT;
       if(noise<pcNoiseThresh){if(!quietSince)quietSince=now;var held=now-quietSince;
@@ -885,12 +885,12 @@ function lgStartQuietGate(){
   lgNoiseLabel('Listening for a quiet moment…','#e6edf3');lgSt('Checking the room is quiet enough…');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
     var ctx=new (window.AudioContext||window.webkitAudioContext)();var src=ctx.createMediaStreamSource(stream);
-    var an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.6;src.connect(an);
+    var an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.8;src.connect(an);
     var freq=new Uint8Array(an.frequencyBinCount),binHz=ctx.sampleRate/an.fftSize,i0=Math.max(1,Math.floor(500/binHz));
-    var quietSince=0,gateStart=performance.now(),HOLD=1500,MAXWAIT=12000;
+    var quietSince=0,gateStart=performance.now(),HOLD=1500,MAXWAIT=15000;
     lgGateCancel=function(){try{cancelAnimationFrame(lgGateRAF);}catch(e){}try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}try{ctx.close();}catch(e){}lgGating=false;if(meter)meter.style.display='none';};
     function loop(){
-      an.getByteFrequencyData(freq);var noise=0;for(var i=i0;i<freq.length;i++){if(freq[i]>noise)noise=freq[i];}
+      an.getByteFrequencyData(freq);var vs=[];for(var i=i0;i<freq.length;i++)vs.push(freq[i]);vs.sort(function(a,b){return b-a;});var kk=Math.min(8,vs.length),ns=0;for(var j=0;j<kk;j++)ns+=vs[j];var noise=kk?ns/kk:0;
       lgDrawNoise(noise,pcNoiseThresh);
       var now=performance.now(),forced=(now-gateStart)>MAXWAIT;
       if(noise<pcNoiseThresh){if(!quietSince)quietSince=now;var held=now-quietSince;
