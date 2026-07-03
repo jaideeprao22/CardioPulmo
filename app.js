@@ -754,6 +754,64 @@ async function pcAmplifyPlay(){
     pcSt('Amplified hard + heart-band filtered (20–150 Hz) + compressed. Listen for lub-dub under the noise.');
   }catch(e){console.error(e);pcSt('Amplify failed on this device.');}
 }
+/* ===== CirCor murmur model (multi-head: murmur / systolic / diastolic) ===== */
+const MM_SR=2000,MM_N=20000,MM_NFFT=512,MM_HOP=64,MM_NMEL=64,MM_NB=257,MM_FR=313,MM_THR=0.619;
+const MM_WIN=new Float32Array(MM_NFFT);for(let n=0;n<MM_NFFT;n++)MM_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/MM_NFFT);
+let mmModel=null,mmMel=null,mmErr='',mmLoading=null;
+function mmLoad(){
+  if(mmModel)return Promise.resolve(true);
+  if(mmLoading)return mmLoading;
+  mmLoading=(async()=>{
+    try{
+      if(typeof tf==='undefined')throw new Error('tfjs not loaded');
+      const r=await fetch('murmur_mel.json');if(!r.ok)throw new Error('murmur_mel.json '+r.status);
+      mmMel=await r.json();
+      mmModel=await tf.loadLayersModel('murmur_model.json');
+      return true;
+    }catch(e){mmErr=e.message||String(e);console.error('murmur model load failed',e);return false;}
+  })();
+  return mmLoading;
+}
+function pcMurmurMel(sig,fs){
+  let x=pcResample(sig,fs,MM_SR),y=new Float32Array(MM_N);
+  for(let i=0;i<MM_N;i++)y[i]=(i<x.length)?x[i]:0;
+  let mx=1e-9;for(let i=0;i<MM_N;i++){let a=Math.abs(y[i]);if(a>mx)mx=a;}
+  for(let i=0;i<MM_N;i++)y[i]/=mx;
+  const pad=MM_NFFT/2,xp=new Float32Array(MM_N+MM_NFFT);xp.set(y,pad);
+  const re=new Float64Array(MM_NFFT),im=new Float64Array(MM_NFFT),pw=new Float64Array(MM_NB);
+  const mel=new Float32Array(MM_NMEL*MM_FR);
+  for(let f=0;f<MM_FR;f++){const off=f*MM_HOP;
+    for(let k=0;k<MM_NFFT;k++){re[k]=xp[off+k]*MM_WIN[k];im[k]=0;}
+    fft(re,im);
+    for(let b=0;b<MM_NB;b++)pw[b]=re[b]*re[b]+im[b]*im[b];
+    for(let m=0;m<MM_NMEL;m++){let acc=0,row=mmMel[m];for(let b=0;b<MM_NB;b++)acc+=row[b]*pw[b];mel[m*MM_FR+f]=acc;}
+  }
+  let mxdb=-1e9;for(let i=0;i<mel.length;i++){let v=10*Math.log10(Math.max(1e-10,mel[i]));mel[i]=v;if(v>mxdb)mxdb=v;}
+  const floor=mxdb-80;for(let i=0;i<mel.length;i++)if(mel[i]<floor)mel[i]=floor;
+  let mean=0;for(let i=0;i<mel.length;i++)mean+=mel[i];mean/=mel.length;
+  let sd=0;for(let i=0;i<mel.length;i++){let d=mel[i]-mean;sd+=d*d;}sd=Math.sqrt(sd/mel.length);
+  for(let i=0;i<mel.length;i++)mel[i]=(mel[i]-mean)/(sd+1e-9);
+  return mel;
+}
+async function pcRunMurmur(s,fs){
+  var el=$('pcMurmur'),sub=$('pcMurmurSub');if(!el)return;
+  el.style.display='block';el.textContent='🫀 Murmur AI: analysing…';el.style.color='var(--mut)';
+  var ok=await mmLoad();
+  if(!ok){el.textContent='🫀 Murmur AI unavailable — '+mmErr;el.style.color='var(--mut)';return;}
+  try{
+    var mel=pcMurmurMel(s,fs);
+    var t=tf.tensor4d(mel,[1,MM_NMEL,MM_FR,1]);
+    var yy=mmModel.predict(t),arr=Array.isArray(yy)?yy:[yy];
+    var pm=arr[0].dataSync()[0],ps=arr[1].dataSync()[0],pd=arr[2].dataSync()[0];
+    tf.dispose([t].concat(arr));
+    var present=pm>=MM_THR,timing=[];
+    if(present){if(ps>=0.5)timing.push('systolic');if(pd>=0.5)timing.push('diastolic');}
+    if(present){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing.length?' — '+timing.join(' + '):'');el.style.color='var(--bad)';}
+    else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
+    if(sub){sub.style.display='block';sub.textContent='Murmur '+(pm*100).toFixed(0)+'% (threshold 62%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · CirCor-trained, screening only';}
+    if(pcLastResult){pcLastResult.murmur=present?'present':'absent';pcLastResult.murmur_p=pm.toFixed(3);pcLastResult.systolic_p=ps.toFixed(3);pcLastResult.diastolic_p=pd.toFixed(3);}
+  }catch(e){console.error(e);el.textContent='🫀 Murmur AI: error';el.style.color='var(--mut)';}
+}
 async function pcMLScreen(s,fs,pcRow){
   const el=$('pcAI'),sub=$('pcAIsub'),sig=$('pcSig');
   const q=pcHeartSignal(s,fs);
@@ -761,6 +819,7 @@ async function pcMLScreen(s,fs,pcRow){
   el.style.display='block';sub.style.display='block';
   if(q.rms<0.0004){el.textContent='🧠 AI screen: skipped — mic silent';el.style.color='var(--mut)';
     sub.textContent='No sound reached the mic. Press the phone bottom edge firmly on bare skin over the heart and re-record.';
+    if($('pcMurmur'))$('pcMurmur').style.display='none';if($('pcMurmurSub'))$('pcMurmurSub').style.display='none';
     pcUploadSafe('mic_silent',null,q,s,fs,sub);return;}
   el.textContent='🧠 AI screen: loading model…';el.style.color='var(--mut)';
   const ok=await pcLoadModel();
@@ -775,6 +834,7 @@ async function pcMLScreen(s,fs,pcRow){
     sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic';
     if(pcRow)pcRow.ai=p.toFixed(3);
     pcUploadSafe(pos?'screen_positive':'screen_negative',p,q,s,fs,sub);
+    pcRunMurmur(s,fs);
   }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';
     pcUploadSafe('processing_error',null,q,s,fs,sub);}
 }
