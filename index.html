@@ -3,32 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>CardioPulmo App — Heart & lung screening in your pocket</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#05070F">
+<title>CardioPulmo — Heart &amp; lung screening in your pocket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="globals.css">
 </head>
-<body>
-<!-- LOGIN -->
+<body data-tab="home">
+
+<!-- ================= LOGIN ================= -->
 <div id="authOverlay" class="ovl">
+  <div class="orb orb-a"></div><div class="orb orb-b"></div>
   <div class="ovlcard">
-    <div class="ovlbrand">CardioPulmo App</div>
-    <div class="ovlsub" data-te='గుండె & ఊపిరితిత్తుల స్క్రీనింగ్ మీ జేబులో'>Heart &amp; lung screening in your pocket</div>
+    <div class="ovlbrand">CARDIOPULMO</div>
+    <div class="ovlsig">Heart &amp; Lung Screening Platform</div>
+    <div class="ovlsub" data-te='గుండె &amp; ఊపిరితిత్తుల స్క్రీనింగ్ మీ జేబులో'>Heart &amp; lung screening in your pocket</div>
     <div id="googleSignInBtn" style="display:flex;justify-content:center"></div>
-    <div class="ordiv">— or —</div>
+    <div class="ordiv" data-te='లేదా'>or</div>
     <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
     <input id="authPass" type="password" placeholder="Password" autocomplete="current-password">
     <button id="authLogin" class="pbtn">Log in</button>
     <button id="authSignup" class="sbtn">Create new account</button>
     <div id="authMsg" class="ovlmsg"></div>
+    <div class="ovlfoot" data-te='రీసెర్చ్ పరికరం · ఆన్-డివైస్ AI · డేటా ఫోన్ దాటదు'>Research instrument · On-device AI · audio never leaves the phone</div>
   </div>
 </div>
-<!-- ONE-TIME PROFILE -->
+
+<!-- ================= ONE-TIME PROFILE ================= -->
 <div id="profileOverlay" class="ovl" style="display:none">
+  <div class="orb orb-a"></div><div class="orb orb-b"></div>
   <div class="ovlcard">
-    <div class="ovlbrand" style="font-size:22px">Your details</div>
+    <div class="ovlbrand" style="font-size:19px">YOUR DETAILS</div>
     <div class="ovlsub" data-te='ఒకసారి మాత్రమే — మీ స్క్రీనింగ్‌లను సేవ్ చేయడానికి'>One time — so your screenings can be saved.</div>
     <input id="pfName" placeholder="Full name">
     <input id="pfAge" type="number" placeholder="Age">
@@ -39,359 +48,469 @@
   </div>
 </div>
 
-<button id="aboutBtn" onclick="topTab('about')" style="position:fixed;top:8px;left:8px;width:auto;margin:0;padding:6px 12px;font-size:13px;background:#21262d;border:1px solid var(--line);z-index:50;border-radius:8px;color:var(--txt);cursor:pointer">ℹ️ About</button>
-<button id="langBtn" onclick="toggleLang()">తెలుగు</button>
-<h1 data-te='<span class="brand">CardioPulmo App</span> · గుండె & ఊపిరితిత్తుల స్క్రీనింగ్'><span class="brand">CardioPulmo App</span> · Heart &amp; lung screening in your pocket</h1>
-<div class="sub" data-te='రీసెర్చ్ పరికరం · పెర్కషన్ + ఆస్కల్టేషన్ + PPG, రోగి-లోపల రిఫరెన్స్‌తో'>Research instrument · percussion + auscultation + PPG, with within-patient referencing</div>
-<div class="disc" data-te='<b>ఇది డయాగ్నొస్టిక్ పరికరం కాదు.</b> అన్ని ఫ్లాగ్‌లు/విలువలు <b>అన్‌క్యాలిబ్రేటెడ్</b> — నిజమైన కట్-ఆఫ్‌లు మీ రిఫరెన్స్-స్టాండర్డ్ డేటా నుండి వస్తాయి. ఎల్లప్పుడూ క్లినికల్‌గా నిర్ధారించండి.'><b>NOT a diagnostic device.</b> All flags/indices are <b>uncalibrated</b> — real cut-offs come from your reference-standard data. Always confirm clinically.</div>
-
-<div class="card">
-  <div class="row"><div><label data-te='రోగి ఐడి'>Patient ID</label><input id="pid" placeholder="P001"></div><div><label data-te='వయసు'>Age</label><input id="age" type="number" placeholder="yrs"></div><div><label data-te='లింగం'>Sex</label><select id="sex"><option value="">—</option><option>M</option><option>F</option></select></div></div>
-</div>
-
-<div class="tabs">
-  <div class="tab on" id="tCardio" onclick="topTab('cardio')" data-te='🫀 కార్డియో'>🫀 Cardioscope</div>
-  <div class="tab" id="tPulmo" onclick="topTab('pulmo')" data-te='🫁 పల్మో'>🫁 PulmoScope</div>
-  <div class="tab" id="tVasc" onclick="topTab('vasc')">❤️ VascAge</div>
-</div>
-<div class="tabs" id="pulmoSubNav" style="display:none">
-  <div class="tab on" id="psLung" onclick="pulmoSub('lung')" data-te='🫁 శబ్దం'>🫁 Lung sound</div>
-  <div class="tab" id="psPerc" onclick="pulmoSub('perc')" data-te='🔊 పెర్కషన్'>🔊 Percussion</div>
-  <div class="tab" id="psEcho" onclick="pulmoSub('echo')">🎯 EchoLat</div>
-</div>
-
-<!-- ================= PERCUSSION ================= -->
-<div class="pane on" id="p1">
-<div class="card">
-  <div class="row"><div><label data-te='స్థానం'>Position</label><select id="pos"><option>Supine</option><option>Rolled (lateral)</option><option>Sitting</option></select></div>
-  <div><label data-te='రిఫరెన్స్ నిర్ధారణ (గోల్డ్ స్టాండర్డ్)'>Reference Dx (gold standard)</label><input id="ref" placeholder="e.g. USG: R pleural effusion"></div></div>
-</div>
-
-<div class="card">
-  <div class="howto" data-te='<h3>ఫోన్‌తో పెర్కషన్ ఎలా చేయాలి</h3>పెర్కషన్‌కు రెండు చేతులూ ఖాళీగా ఉంటాయి — ఫోన్ సెన్సింగ్ వేలి స్థానంలో పనిచేస్తుంది, దాన్ని గాలిలో పట్టుకోవాల్సిన అవసరం లేదు. మీ ఫోన్‌లో ఏది స్పష్టమైన టాప్ ఇస్తే అది వాడండి:<div class="m"><span class="tag">METHOD A</span><b>ఫోన్‌ను ప్లెక్సిమీటర్‌గా (సిఫార్సు).</b> ఫోన్‌ను <b>చదునుగా, గట్టిగా, స్క్రీన్ పైకి, మైక్-అంచు చర్మంపై</b> ఆ జోన్ మీద — నాన్-డామినెంట్ చేతితో నొక్కండి. డామినెంట్ మధ్య వేలితో <b>ఫోన్ పక్కనే</b> (1–2 cm దూరం) ఛాతీని గట్టిగా, ~1 సె వ్యవధిలో 5–6 సార్లు కొట్టండి. మీ ప్లెక్సిమీటర్ వేలు అనుభవించే ధ్వనిని ఫోన్ గ్రహిస్తుంది.</div><div class="m"><span class="tag">METHOD B</span><b>ఆస్కల్టేటరీ పెర్కషన్ (చేతులు ఖాళీ).</b> ఫోన్‌ను <b>ఒక స్థిర స్థానంలో</b> చదునుగా ఉంచండి (వెల్లకిలా పడుకున్న రోగి — గురుత్వాకర్షణ పట్టి ఉంచుతుంది). మిగతా చోట్ల <b>సాధారణ రెండు-చేతుల పద్ధతిలో</b> పెర్కస్ చేయండి; ప్రసారమైన ధ్వనిని ఫోన్ గ్రహిస్తుంది. కొట్టే స్థానం మార్చండి, ఫోన్ స్థిరంగా ఉంచండి, జోన్‌లను పోల్చండి.</div><div class="m"><span class="tag">FIELD</span>మీరు రెండు చేతులతో పెర్కస్ చేస్తుండగా రోగి లేదా సహాయకుడు ఫోన్‌ను ఆ స్థానంలో చదునుగా పట్టుకుంటారు.</div><div class="m" style="color:var(--mut)">నిశ్శబ్ద గది. ప్రతి టాప్‌కు ఒకే ఒత్తిడి. ముందు రోగి యొక్క స్పష్టమైన/రెసొనెంట్ జోన్‌ను <b>రిఫరెన్స్‌గా</b> రికార్డ్ చేయండి, తర్వాత అనుమానిత జోన్‌లను.</div>'>
-    <h3>How to percuss with the phone</h3>
-    Both hands stay free for percussion — the phone replaces the sensing finger, it doesn't need to be held in the air. Pick whichever gives a cleaner tap on your device:
-    <div class="m"><span class="tag">METHOD A</span><b>Phone as pleximeter (preferred).</b> Press the phone <b>flat and firm, screen up, mic-edge on bare skin</b>, over the zone — using your non-dominant hand. With your dominant middle finger, strike the chest <b>right beside the phone</b> (1–2 cm away), firmly, 5–6 times ~1 s apart. The phone senses the note your pleximeter finger used to feel.</div>
-    <div class="m"><span class="tag">METHOD B</span><b>Auscultatory percussion (hands-free).</b> Lay the phone flat on <b>one fixed spot</b> (supine patient — gravity holds it). Percuss elsewhere with your <b>normal two-handed technique</b>; the phone picks up the transmitted note. Move the percussing point, keep the phone still, compare zones.</div>
-    <div class="m"><span class="tag">FIELD</span>Patient or an assistant holds the phone flat on the spot while you percuss with both hands.</div>
-    <div class="m" style="color:var(--mut)">Quiet room. Same pressure every tap. Record the patient's clear/resonant zone <b>first</b> as the reference, then the suspicious zones.</div>
+<!-- ================= HEADER ================= -->
+<header class="top">
+  <div class="topin">
+    <div class="brandblk" onclick="topTab('home')" role="button" aria-label="Home">
+      <div class="wordmark">CARDIOPULMO</div>
+      <div class="wordsub" data-te='గుండె &amp; ఊపిరితిత్తుల స్క్రీనింగ్'>Heart &amp; lung screening</div>
+    </div>
+    <button id="langBtn" onclick="toggleLang()">తెలుగు</button>
   </div>
-  <div class="vtog"><button id="pvF" class="on" onclick="setPView('F')" data-te='ముందు (యాంటీరియర్ + లేటరల్)'>Front (anterior + lateral)</button><button id="pvB" onclick="setPView('B')" data-te='వెనుక (పోస్టీరియర్)'>Back (posterior)</button></div>
-  <div class="banner" id="pBanner">FRONT view · image-LEFT = patient's RIGHT</div>
-  <div class="note" style="text-align:center;margin-bottom:2px" data-te='1) ఒక <b>సాధారణ</b> జోన్‌ను టాప్ చేయండి → దాన్ని రిఫరెన్స్‌గా రికార్డ్ చేయండి. 2) ప్రతి అనుమానిత జోన్‌ను టాప్ చేసి రికార్డ్ చేయండి. యాప్ రిఫరెన్స్‌తో పోలుస్తుంది.'>1) Tap a <b>normal</b> zone → record it as REFERENCE. 2) Tap each suspicious zone → record. App compares to the reference.</div>
-  <div class="imgwrap"><img id="pImg" class="bodyimg" src="front.jpg" alt="chest"><div id="zones" class="overlay"></div></div>
-  <div class="legend">
-    <span><span class="dot" style="background:#1f6feb"></span>not done</span>
-    <span><span class="dot" style="background:#d29922"></span>recording</span>
-    <span><span class="dot" style="background:#2ea043"></span>done</span>
-    <span><span class="dot" style="background:#fff;border:1px solid #999"></span>selected</span>
-    <span><span class="dot" style="background:#56d4dd"></span>reference</span>
-    <span><span class="dot" style="background:#f85149"></span>duller</span>
-  </div>
-</div>
+</header>
 
-<div class="card">
-  <div id="selName" class="note" style="text-align:center;margin-bottom:2px">Tap a zone on the body above.</div>
-  <button id="recBtn" class="rec" disabled>● Select a zone first</button>
-  <button id="stopBtn" class="stop" disabled>■ Stop</button>
-  <div id="status">Quiet room. Phone mic against skin. Tap firmly with ONE finger, 5–6× ~1s apart.</div>
-  <canvas id="wave"></canvas>
-  <audio id="player" controls style="display:none"></audio>
-</div>
+<main class="wrap">
 
-<div class="card res" id="resCard">
-  <div style="text-align:center;color:var(--mut);font-size:11px" data-te='రిఫరెన్స్‌తో పోలిక (హ్యూరిస్టిక్ ⚠)'>RESULT vs reference (heuristic ⚠)</div>
-  <div class="cls" id="cls">—</div>
-  <div class="grid">
-    <div class="kv">Peak freq<b id="pk">—</b>Hz</div>
-    <div class="kv">Centroid<b id="ce">—</b>Hz</div>
-    <div class="kv">Low:High<b id="lh">—</b></div>
-    <div class="kv">Decay<b id="dc">—</b>ms</div>
+  <!-- patient chart (hidden on Home / About) -->
+  <div class="card" id="patientCard">
+    <div class="seclabel" style="margin-top:0" data-te='రోగి వివరాలు'>Patient details</div>
+    <div class="row">
+      <div><label data-te='రోగి ఐడి'>Patient ID</label><input id="pid" placeholder="P001"></div>
+      <div><label data-te='వయసు'>Age</label><input id="age" type="number" placeholder="yrs"></div>
+      <div><label data-te='లింగం'>Sex</label><select id="sex"><option value="">—</option><option>M</option><option>F</option></select></div>
+    </div>
   </div>
-  <button id="dlAudio" class="dl" data-te='⬇ ఈ రికార్డింగ్ డౌన్‌లోడ్ (.wav)'>⬇ Download this recording (.wav)</button>
-</div>
 
-<div class="card"><button id="newPt" class="dl" data-te='↺ కొత్త రోగి (మ్యాప్ క్లియర్, లాగ్ ఉంచుతుంది)'>↺ New patient (clears map, keeps log)</button></div>
+  <div class="disc" id="globalDisc" data-te='<b>ఇది డయాగ్నొస్టిక్ పరికరం కాదు.</b> అన్ని ఫ్లాగ్‌లు/విలువలు <b>అన్‌క్యాలిబ్రేటెడ్</b> — నిజమైన కట్-ఆఫ్‌లు మీ రిఫరెన్స్-స్టాండర్డ్ డేటా నుండి వస్తాయి. ఎల్లప్పుడూ క్లినికల్‌గా నిర్ధారించండి.'><b>NOT a diagnostic device.</b> All flags/indices are <b>uncalibrated</b> — real cut-offs come from your reference-standard data. Always confirm clinically.</div>
 
-<div class="card" id="logCard" style="display:none">
-  <b style="font-size:13px" data-te='సెషన్ లాగ్'>Session log</b>
-  <div id="logTable"></div>
-  <button id="dlCsv" class="dl" data-te='⬇ సెషన్ CSV డౌన్‌లోడ్'>⬇ Download session CSV</button>
-</div>
-</div>
+  <!-- pulmo sub-nav (shown by app.js when Pulmo suite is open) -->
+  <div class="tabs" id="pulmoSubNav" style="display:none">
+    <div class="tab on" id="psLung" onclick="pulmoSub('lung')" data-te='శబ్దం'>Lung sound</div>
+    <div class="tab" id="psPerc" onclick="pulmoSub('perc')" data-te='పెర్కషన్'>Percussion</div>
+    <div class="tab" id="psEcho" onclick="pulmoSub('echo')">EchoLat</div>
+  </div>
 
-<!-- ================= VASCAGE ================= -->
-<div class="pane" id="p2">
-<div class="card">
-  <b style="font-size:13px" data-te='VascAge · వేలికొన PPG + హృద్రోగ ప్రమాదం'>VascAge · fingertip PPG + CVD risk</b>
-  <div class="note" style="margin-top:5px" data-te='<b>ఇంకా</b> "సంవత్సరాలలో వాస్కులర్ వయసు" కాదు — పల్స్-వేవ్ వెలాసిటీ / కరోటిడ్ IMT‌తో వేలిడేషన్ అవసరం. కల్పిత సంఖ్యలు లేవు.'><b>Not</b> a "vascular age in years" yet — needs validation vs pulse-wave velocity / carotid IMT. No fabricated numbers.</div>
-  <div class="howto" data-te='<h3>వేలికొన PPG ఎలా రికార్డ్ చేయాలి</h3>ఫోన్ యొక్క <b>వెనుక కెమెరా లెన్స్ మరియు ఫ్లాష్ రెండింటినీ కలిపి</b> <b>చూపుడు వేలికొన</b> కండతో కప్పండి — రెండూ పూర్తిగా కప్పాలి, సందు ఉండకూడదు.<div class="m"><span class="tag">PRESSURE</span><b>తేలికగా, స్థిరంగా.</b> వేలిని ఆనించండి; గట్టిగా నొక్కితే రక్తం బయటకు పోయి సిగ్నల్ పోతుంది.</div><div class="m"><span class="tag">STILL</span>చేతిని టేబుల్‌పై ఆనించి పూర్తి క్యాప్చర్ సమయంలో కదలకుండా ఉంచండి. ఫ్లాష్ ఆన్‌లో ఉంటుంది; ఫ్లాష్ లేకపోతే → ప్రకాశవంతమైన పగటి వెలుతురులో కూర్చోండి.</div><div class="m" style="color:var(--mut)">లైవ్ ట్రేస్‌లో క్రమమైన పల్స్ తరంగాలు కనిపించే వరకు హార్ట్ రేట్‌ను నమ్మవద్దు.</div>'>
-    <h3>How to record fingertip PPG</h3>
-    Cover the phone's <b>rear camera lens AND flash together</b> with the pad of the <b>index fingertip</b> — both fully covered, no gap.
-    <div class="m"><span class="tag">PRESSURE</span><b>Light and steady.</b> Rest the finger on; pressing hard squeezes the blood out and kills the signal.</div>
-    <div class="m"><span class="tag">STILL</span>Rest the hand on a table and hold dead still for the whole capture. The flash stays on; no flash → sit in bright daylight.</div>
-    <div class="m" style="color:var(--mut)">Wait until the live trace shows regular pulse waves before trusting the heart rate.</div>
-  </div>
-  <div style="text-align:center;margin:8px 0"><img src="phone_placement.jpg" loading="lazy" alt="Fingertip on rear camera" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)"><div class="m" style="color:var(--mut)" data-te='వెనుక కెమెరా + ఫ్లాష్‌పై వేలికొనను తేలికగా ఆనించండి'>Rest the fingertip lightly over the rear camera + flash</div></div>
-  <div class="row"><div><label data-te='ధూమపానం'>Smoker</label><select id="vSmoke"><option>No</option><option>Yes</option></select></div>
-  <div><label data-te='రక్తపోటు (హైపర్‌టెన్షన్)'>Hypertension</label><select id="vHtn"><option>No</option><option>Yes</option></select></div>
-  <div><label data-te='మధుమేహం'>Diabetes</label><select id="vDm"><option>No</option><option>Yes</option></select></div></div>
-  <div class="row"><div><label data-te='ఎత్తు (cm)'>Height (cm)</label><input id="vHt" type="number" placeholder="170"></div><div><label data-te='బరువు (kg)'>Weight (kg)</label><input id="vWt" type="number" placeholder="65"></div></div>
-  <button id="vBtn" class="rec" data-te='● PPG కొలవండి (20s)'>● Measure PPG (20s)</button>
-  <button id="vStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
-  <div id="vStatus" class="vst">Cover the REAR camera + flash with a fingertip. Use bright light if no torch.</div>
-  <video id="vVid" playsinline muted style="display:none"></video>
-  <canvas id="vWave"></canvas>
-</div>
-<div class="card" id="vResCard" style="display:none">
-  <div class="grid">
-    <div class="kv">Heart rate<b id="vHR">—</b>bpm</div>
-    <div class="kv">IBI variability (SDNN)<b id="vSDNN">—</b>ms</div>
-    <div class="kv">Reflection index (exp)<b id="vRI">—</b></div>
-    <div class="kv">Signal quality<b id="vQ">—</b></div>
-  </div>
-  <div class="note" style="margin-top:6px">Risk factors present: <b id="vTallyN">0</b> — a tally, not a validated risk %. Compute WHO/Framingham risk in analysis.</div>
-</div>
-<div class="card" id="vLogCard" style="display:none"><b style="font-size:13px" data-te='PPG లాగ్'>PPG log</b><div id="vLogTable"></div><button id="vCsv" class="dl" data-te='⬇ PPG CSV డౌన్‌లోడ్'>⬇ Download PPG CSV</button></div>
-</div>
+  <!-- ================= HOME ================= -->
+  <section class="pane" id="p0" data-screen-label="Home">
+    <div class="hero">
+      <div class="badge" data-te='రీసెర్చ్ పరికరం · ఆన్-డివైస్ AI'>Research instrument · On-device AI</div>
+      <h2 class="heroT" data-te='మీ గుండె &amp; ఊపిరితిత్తులు ఈరోజు ఎలా ఉన్నాయి?'>How are your heart &amp; lungs today?</h2>
+      <p class="heroS" data-te='మీ జేబులోని ఫోన్‌తోనే గుండె శబ్దాలు, ఊపిరితిత్తుల శబ్దాలు, లయ మరియు పల్స్ స్క్రీన్ చేయండి — అదనపు పరికరాలు అవసరం లేదు, ఆడియో ఫోన్ దాటదు.'>Screen heart sounds, lung sounds, rhythm and pulse with the phone already in your pocket — no extra hardware, and audio stays on the device.</p>
+      <button class="cta" onclick="topTab('cardio')" data-te='స్క్రీనింగ్ ప్రారంభించండి →'>Begin screening →</button>
+    </div>
 
-<!-- ================= ECHOLAT ================= -->
-<div class="pane" id="p3">
-<div class="card">
-  <b style="font-size:13px" data-te='EchoLat · పక్క-పక్క శ్వాస శబ్ద పోలిక'>EchoLat · side-to-side breath-sound comparison</b>
-  <div class="note" style="margin-top:5px" data-te='ప్రతి పక్కను <b>వరుసగా</b> (ఒక మైక్) రికార్డ్ చేసి హై-ఫ్రీక్వెన్సీ / అడ్వెంటీషియస్ ఎనర్జీని పోలుస్తుంది. <b>ఇది</b> రియల్-టైమ్ 3-మైక్ బీమ్‌ఫార్మింగ్ కాదు. హ్యూరిస్టిక్ / అన్‌క్యాలిబ్రేటెడ్.'>Records each side <b>sequentially</b> (one mic) and compares high-frequency / adventitious energy. <b>Not</b> real-time 3-mic beamforming. Heuristic / uncalibrated.</div>
-  <div class="howto" data-te='<h3>శ్వాస శబ్దాలు ఎలా రికార్డ్ చేయాలి</h3>రోగి <b>కూర్చొని, వీపు ఖాళీగా, కొద్దిగా ముందుకు వంగి.</b> ఫోన్ యొక్క <b>కింది (మైక్) అంచును చదునుగా, గట్టిగా</b> వీపుపై ఊపిరితిత్తి కింది భాగానికి ఆనించండి.<div class="m"><span class="tag">SAME SPOT</span><b>ముందు కుడి, తర్వాత ఎడమ</b> ను <b>అద్దం-ప్రతిబింబ స్థానంలో</b> రికార్డ్ చేయండి — యాప్ రెండు పక్కలను పోలుస్తుంది.</div><div class="m"><span class="tag">BREATHE</span>ప్రతి 15-సెకన్ల రికార్డింగ్‌లో రోగి <b>నోరు తెరిచి నెమ్మదిగా, లోతుగా శ్వాస</b> తీసుకుంటారు.</div><div class="m" style="color:var(--mut)">నిశ్శబ్ద గది. రికార్డింగ్ సమయంలో ఫోన్‌ను జరపవద్దు.</div>'>
-    <h3>How to record breath sounds</h3>
-    Patient <b>sitting, bare back, leaning slightly forward.</b> Press the phone's <b>bottom (mic) edge flat and firm</b> against the lung base on the back.
-    <div class="m"><span class="tag">SAME SPOT</span>Record <b>Right first, then Left</b> at the <b>mirror-image spot</b> — the app compares the two sides.</div>
-    <div class="m"><span class="tag">BREATHE</span>Patient takes <b>slow, deep breaths through an open mouth</b> through each 15-second recording.</div>
-    <div class="m" style="color:var(--mut)">Quiet room. Don't slide the phone during a recording.</div>
-  </div>
-  <div class="banner" data-te='వెనుక వ్యూ · ఇమేజ్-కుడి = రోగి కుడి'>BACK view · image-RIGHT = patient's RIGHT</div>
-  <div class="imgwrap"><img class="bodyimg" src="back.jpg" alt="back"><div id="espots" class="overlay"></div></div>
-  <div class="legend"><span><span class="dot" style="background:#1f6feb"></span>not done</span><span><span class="dot" style="background:#d29922"></span>recording</span><span><span class="dot" style="background:#2ea043"></span>done</span></div>
-  <div id="eSelName" class="note" style="text-align:center;margin-bottom:2px">Tap a lung base on the figure (mic on posterior base; patient breathes deeply).</div>
-  <button id="eRec" class="rec" disabled>● Select a side first</button>
-  <div id="eStatus" class="vst">Record both sides to compare.</div>
-</div>
-<div class="card" id="eResCard" style="display:none">
-  <div class="grid">
-    <div class="kv">High-freq energy R<b id="eHFr">—</b>%</div>
-    <div class="kv">High-freq energy L<b id="eHFl">—</b>%</div>
-    <div class="kv">Centroid R<b id="eCr">—</b>Hz</div>
-    <div class="kv">Centroid L<b id="eCl">—</b>Hz</div>
-  </div>
-  <div class="cls" id="eVerdict" style="font-size:15px;margin-top:8px">—</div>
-</div>
-<div class="card" id="eLogCard" style="display:none"><b style="font-size:13px" data-te='EchoLat లాగ్'>EchoLat log</b><div id="eLogTable"></div><button id="eCsv" class="dl" data-te='⬇ EchoLat CSV డౌన్‌లోడ్'>⬇ Download EchoLat CSV</button></div>
-</div>
+    <div class="seclabel rule" data-te='స్క్రీనింగ్ విభాగాలు'>Screening suites</div>
 
-<!-- ================= CARDIOSCOPE ================= -->
-<div class="pane" id="p4">
-<div class="card">
-  <b style="font-size:13px" data-te='🫀 Cardioscope · హృదయ-రక్తనాళ పరీక్ష'>🫀 Cardioscope · cardiovascular exam</b>
-  <div class="note" style="margin-top:5px" data-te='<b>ఆన్-డిమాండ్</b> గుండె లయ (ఛాతీపై ఫోన్ యాక్సిలరోమీటర్) + <b>మెడ / JVP స్పందన</b> (కెమెరా). కేవలం ఫ్లాగ్‌లు — <b>ఇది</b> నిర్ధారణ కాదు, <b>స్టెతస్కోప్</b> కాదు. రాత్రంతా పాసివ్ మానిటరింగ్‌కు నేటివ్ యాప్ అవసరం (స్క్రీన్ ఆఫ్ అయితే బ్రౌజర్‌లు సెన్సర్‌లను నిలిపివేస్తాయి).'><b>On-demand</b> heart-rhythm (phone accelerometer on the chest) + <b>neck / JVP pulsation</b> (camera). Flags only — <b>not</b> a diagnosis, <b>not</b> a stethoscope. Passive all-night monitoring needs the native app (browsers suspend sensors when the screen is off).</div>
-  <div class="row" style="margin-top:9px">
-    <div><button id="csTabC" class="dl" style="margin-top:0;padding:11px 4px;font-size:13px;background:#15233b;border:1px solid var(--acc)" data-te='🔊 శబ్దం'>🔊 Sound</button></div>
-    <div><button id="csTabA" class="dl" style="margin-top:0;padding:11px 4px;font-size:13px" data-te='❤️ లయ'>❤️ Rhythm</button></div>
-    <div><button id="csTabB" class="dl" style="margin-top:0;padding:11px 4px;font-size:13px" data-te='🩸 JVP'>🩸 JVP</button></div>
-  </div>
-</div>
+    <div class="suite" onclick="topTab('cardio')" data-screen-label="Home · Cardioscope card">
+      <div class="ic ic-c">🫀</div>
+      <div class="sinfo">
+        <div class="st">Cardioscope</div>
+        <div class="ss" data-te='గుండె శబ్దం · లయ · JVP'>Heart sound · Rhythm · JVP</div>
+      </div>
+      <div class="chip" data-te='తెరవండి'>Open</div>
+    </div>
 
-<!-- ---- Rhythm (SCG) ---- -->
-<div id="csA">
-<div class="card">
-  <div class="howto" data-te='<h3>లయ ఎలా చదవాలి (సీస్మోకార్డియోగ్రఫీ)</h3>రోగి పడుకొని లేదా కదలకుండా కూర్చొని. ఫోన్‌ను <b>చదునుగా, స్క్రీన్ పైకి, ఛాతీ మధ్యలో (కింది ఛాతీ ఎముకపై)</b> ఉంచండి. చేతులు తీసేసి, మామూలుగా శ్వాస తీసుకుంటూ, కౌంట్‌డౌన్ సమయంలో నిశ్శబ్దంగా ఉండండి — ఫోన్ ప్రతి గుండె కొట్టుకోవడాన్ని చిన్న కంపనంగా గ్రహిస్తుంది.<div class="m" style="color:var(--mut)">పడుకుంటే ఉత్తమం. ఫోన్ స్టెర్నమ్‌పై చదునుగా, పలుచని దుస్తులు లేదా ఖాళీ చర్మం. క్యాప్చర్ సమయంలో మాట్లాడవద్దు, కదలవద్దు.</div>'>
-    <h3>How to read rhythm (seismocardiography)</h3>
-    Patient lying down or sitting still. Place the phone <b>flat, screen up, on the centre of the chest (lower breastbone)</b>. Hands off, breathe normally, stay quiet for the countdown — the phone feels each heartbeat as a tiny vibration.
-    <div class="m" style="color:var(--mut)">Best lying down. Phone flat on the sternum, thin clothing or bare. No talking or moving during capture.</div>
-  </div>
-  <div style="text-align:center;margin:8px 0">
-    <img src="rhythm_phone.jpg" loading="lazy" alt="Phone flat on chest" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)">
-    <div class="m" style="color:var(--mut)" data-te='ఫోన్‌ను చదునుగా, స్క్రీన్ పైకి, ఛాతీ మధ్యలో (ఛాతీ ఎముకపై) ఉంచండి'>Lay the phone flat, screen up, on the centre of the chest (breastbone)</div>
-  </div>
-  <button id="csRec" class="rec" data-te='● 60-సెకన్ల లయ క్యాప్చర్ ప్రారంభం'>● Start 60-second rhythm capture</button>
-  <button id="csStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
-  <div id="csStatus" class="vst">Phone flat on the chest, then Start.</div>
-  <canvas id="csWave"></canvas>
-</div>
-<div class="card res" id="csResCard">
-  <div class="cls" id="csVerdict">—</div>
-  <div class="grid">
-    <div class="kv">Heart rate<b id="csHR">—</b>bpm</div>
-    <div class="kv">Mean RR<b id="csRR">—</b>ms</div>
-    <div class="kv">RR variability (SDNN)<b id="csSD">—</b>ms</div>
-    <div class="kv">Signal quality<b id="csQ">—</b></div>
-  </div>
-  <div class="note" style="margin-top:6px" data-te='అసమానత <b>ఒక స్క్రీన్, నిర్ధారణ కాదు</b>. ఏదైనా "ఇర్రెగ్యులర్" ను ECG / హోల్టర్‌తో నిర్ధారించండి.'>Irregularity is a <b>screen, not a diagnosis</b>. Confirm any "irregular" with ECG / Holter.</div>
-</div>
-<div class="card" id="csLogCard" style="display:none"><b style="font-size:13px" data-te='లయ లాగ్'>Rhythm log</b><div id="csLogTable"></div><button id="csCsv" class="dl" data-te='⬇ లయ CSV డౌన్‌లోడ్'>⬇ Download rhythm CSV</button></div>
-</div>
+    <div class="suite" onclick="topTab('pulmo')" data-screen-label="Home · PulmoScope card">
+      <div class="ic ic-p">🫁</div>
+      <div class="sinfo">
+        <div class="st">PulmoScope</div>
+        <div class="ss" data-te='ఊపిరితిత్తుల శబ్దం · పెర్కషన్ · EchoLat'>Lung sound · Percussion · EchoLat</div>
+      </div>
+      <div class="chip" data-te='తెరవండి'>Open</div>
+    </div>
 
-<!-- ---- JVP camera ---- -->
-<div id="csB" style="display:none">
-<div class="card">
-  <div class="howto" data-te='<h3>మెడ (JVP) ఎలా క్యాప్చర్ చేయాలి</h3>రోగి సుమారు 45° వెనక్కి వాలి, తల కొద్దిగా ఎడమవైపు తిప్పి, మెడపై మంచి వెలుతురు. <b>వెనుక కెమెరాను మెడ కుడివైపుకు</b> గురిపెట్టి, మెడను చుక్కల బాక్స్‌లో అమర్చండి. మోచేయిని ఆనించి కౌంట్‌డౌన్ సమయంలో స్థిరంగా ఉంచండి.<div class="m" style="color:var(--mut)">మంచి వెలుతురు, స్థిరమైన ఫోన్. యాప్ తాను చూసే స్పందన మరియు దాని రేటును గీస్తుంది — అది cm‌లో JVP ఎత్తు <b>ఇవ్వదు</b>; ఎత్తును స్టెర్నల్ యాంగిల్‌కు ఎదురుగా క్లినికల్‌గా చదవండి.</div>'>
-    <h3>How to capture the neck (JVP)</h3>
-    Patient semi-reclined ~45°, head turned slightly to their left, neck well lit. Point the <b>rear camera at the right side of the neck</b> and fit the neck inside the dashed box. Brace your elbow and hold steady for the countdown.
-    <div class="m" style="color:var(--mut)">Good light, steady phone. The app plots the pulsation it sees and its rate — it does <b>not</b> give a JVP height in cm; read height clinically against the sternal angle.</div>
-  </div>
-  <div class="row"><div><label data-te='స్టెర్నల్ యాంగిల్ పైన JVP ఎత్తు (cm, కంటితో)'>JVP height above sternal angle (cm, by eye)</label><input id="jHeight" type="number" step="0.5" placeholder="e.g. 3"></div><div><label data-te='హెపాటోజుగులర్ రిఫ్లక్స్'>Hepatojugular reflux</label><select id="jHJR"><option value="">—</option><option>Negative</option><option>Positive</option></select></div></div>
-  <div style="text-align:center;margin:8px 0">
-    <img src="jvp_phone.jpg" loading="lazy" alt="Rear camera at neck" style="max-width:300px;width:100%;border-radius:10px;border:1px solid var(--line)">
-    <div class="m" style="color:var(--mut)" data-te='వెనుక కెమెరాను మెడ కుడివైపుకు గురిపెట్టండి, ~45° వాలి'>Point the rear camera at the right side of the neck, patient ~45° reclined</div>
-  </div>
-  <div class="imgwrap" style="max-width:360px">
-    <video id="jVid" playsinline muted style="width:100%;border-radius:10px;background:#000;display:block"></video>
-    <div id="jBox" style="position:absolute;left:38%;top:12%;width:24%;height:66%;border:2px dashed #56d4dd;border-radius:6px;pointer-events:none"></div>
-  </div>
-  <button id="jRec" class="rec" data-te='● 15-సెకన్ల మెడ క్యాప్చర్ ప్రారంభం'>● Start 15-second neck capture</button>
-  <button id="jStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
-  <div id="jStatus" class="vst">Frame the neck in the box, then Start.</div>
-  <canvas id="jWave"></canvas>
-</div>
-<div class="card res" id="jResCard">
-  <div class="cls" id="jVerdict" style="font-size:15px">—</div>
-  <div class="grid">
-    <div class="kv">Pulsation rate<b id="jRate">—</b>/min</div>
-    <div class="kv">Rel. amplitude<b id="jAmp">—</b>a.u.</div>
-  </div>
-  <div class="fluid" id="jFluid">Enter the JVP height you read by eye (cm above the sternal angle) to get a fluid-status read.</div>
-  <div class="note" style="margin-top:6px" data-te='అన్‌క్యాలిబ్రేటెడ్ స్పందన విజువలైజర్. కెమెరా స్పందన మరియు దాని రేటును చూపుతుంది; <b>JVP ఎత్తును స్టెర్నల్ యాంగిల్‌కు ఎదురుగా కంటితో చదవాలి</b> — ఫ్లూయిడ్-స్టేటస్ ఫ్లాగ్ మీరు ఎంటర్ చేసిన cm విలువను వాడుతుంది, వీడియోను కాదు.'>Uncalibrated pulsation visualizer. The camera shows the pulsation and its rate; <b>JVP height is read by eye against the sternal angle</b> — the fluid-status flag uses the cm value you enter, not the video.</div>
-</div>
-<div class="card" id="jLogCard" style="display:none"><b style="font-size:13px" data-te='JVP లాగ్'>JVP log</b><div id="jLogTable"></div><button id="jCsv" class="dl" data-te='⬇ JVP CSV డౌన్‌లోడ్'>⬇ Download JVP CSV</button></div>
-</div>
+    <div class="suite" onclick="topTab('vasc')" data-screen-label="Home · VascAge card">
+      <div class="ic ic-v">❤️</div>
+      <div class="sinfo">
+        <div class="st">VascAge</div>
+        <div class="ss" data-te='వేలికొన PPG · రిస్క్ ఫ్యాక్టర్లు'>Fingertip PPG · risk factors</div>
+      </div>
+      <div class="chip" data-te='తెరవండి'>Open</div>
+    </div>
 
-<!-- ---- Heart sound (PCG) ---- -->
-<div id="csC" style="display:none">
-<div class="card">
-  <div class="howto" data-te='<h3>గుండె శబ్దాలు (PCG) ఎలా రికార్డ్ చేయాలి</h3>రోగి కూర్చొని లేదా పడుకొని, <b>ఛాతీ ఖాళీగా, నిశ్శబ్ద గది.</b> ఫోన్ యొక్క <b>కింది (మైక్) అంచును గట్టిగా చదునుగా</b> గుండెపై — కింది-ఎడమ ఛాతీ, ఎడమ ముచ్చిక కింద (కార్డియాక్ ఎపెక్స్) ఆనించండి. స్థిరంగా ఉంచండి; రోగి మెల్లగా శ్వాస తీసుకుంటారు లేదా కొద్దిసేపు శ్వాస ఆపుతారు.<div class="m"><span class="tag">LISTEN</span>నిజమైన గుండె శబ్దాలను <b>.wav</b> కు రికార్డ్ చేసి రేటు + లయను అంచనా వేసి, <b>ఆన్-డివైస్ AI మోడల్</b> మర్మర్/అసాధారణ గుండె శబ్దాల కోసం స్క్రీన్ చేస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.</div><div class="m" style="color:var(--mut)">సంఖ్యను నమ్మే ముందు ట్రేస్ శుభ్రమైన లబ్-డబ్ బీట్‌ల్లా ఉందో చూడండి.</div>'>
-    <h3>How to record heart sounds (PCG)</h3>
-    Patient sitting or lying, <b>bare chest, quiet room.</b> Press the phone's <b>bottom (mic) edge firmly flat</b> over the heart — lower-left chest, just below the left nipple (cardiac apex). Hold still; patient breathes gently or briefly holds breath.
-    <div class="m"><span class="tag">LISTEN</span>Records the actual heart sounds to a <b>.wav</b>, estimates rate + rhythm, and runs an <b>on-device AI model</b> that screens for murmur / abnormal heart sounds. Screening only — refer positives; not a diagnosis.</div>
-    <div class="m" style="color:var(--mut)">Check the trace looks like clean lub-dub beats before trusting the number.</div>
-  </div>
-  <div class="note" style="text-align:center;margin-bottom:2px" data-te='ఎపెక్స్ చుక్కను టాప్ చేయండి → ఫోన్ మైక్ అంచును అక్కడ ఆనించి రికార్డ్ చేయండి.'>Tap the apex dot → press the phone mic-edge there and record.</div>
-  <div class="imgwrap"><img class="bodyimg" src="heart_phone.jpg" alt="heart"><div id="pcspot" class="overlay"></div></div>
-  <div class="legend">
-    <span><span class="dot" style="background:#1f6feb"></span>not done</span>
-    <span><span class="dot" style="background:#d29922"></span>recording</span>
-    <span><span class="dot" style="background:#2ea043"></span>done</span>
-  </div>
-    <button id="pcRec" class="rec" disabled data-te='● గుండె శబ్దం రికార్డ్ (15s)'>● Record heart sound (15s)</button>
-  <button id="pcStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
-  <div id="pcStatus" class="vst">Phone mic-edge on the cardiac apex, quiet room, then Start.</div>
-  <canvas id="pcWave"></canvas>
-  <audio id="pcPlayer" controls style="display:none"></audio>
-  <button id="pcAmp" class="dl" style="display:none;margin-top:6px" data-te='🔊 పెంచి వినండి (గుండె-బ్యాండ్ 20–150Hz)'>🔊 Amplify & listen (heart-band)</button>
-</div>
-<div class="card res" id="pcResCard">
-  <div class="cls" id="pcVerdict">—</div>
-  <div id="pcSig" style="display:none;font-size:13px;font-weight:600;margin-top:3px">📶 —</div>
-  <div class="cls" id="pcAI" style="display:none;margin-top:2px">🧠 AI screen: —</div>
-  <div id="pcAIsub" style="display:none;color:var(--mut);font-size:11px;margin:2px 0 4px" data-te='ఆన్-డివైస్ AI మోడల్ (CirCor + CinC హృదయ-శబ్ద డేటాపై శిక్షణ). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on CirCor + CinC heart-sound data). Screening only — not a diagnosis.</div>
-  <div class="grid">
-    <div class="kv">Heart rate<b id="pcHR">—</b>bpm</div>
-    <div class="kv">Rhythm<b id="pcReg">—</b></div>
-    <div class="kv">Confidence<b id="pcConf">—</b></div>
-    <div class="kv">Signal quality<b id="pcQ">—</b></div>
-  </div>
-  <button id="pcDl" class="dl" data-te='⬇ ఈ రికార్డింగ్ డౌన్‌లోడ్ (.wav)'>⬇ Download this recording (.wav)</button>
-  <div class="note" style="margin-top:6px" data-te='రేటు/లయ మరియు AI మర్మర్ స్క్రీన్ <b>స్క్రీనింగ్ సాధనాలు, నిర్ధారణ కాదు</b>. పాజిటివ్‌లను రెఫర్ చేయండి; క్లినికల్‌గా నిర్ధారించండి.'>Rate/rhythm and the AI murmur screen are <b>screening tools, not a diagnosis</b>. Refer positives; confirm clinically.</div>
-</div>
-<div class="card" id="pcLogCard" style="display:none"><b style="font-size:13px" data-te='గుండె-శబ్దం లాగ్'>Heart-sound log</b><div id="pcLogTable"></div><button id="pcCsv" class="dl" data-te='⬇ గుండె-శబ్దం CSV డౌన్‌లోడ్'>⬇ Download heart-sound CSV</button></div>
-</div>
-</div>
+    <div class="foot" data-te='స్క్రీనింగ్ సహాయం మాత్రమే — నిర్ధారణ కాదు. అన్ని AI నమూనాలు పరికరంలోనే నడుస్తాయి.<br>Dr. Jaideep Rao M. · Government Medical College, Maheshwaram'>Screening aid only — not a diagnosis. All AI models run entirely on-device.<br>Dr. Jaideep Rao M. · Government Medical College, Maheshwaram</div>
+  </section>
 
-<!-- ================= PULMOSCOPE (LUNGS) ================= -->
-<div class="pane" id="p5">
-<div class="card">
-  <b style="font-size:13px" data-te='🫁 PulmoScope · ఊపిరితిత్తుల శబ్ద స్క్రీన్'>🫁 PulmoScope · lung-sound screen</b>
-  <div class="note" style="margin-top:5px" data-te='ఫోన్ మైక్‌తో <b>ఊపిరితిత్తుల శబ్దాలను</b> రికార్డ్ చేసి, ఆన్-డివైస్ AI నమూనా <b>సాధారణ vs అసాధారణ (క్రాకిల్స్/వీజెస్)</b> కోసం స్క్రీన్ చేస్తుంది. వీపుపై <b>6 పాయింట్‌లను</b> టాప్ చేసి రికార్డ్ చేయండి — యాప్ వాటిని సగటు చేసి ఒక ఫలితం ఇస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్ కాదు.'><b>Records lung sounds</b> with the phone mic and an on-device AI model screens for <b>normal vs abnormal (crackles/wheezes)</b>. Tap and record <b>6 points on the back</b> — the app averages them into one result. Screening only — not a diagnosis, not a stethoscope.</div>
-</div>
+  <!-- ================= PERCUSSION (p1) ================= -->
+  <section class="pane" id="p1" data-screen-label="PulmoScope · Percussion">
+    <div class="mhead">
+      <div class="mkicker">PulmoScope · Percussion</div>
+      <h2 class="mtitle" data-te='ఫోన్ పెర్కషన్'>Phone percussion</h2>
+      <p class="msub" data-te='రోగి-లోపల రిఫరెన్స్‌తో ఛాతీపై పెర్కషన్ నోట్లను మ్యాప్ చేయండి.'>Map percussion notes across the chest against a within-patient reference.</p>
+    </div>
 
-<div class="card">
-  <div class="howto" data-te='<h3>ఊపిరితిత్తుల శబ్దాలను ఎలా రికార్డ్ చేయాలి</h3>రోగి <b>కూర్చొని, వీపు ఖాళీగా, కొద్దిగా ముందుకు వంగి</b>, నిశ్శబ్ద గది. దిగువ శరీర చిత్రంపై ఒక పాయింట్‌ను టాప్ చేయండి, ఫోన్ యొక్క <b>కింది (మైక్) అంచును ఆ స్థానంలో చర్మంపై గట్టిగా</b> ఆనించి, రోగిని <b>నోటి ద్వారా లోతుగా శ్వాస</b> తీసుకోమనండి, ఆపై రికార్డ్ నొక్కండి. 6 పాయింట్‌లన్నీ చేయండి.<div class="m"><span class="tag">LISTEN</span>ప్రతి పాయింట్‌ను <b>.wav</b> కు రికార్డ్ చేసి ఆన్-డివైస్ AI నమూనాను నడుపుతుంది. 6 పాయింట్‌ల సగటు అత్యంత నమ్మదగిన స్క్రీన్ ఇస్తుంది.</div><div class="m" style="color:var(--mut)">సన్నని దుస్తులు లేదా ఖాళీ చర్మం. రికార్డింగ్ సమయంలో మాట్లాడవద్దు.</div>'>
-    <h3>How to record lung sounds</h3>
-    Patient <b>seated, back bared, leaning slightly forward</b>, quiet room. Tap a point on the body image below, press the phone's <b>bottom (mic) edge firmly on the skin</b> at that spot, ask the patient to <b>breathe deeply through the mouth</b>, then press record. Do all 6 points.
-    <div class="m"><span class="tag">LISTEN</span>Records each point to a <b>.wav</b> and runs the on-device AI model. Averaging 6 points gives the most reliable normal/abnormal screen.</div>
-    <div class="m" style="color:var(--mut)">Thin clothing or bare skin. No talking during capture.</div>
-  </div>
-  <div class="banner">BACK view · image-RIGHT = patient's RIGHT</div>
-  <div class="note" style="text-align:center;margin-bottom:2px" data-te='వీపు చిత్రంపై ఒక పాయింట్‌ను టాప్ చేయండి → 15 సెకన్ల లోతైన శ్వాసను రికార్డ్ చేయండి. ఉత్తమ ఫలితం కోసం 6 పాయింట్‌లన్నీ చేయండి.'>Tap a point on the back image → record 15 s of deep breathing. Do all 6 for the most reliable screen.</div>
-  <div class="imgwrap"><img id="lgImg" class="bodyimg" src="lung_back.jpg" alt="back"><div id="lgzones" class="overlay"></div></div>
-  <div class="legend">
-    <span><span class="dot" style="background:#1f6feb"></span>not done</span>
-    <span><span class="dot" style="background:#d29922"></span>recording</span>
-    <span><span class="dot" style="background:#2ea043"></span>done</span>
-    <span><span class="dot" style="background:#fff;border:1px solid #999"></span>selected</span>
-  </div>
-</div>
+    <div class="card">
+      <div class="row"><div><label data-te='స్థానం'>Position</label><select id="pos"><option>Supine</option><option>Rolled (lateral)</option><option>Sitting</option></select></div>
+      <div><label data-te='రిఫరెన్స్ నిర్ధారణ (గోల్డ్ స్టాండర్డ్)'>Reference Dx (gold standard)</label><input id="ref" placeholder="e.g. USG: R pleural effusion"></div></div>
+    </div>
 
-<div class="card">
-  <div id="lgSelName" class="note" style="text-align:center;margin-bottom:2px">Tap a point on the back above.</div>
-  <button id="lgRec" class="rec" disabled data-te='● ముందుగా ఒక పాయింట్ ఎంచుకోండి'>● Select a point first</button>
-  <button id="lgStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
-  <div id="lgStatus" class="vst">Quiet room, phone mic on skin, patient breathes deeply through the mouth.</div>
-  <canvas id="lgWave"></canvas>
-  <audio id="lgPlayer" controls style="display:none"></audio>
-</div>
+    <div class="card">
+      <details class="tech">
+        <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
+        <div class="howto" data-te='<h3>ఫోన్‌తో పెర్కషన్ ఎలా చేయాలి</h3>పెర్కషన్‌కు రెండు చేతులూ ఖాళీగా ఉంటాయి — ఫోన్ సెన్సింగ్ వేలి స్థానంలో పనిచేస్తుంది, దాన్ని గాలిలో పట్టుకోవాల్సిన అవసరం లేదు. మీ ఫోన్‌లో ఏది స్పష్టమైన టాప్ ఇస్తే అది వాడండి:<div class="m"><span class="tag">METHOD A</span><b>ఫోన్‌ను ప్లెక్సిమీటర్‌గా (సిఫార్సు).</b> ఫోన్‌ను <b>చదునుగా, గట్టిగా, స్క్రీన్ పైకి, మైక్-అంచు చర్మంపై</b> ఆ జోన్ మీద — నాన్-డామినెంట్ చేతితో నొక్కండి. డామినెంట్ మధ్య వేలితో <b>ఫోన్ పక్కనే</b> (1–2 cm దూరం) ఛాతీని గట్టిగా, ~1 సె వ్యవధిలో 5–6 సార్లు కొట్టండి. మీ ప్లెక్సిమీటర్ వేలు అనుభవించే ధ్వనిని ఫోన్ గ్రహిస్తుంది.</div><div class="m"><span class="tag">METHOD B</span><b>ఆస్కల్టేటరీ పెర్కషన్ (చేతులు ఖాళీ).</b> ఫోన్‌ను <b>ఒక స్థిర స్థానంలో</b> చదునుగా ఉంచండి (వెల్లకిలా పడుకున్న రోగి — గురుత్వాకర్షణ పట్టి ఉంచుతుంది). మిగతా చోట్ల <b>సాధారణ రెండు-చేతుల పద్ధతిలో</b> పెర్కస్ చేయండి; ప్రసారమైన ధ్వనిని ఫోన్ గ్రహిస్తుంది. కొట్టే స్థానం మార్చండి, ఫోన్ స్థిరంగా ఉంచండి, జోన్‌లను పోల్చండి.</div><div class="m"><span class="tag">FIELD</span>మీరు రెండు చేతులతో పెర్కస్ చేస్తుండగా రోగి లేదా సహాయకుడు ఫోన్‌ను ఆ స్థానంలో చదునుగా పట్టుకుంటారు.</div><div class="m" style="color:var(--mut)">నిశ్శబ్ద గది. ప్రతి టాప్‌కు ఒకే ఒత్తిడి. ముందు రోగి యొక్క స్పష్టమైన/రెసొనెంట్ జోన్‌ను <b>రిఫరెన్స్‌గా</b> రికార్డ్ చేయండి, తర్వాత అనుమానిత జోన్‌లను.'>
+          <h3>How to percuss with the phone</h3>
+          Both hands stay free for percussion — the phone replaces the sensing finger, it doesn't need to be held in the air. Pick whichever gives a cleaner tap on your device:
+          <div class="m"><span class="tag">METHOD A</span><b>Phone as pleximeter (preferred).</b> Press the phone <b>flat and firm, screen up, mic-edge on bare skin</b>, over the zone — using your non-dominant hand. With your dominant middle finger, strike the chest <b>right beside the phone</b> (1–2 cm away), firmly, 5–6 times ~1 s apart. The phone senses the note your pleximeter finger used to feel.</div>
+          <div class="m"><span class="tag">METHOD B</span><b>Auscultatory percussion (hands-free).</b> Lay the phone flat on <b>one fixed spot</b> (supine patient — gravity holds it). Percuss elsewhere with your <b>normal two-handed technique</b>; the phone picks up the transmitted note. Move the percussing point, keep the phone still, compare zones.</div>
+          <div class="m"><span class="tag">FIELD</span>Patient or an assistant holds the phone flat on the spot while you percuss with both hands.</div>
+          <div class="m" style="color:var(--mut)">Quiet room. Same pressure every tap. Record the patient's clear/resonant zone <b>first</b> as the reference, then the suspicious zones.</div>
+        </div>
+      </details>
+      <div class="vtog"><button id="pvF" class="on" onclick="setPView('F')" data-te='ముందు (యాంటీరియర్ + లేటరల్)'>Front (anterior + lateral)</button><button id="pvB" onclick="setPView('B')" data-te='వెనుక (పోస్టీరియర్)'>Back (posterior)</button></div>
+      <div class="banner" id="pBanner">FRONT view · image-LEFT = patient's RIGHT</div>
+      <div class="note" style="text-align:center;margin-bottom:2px" data-te='1) ఒక <b>సాధారణ</b> జోన్‌ను టాప్ చేయండి → దాన్ని రిఫరెన్స్‌గా రికార్డ్ చేయండి. 2) ప్రతి అనుమానిత జోన్‌ను టాప్ చేసి రికార్డ్ చేయండి. యాప్ రిఫరెన్స్‌తో పోలుస్తుంది.'>1) Tap a <b>normal</b> zone → record it as REFERENCE. 2) Tap each suspicious zone → record. App compares to the reference.</div>
+      <div class="imgwrap"><img id="pImg" class="bodyimg" src="front.jpg" alt="chest"><div id="zones" class="overlay"></div></div>
+      <div class="legend">
+        <span><span class="dot" style="background:#5A6B94"></span>not done</span>
+        <span><span class="dot" style="background:#FFB454"></span>recording</span>
+        <span><span class="dot" style="background:#2FBF8F"></span>done</span>
+        <span><span class="dot" style="background:#fff;border:1px solid #999"></span>selected</span>
+        <span><span class="dot" style="background:#56D4DD"></span>reference</span>
+        <span><span class="dot" style="background:#FF6B81"></span>duller</span>
+      </div>
+    </div>
 
-<div class="card res" id="lgResCard">
-  <div class="cls" id="lgVerdict">—</div>
-  <div id="lgAIsub" style="color:var(--mut);font-size:11px;margin:2px 0 6px" data-te='ఆన్-డివైస్ AI నమూనా (ICBHI ఊపిరితిత్తుల శబ్ద డేటాపై శిక్షణ; బహుళ-పాయింట్ సగటు). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on ICBHI lung-sound data; multi-point average). Screening only — not a diagnosis.</div>
-  <div class="grid" id="lgGrid"></div>
-  <div class="grid">
-    <div class="kv" data-te='సగటు అసాధారణ సంభావ్యత<b id="lgAvg">—</b>'>Mean abnormal probability<b id="lgAvg">—</b></div>
-    <div class="kv" data-te='పాయింట్‌లు రికార్డ్ చేయబడ్డాయి<b id="lgN">0/6</b>'>Points recorded<b id="lgN">0/6</b></div>
-  </div>
-  <button id="lgReset" class="dl" data-te='↺ ఈ రోగికి పాయింట్‌లు రీసెట్'>↺ Reset points for this patient</button>
-  <button id="lgCsv" class="dl" data-te='⬇ ఊపిరితిత్తుల CSV డౌన్‌లోడ్'>⬇ Download lung CSV</button>
-  <div class="note" style="margin-top:6px" data-te='AI ఊపిరితిత్తుల స్క్రీన్ ఒక <b>స్క్రీనింగ్ సాధనం, నిర్ధారణ కాదు</b>. పాజిటివ్‌లను క్లినికల్‌గా నిర్ధారించండి. థ్రెషోల్డ్ ప్రొవిజనల్ — మీ స్వంత డేటాతో కాలిబ్రేట్ చేయండి.'>The AI lung screen is a <b>screening tool, not a diagnosis</b>. Confirm positives clinically. Threshold is provisional — calibrate with your own data.</div>
-</div>
-</div>
+    <div class="card">
+      <div id="selName" class="note" style="text-align:center;margin-bottom:2px">Tap a zone on the body above.</div>
+      <button id="recBtn" class="rec" disabled>● Select a zone first</button>
+      <button id="stopBtn" class="stop" disabled>■ Stop</button>
+      <div id="status">Quiet room. Phone mic against skin. Tap firmly with ONE finger, 5–6× ~1s apart.</div>
+      <canvas id="wave"></canvas>
+      <audio id="player" controls style="display:none"></audio>
+    </div>
 
+    <div class="card res" id="resCard">
+      <div class="reslabel" data-te='రిఫరెన్స్‌తో పోలిక (హ్యూరిస్టిక్ ⚠)'>RESULT vs reference (heuristic ⚠)</div>
+      <div class="cls" id="cls">—</div>
+      <div class="grid">
+        <div class="kv">Peak freq<b id="pk">—</b>Hz</div>
+        <div class="kv">Centroid<b id="ce">—</b>Hz</div>
+        <div class="kv">Low:High<b id="lh">—</b></div>
+        <div class="kv">Decay<b id="dc">—</b>ms</div>
+      </div>
+      <button id="dlAudio" class="dl" data-te='⬇ ఈ రికార్డింగ్ డౌన్‌లోడ్ (.wav)'>⬇ Download this recording (.wav)</button>
+    </div>
 
+    <div class="card"><button id="newPt" class="dl" style="margin-top:0" data-te='↺ కొత్త రోగి (మ్యాప్ క్లియర్, లాగ్ ఉంచుతుంది)'>↺ New patient (clears map, keeps log)</button></div>
 
-<!-- ================= ABOUT ================= -->
-<div class="pane" id="p6">
-<div class="card">
-  <div id="authWho" class="note" style="margin-bottom:6px">—</div>
-  <button id="authLogout" class="dl" data-te='లాగ్ అవుట్'>Log out</button>
-</div>
-<div class="card">
-  <b style="font-size:15px" data-te='CardioPulmo గురించి'>About CardioPulmo</b>
-  <div class="note" style="margin-top:6px" data-te='CardioPulmo అనేది గుండె & ఊపిరితిత్తుల శబ్దాల కోసం ఒక స్మార్ట్‌ఫోన్ స్క్రీనింగ్ సాధనం — ఆసుపత్రిలోనే కాదు, ఎక్కడైనా సాధారణ ప్రజల కోసం. అన్ని AI నమూనాలు పరికరంలోనే నడుస్తాయి (డేటా బయటకు వెళ్లదు). ఇది స్క్రీనింగ్ సాధనం మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్‌కు ప్రత్యామ్నాయం కాదు.'>CardioPulmo is a smartphone screening tool for heart and lung sounds, made for everyday people — anywhere, not just at a hospital bedside. All AI models run entirely on-device (no audio leaves the phone by default). It is a screening aid only — not a diagnosis, and not a replacement for a stethoscope or clinical judgement.</div>
-</div>
+    <div class="card" id="logCard" style="display:none">
+      <div class="ct" data-te='సెషన్ లాగ్'>Session log</div>
+      <div id="logTable"></div>
+      <button id="dlCsv" class="dl" data-te='⬇ సెషన్ CSV డౌన్‌లోడ్'>⬇ Download session CSV</button>
+    </div>
+  </section>
 
-<div class="card">
-  <b style="font-size:14px;color:var(--acc)" data-te='పరీక్షల పనితీరు'>Test performance</b>
-  <div class="note" style="margin-top:6px" data-te='AI నమూనాలకు నిపుణులు లేబుల్ చేసిన ఓపెన్ డేటాసెట్‌లపై విశ్లేషణాత్మక ధ్రువీకరణ చూపబడింది. క్లినికల్ PPV/NPV/ఆడ్స్ రేషియో వ్యాధి వ్యాప్తిపై ఆధారపడతాయి మరియు ప్రాస్పెక్టివ్ అధ్యయనం (IEC BDX-CARDIO/2026/01) ద్వారా నిర్ధారించబడతాయి.'>Analytical validation on expert-labelled open datasets. AUC and dataset predictive values are shown; clinical PPV/NPV and odds ratios depend on disease prevalence and are being confirmed in a prospective study (IEC BDX-CARDIO/2026/01).</div>
-  <table>
-    <tr><th>Metric</th><th>Cardioscope (heart)</th><th>PulmoScope (lung)</th></tr>
-    <tr><td>Dataset</td><td>PhysioNet/CinC-2016</td><td>ICBHI-2017</td></tr>
-    <tr><td>Test set (n)</td><td>1,357</td><td>26 patients (held-out)</td></tr>
-    <tr><td>AUC</td><td><b>0.996</b></td><td><b>0.87</b> (patient-level)</td></tr>
-    <tr><td>Sensitivity</td><td>98.3% (96.1–99.3)</td><td>63.2% (41.0–80.9)</td></tr>
-    <tr><td>Specificity</td><td>95.6% (94.2–96.7)</td><td>100% (64.6–100)</td></tr>
-    <tr><td>PPV</td><td>86.1% (82.0–89.4)</td><td>100%</td></tr>
-    <tr><td>NPV</td><td>99.5% (98.9–99.8)</td><td>50%</td></tr>
-    <tr><td>LR+ / LR−</td><td>22.2 / 0.02</td><td>high / 0.37</td></tr>
-    <tr><td>Operating threshold</td><td>0.25</td><td>0.022 (Youden)</td></tr>
-  </table>
-  <div class="note" style="margin-top:6px;color:var(--mut)">Cardioscope figures are analytical performance on the held-out CinC-2016 test set (clean audio). Real-world smartphone performance in noisy settings is lower; the on-device model is noise-augmented for robustness. PulmoScope was evaluated at patient level on a small held-out set (26 patients), so its operating-point confidence intervals are wide; the prospective study tightens these. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively.</div>
-</div>
+  <!-- ================= VASCAGE (p2) ================= -->
+  <section class="pane" id="p2" data-screen-label="VascAge">
+    <div class="mhead">
+      <div class="mkicker">Suite 03 · VascAge</div>
+      <h2 class="mtitle" data-te='వేలికొన PPG + హృద్రోగ ప్రమాదం'>Fingertip PPG + CVD risk</h2>
+      <p class="msub" data-te='<b>ఇంకా</b> "సంవత్సరాలలో వాస్కులర్ వయసు" కాదు — పల్స్-వేవ్ వెలాసిటీ / కరోటిడ్ IMT‌తో వేలిడేషన్ అవసరం. కల్పిత సంఖ్యలు లేవు.'><b>Not</b> a "vascular age in years" yet — needs validation vs pulse-wave velocity / carotid IMT. No fabricated numbers.</p>
+    </div>
 
-<div class="card">
-  <b style="font-size:14px;color:var(--acc)" data-te='ఇతర మాడ్యూల్స్'>Other modules</b>
-  <div class="note" style="margin-top:6px">VascAge (fingertip PPG), EchoLat (lung asymmetry), Percussion, Rhythm (seismocardiography) and JVP are signal-processing aids, not machine-learning classifiers. Their sensitivity, specificity, PPV, NPV and odds ratios are being determined in the prospective validation study. They are investigational and must not be used for diagnosis.</div>
-</div>
+    <div class="card">
+      <details class="tech">
+        <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
+        <div class="howto" data-te='<h3>వేలికొన PPG ఎలా రికార్డ్ చేయాలి</h3>ఫోన్ యొక్క <b>వెనుక కెమెరా లెన్స్ మరియు ఫ్లాష్ రెండింటినీ కలిపి</b> <b>చూపుడు వేలికొన</b> కండతో కప్పండి — రెండూ పూర్తిగా కప్పాలి, సందు ఉండకూడదు.<div class="m"><span class="tag">PRESSURE</span><b>తేలికగా, స్థిరంగా.</b> వేలిని ఆనించండి; గట్టిగా నొక్కితే రక్తం బయటకు పోయి సిగ్నల్ పోతుంది.</div><div class="m"><span class="tag">STILL</span>చేతిని టేబుల్‌పై ఆనించి పూర్తి క్యాప్చర్ సమయంలో కదలకుండా ఉంచండి. ఫ్లాష్ ఆన్‌లో ఉంటుంది; ఫ్లాష్ లేకపోతే → ప్రకాశవంతమైన పగటి వెలుతురులో కూర్చోండి.</div><div class="m" style="color:var(--mut)">లైవ్ ట్రేస్‌లో క్రమమైన పల్స్ తరంగాలు కనిపించే వరకు హార్ట్ రేట్‌ను నమ్మవద్దు.'>
+          <h3>How to record fingertip PPG</h3>
+          Cover the phone's <b>rear camera lens AND flash together</b> with the pad of the <b>index fingertip</b> — both fully covered, no gap.
+          <div class="m"><span class="tag">PRESSURE</span><b>Light and steady.</b> Rest the finger on; pressing hard squeezes the blood out and kills the signal.</div>
+          <div class="m"><span class="tag">STILL</span>Rest the hand on a table and hold dead still for the whole capture. The flash stays on; no flash → sit in bright daylight.</div>
+          <div class="m" style="color:var(--mut)">Wait until the live trace shows regular pulse waves before trusting the heart rate.</div>
+        </div>
+      </details>
+      <div class="figure"><img src="phone_placement.jpg" loading="lazy" alt="Fingertip on rear camera"><div class="m" data-te='వెనుక కెమెరా + ఫ్లాష్‌పై వేలికొనను తేలికగా ఆనించండి'>Rest the fingertip lightly over the rear camera + flash</div></div>
+      <div class="row"><div><label data-te='ధూమపానం'>Smoker</label><select id="vSmoke"><option>No</option><option>Yes</option></select></div>
+      <div><label data-te='రక్తపోటు (హైపర్‌టెన్షన్)'>Hypertension</label><select id="vHtn"><option>No</option><option>Yes</option></select></div>
+      <div><label data-te='మధుమేహం'>Diabetes</label><select id="vDm"><option>No</option><option>Yes</option></select></div></div>
+      <div class="row"><div><label data-te='ఎత్తు (cm)'>Height (cm)</label><input id="vHt" type="number" placeholder="170"></div><div><label data-te='బరువు (kg)'>Weight (kg)</label><input id="vWt" type="number" placeholder="65"></div></div>
+      <button id="vBtn" class="rec" data-te='● PPG కొలవండి (20s)'>● Measure PPG (20s)</button>
+      <button id="vStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
+      <div id="vStatus" class="vst">Cover the REAR camera + flash with a fingertip. Use bright light if no torch.</div>
+      <video id="vVid" playsinline muted style="display:none"></video>
+      <canvas id="vWave"></canvas>
+    </div>
 
-<div class="card">
-  <b style="font-size:14px;color:var(--acc)" data-te='పరిశోధకుడు'>Investigator</b>
-  <div class="note" style="margin-top:6px">Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana. Research use only.</div>
-</div>
-</div>
+    <div class="card" id="vResCard" style="display:none">
+      <div class="grid" style="margin-top:0">
+        <div class="kv">Heart rate<b id="vHR">—</b>bpm</div>
+        <div class="kv">IBI variability (SDNN)<b id="vSDNN">—</b>ms</div>
+        <div class="kv">Reflection index (exp)<b id="vRI">—</b></div>
+        <div class="kv">Signal quality<b id="vQ">—</b></div>
+      </div>
+      <div class="note" style="margin-top:10px">Risk factors present: <b id="vTallyN">0</b> — a tally, not a validated risk %. Compute WHO/Framingham risk in analysis.</div>
+    </div>
+
+    <div class="card" id="vLogCard" style="display:none"><div class="ct" data-te='PPG లాగ్'>PPG log</div><div id="vLogTable"></div><button id="vCsv" class="dl" data-te='⬇ PPG CSV డౌన్‌లోడ్'>⬇ Download PPG CSV</button></div>
+  </section>
+
+  <!-- ================= ECHOLAT (p3) ================= -->
+  <section class="pane" id="p3" data-screen-label="PulmoScope · EchoLat">
+    <div class="mhead">
+      <div class="mkicker">PulmoScope · EchoLat</div>
+      <h2 class="mtitle" data-te='పక్క-పక్క శ్వాస శబ్ద పోలిక'>Side-to-side breath comparison</h2>
+      <p class="msub" data-te='ప్రతి పక్కను <b>వరుసగా</b> (ఒక మైక్) రికార్డ్ చేసి హై-ఫ్రీక్వెన్సీ / అడ్వెంటీషియస్ ఎనర్జీని పోలుస్తుంది. <b>ఇది</b> రియల్-టైమ్ 3-మైక్ బీమ్‌ఫార్మింగ్ కాదు. హ్యూరిస్టిక్ / అన్‌క్యాలిబ్రేటెడ్.'>Records each side <b>sequentially</b> (one mic) and compares high-frequency / adventitious energy. <b>Not</b> real-time 3-mic beamforming. Heuristic / uncalibrated.</p>
+    </div>
+
+    <div class="card">
+      <details class="tech">
+        <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
+        <div class="howto" data-te='<h3>శ్వాస శబ్దాలు ఎలా రికార్డ్ చేయాలి</h3>రోగి <b>కూర్చొని, వీపు ఖాళీగా, కొద్దిగా ముందుకు వంగి.</b> ఫోన్ యొక్క <b>కింది (మైక్) అంచును చదునుగా, గట్టిగా</b> వీపుపై ఊపిరితిత్తి కింది భాగానికి ఆనించండి.<div class="m"><span class="tag">SAME SPOT</span><b>ముందు కుడి, తర్వాత ఎడమ</b> ను <b>అద్దం-ప్రతిబింబ స్థానంలో</b> రికార్డ్ చేయండి — యాప్ రెండు పక్కలను పోలుస్తుంది.</div><div class="m"><span class="tag">BREATHE</span>ప్రతి 15-సెకన్ల రికార్డింగ్‌లో రోగి <b>నోరు తెరిచి నెమ్మదిగా, లోతుగా శ్వాస</b> తీసుకుంటారు.</div><div class="m" style="color:var(--mut)">నిశ్శబ్ద గది. రికార్డింగ్ సమయంలో ఫోన్‌ను జరపవద్దు.'>
+          <h3>How to record breath sounds</h3>
+          Patient <b>sitting, bare back, leaning slightly forward.</b> Press the phone's <b>bottom (mic) edge flat and firm</b> against the lung base on the back.
+          <div class="m"><span class="tag">SAME SPOT</span>Record <b>Right first, then Left</b> at the <b>mirror-image spot</b> — the app compares the two sides.</div>
+          <div class="m"><span class="tag">BREATHE</span>Patient takes <b>slow, deep breaths through an open mouth</b> through each 15-second recording.</div>
+          <div class="m" style="color:var(--mut)">Quiet room. Don't slide the phone during a recording.</div>
+        </div>
+      </details>
+      <div class="banner" data-te='వెనుక వ్యూ · ఇమేజ్-కుడి = రోగి కుడి'>BACK view · image-RIGHT = patient's RIGHT</div>
+      <div class="imgwrap"><img class="bodyimg" src="back.jpg" alt="back"><div id="espots" class="overlay"></div></div>
+      <div class="legend"><span><span class="dot" style="background:#5A6B94"></span>not done</span><span><span class="dot" style="background:#FFB454"></span>recording</span><span><span class="dot" style="background:#2FBF8F"></span>done</span></div>
+      <div id="eSelName" class="note" style="text-align:center;margin-bottom:2px">Tap a lung base on the figure (mic on posterior base; patient breathes deeply).</div>
+      <button id="eRec" class="rec" disabled>● Select a side first</button>
+      <div id="eStatus" class="vst">Record both sides to compare.</div>
+    </div>
+
+    <div class="card" id="eResCard" style="display:none">
+      <div class="grid" style="margin-top:0">
+        <div class="kv">High-freq energy R<b id="eHFr">—</b>%</div>
+        <div class="kv">High-freq energy L<b id="eHFl">—</b>%</div>
+        <div class="kv">Centroid R<b id="eCr">—</b>Hz</div>
+        <div class="kv">Centroid L<b id="eCl">—</b>Hz</div>
+      </div>
+      <div class="cls" id="eVerdict" style="font-size:15px;margin-top:12px">—</div>
+    </div>
+
+    <div class="card" id="eLogCard" style="display:none"><div class="ct" data-te='EchoLat లాగ్'>EchoLat log</div><div id="eLogTable"></div><button id="eCsv" class="dl" data-te='⬇ EchoLat CSV డౌన్‌లోడ్'>⬇ Download EchoLat CSV</button></div>
+  </section>
+
+  <!-- ================= CARDIOSCOPE (p4) ================= -->
+  <section class="pane on" id="p4" data-screen-label="Cardioscope">
+    <div class="mhead">
+      <div class="mkicker">Suite 01 · Cardioscope</div>
+      <h2 class="mtitle" data-te='హృదయ-రక్తనాళ పరీక్ష'>Cardiovascular exam</h2>
+      <p class="msub" data-te='<b>ఆన్-డిమాండ్</b> గుండె లయ (ఛాతీపై ఫోన్ యాక్సిలరోమీటర్) + <b>మెడ / JVP స్పందన</b> (కెమెరా). కేవలం ఫ్లాగ్‌లు — <b>ఇది</b> నిర్ధారణ కాదు, <b>స్టెతస్కోప్</b> కాదు. రాత్రంతా పాసివ్ మానిటరింగ్‌కు నేటివ్ యాప్ అవసరం (స్క్రీన్ ఆఫ్ అయితే బ్రౌజర్‌లు సెన్సర్‌లను నిలిపివేస్తాయి).'><b>On-demand</b> heart-rhythm (phone accelerometer on the chest) + <b>neck / JVP pulsation</b> (camera). Flags only — <b>not</b> a diagnosis, <b>not</b> a stethoscope. Passive all-night monitoring needs the native app (browsers suspend sensors when the screen is off).</p>
+    </div>
+
+    <div class="card">
+      <div class="row seg3">
+        <div><button id="csTabC" class="dl" style="margin-top:0" data-te='శబ్దం'>Sound</button></div>
+        <div><button id="csTabA" class="dl" style="margin-top:0" data-te='లయ'>Rhythm</button></div>
+        <div><button id="csTabB" class="dl" style="margin-top:0">JVP</button></div>
+      </div>
+    </div>
+
+    <!-- ---- Rhythm (SCG) ---- -->
+    <div id="csA">
+      <div class="card">
+        <details class="tech">
+          <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
+          <div class="howto" data-te='<h3>లయ ఎలా చదవాలి (సీస్మోకార్డియోగ్రఫీ)</h3>రోగి పడుకొని లేదా కదలకుండా కూర్చొని. ఫోన్‌ను <b>చదునుగా, స్క్రీన్ పైకి, ఛాతీ మధ్యలో (కింది ఛాతీ ఎముకపై)</b> ఉంచండి. చేతులు తీసేసి, మామూలుగా శ్వాస తీసుకుంటూ, కౌంట్‌డౌన్ సమయంలో నిశ్శబ్దంగా ఉండండి — ఫోన్ ప్రతి గుండె కొట్టుకోవడాన్ని చిన్న కంపనంగా గ్రహిస్తుంది.<div class="m" style="color:var(--mut)">పడుకుంటే ఉత్తమం. ఫోన్ స్టెర్నమ్‌పై చదునుగా, పలుచని దుస్తులు లేదా ఖాళీ చర్మం. క్యాప్చర్ సమయంలో మాట్లాడవద్దు, కదలవద్దు.'>
+            <h3>How to read rhythm (seismocardiography)</h3>
+            Patient lying down or sitting still. Place the phone <b>flat, screen up, on the centre of the chest (lower breastbone)</b>. Hands off, breathe normally, stay quiet for the countdown — the phone feels each heartbeat as a tiny vibration.
+            <div class="m" style="color:var(--mut)">Best lying down. Phone flat on the sternum, thin clothing or bare. No talking or moving during capture.</div>
+          </div>
+        </details>
+        <div class="figure">
+          <img src="rhythm_phone.jpg" loading="lazy" alt="Phone flat on chest">
+          <div class="m" data-te='ఫోన్‌ను చదునుగా, స్క్రీన్ పైకి, ఛాతీ మధ్యలో (ఛాతీ ఎముకపై) ఉంచండి'>Lay the phone flat, screen up, on the centre of the chest (breastbone)</div>
+        </div>
+        <button id="csRec" class="rec" data-te='● 60-సెకన్ల లయ క్యాప్చర్ ప్రారంభం'>● Start 60-second rhythm capture</button>
+        <button id="csStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
+        <div id="csStatus" class="vst">Phone flat on the chest, then Start.</div>
+        <canvas id="csWave"></canvas>
+      </div>
+      <div class="card res" id="csResCard">
+        <div class="cls" id="csVerdict">—</div>
+        <div class="grid">
+          <div class="kv">Heart rate<b id="csHR">—</b>bpm</div>
+          <div class="kv">Mean RR<b id="csRR">—</b>ms</div>
+          <div class="kv">RR variability (SDNN)<b id="csSD">—</b>ms</div>
+          <div class="kv">Signal quality<b id="csQ">—</b></div>
+        </div>
+        <div class="note" style="margin-top:10px" data-te='అసమానత <b>ఒక స్క్రీన్, నిర్ధారణ కాదు</b>. ఏదైనా "ఇర్రెగ్యులర్" ను ECG / హోల్టర్‌తో నిర్ధారించండి.'>Irregularity is a <b>screen, not a diagnosis</b>. Confirm any "irregular" with ECG / Holter.</div>
+      </div>
+      <div class="card" id="csLogCard" style="display:none"><div class="ct" data-te='లయ లాగ్'>Rhythm log</div><div id="csLogTable"></div><button id="csCsv" class="dl" data-te='⬇ లయ CSV డౌన్‌లోడ్'>⬇ Download rhythm CSV</button></div>
+    </div>
+
+    <!-- ---- JVP camera ---- -->
+    <div id="csB" style="display:none">
+      <div class="card">
+        <details class="tech">
+          <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
+          <div class="howto" data-te='<h3>మెడ (JVP) ఎలా క్యాప్చర్ చేయాలి</h3>రోగి సుమారు 45° వెనక్కి వాలి, తల కొద్దిగా ఎడమవైపు తిప్పి, మెడపై మంచి వెలుతురు. <b>వెనుక కెమెరాను మెడ కుడివైపుకు</b> గురిపెట్టి, మెడను చుక్కల బాక్స్‌లో అమర్చండి. మోచేయిని ఆనించి కౌంట్‌డౌన్ సమయంలో స్థిరంగా ఉంచండి.<div class="m" style="color:var(--mut)">మంచి వెలుతురు, స్థిరమైన ఫోన్. యాప్ తాను చూసే స్పందన మరియు దాని రేటును గీస్తుంది — అది cm‌లో JVP ఎత్తు <b>ఇవ్వదు</b>; ఎత్తును స్టెర్నల్ యాంగిల్‌కు ఎదురుగా క్లినికల్‌గా చదవండి.'>
+            <h3>How to capture the neck (JVP)</h3>
+            Patient semi-reclined ~45°, head turned slightly to their left, neck well lit. Point the <b>rear camera at the right side of the neck</b> and fit the neck inside the dashed box. Brace your elbow and hold steady for the countdown.
+            <div class="m" style="color:var(--mut)">Good light, steady phone. The app plots the pulsation it sees and its rate — it does <b>not</b> give a JVP height in cm; read height clinically against the sternal angle.</div>
+          </div>
+        </details>
+        <div class="row"><div><label data-te='స్టెర్నల్ యాంగిల్ పైన JVP ఎత్తు (cm, కంటితో)'>JVP height above sternal angle (cm, by eye)</label><input id="jHeight" type="number" step="0.5" placeholder="e.g. 3"></div><div><label data-te='హెపాటోజుగులర్ రిఫ్లక్స్'>Hepatojugular reflux</label><select id="jHJR"><option value="">—</option><option>Negative</option><option>Positive</option></select></div></div>
+        <div class="figure">
+          <img src="jvp_phone.jpg" loading="lazy" alt="Rear camera at neck">
+          <div class="m" data-te='వెనుక కెమెరాను మెడ కుడివైపుకు గురిపెట్టండి, ~45° వాలి'>Point the rear camera at the right side of the neck, patient ~45° reclined</div>
+        </div>
+        <div class="vidwrap">
+          <video id="jVid" playsinline muted></video>
+          <div id="jBox" style="position:absolute;left:38%;top:12%;width:24%;height:66%;border:2px dashed #56D4DD;border-radius:8px;pointer-events:none"></div>
+        </div>
+        <button id="jRec" class="rec" data-te='● 15-సెకన్ల మెడ క్యాప్చర్ ప్రారంభం'>● Start 15-second neck capture</button>
+        <button id="jStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
+        <div id="jStatus" class="vst">Frame the neck in the box, then Start.</div>
+        <canvas id="jWave"></canvas>
+      </div>
+      <div class="card res" id="jResCard">
+        <div class="cls" id="jVerdict" style="font-size:15px">—</div>
+        <div class="grid">
+          <div class="kv">Pulsation rate<b id="jRate">—</b>/min</div>
+          <div class="kv">Rel. amplitude<b id="jAmp">—</b>a.u.</div>
+        </div>
+        <div class="fluid" id="jFluid">Enter the JVP height you read by eye (cm above the sternal angle) to get a fluid-status read.</div>
+        <div class="note" style="margin-top:10px" data-te='అన్‌క్యాలిబ్రేటెడ్ స్పందన విజువలైజర్. కెమెరా స్పందన మరియు దాని రేటును చూపుతుంది; <b>JVP ఎత్తును స్టెర్నల్ యాంగిల్‌కు ఎదురుగా కంటితో చదవాలి</b> — ఫ్లూయిడ్-స్టేటస్ ఫ్లాగ్ మీరు ఎంటర్ చేసిన cm విలువను వాడుతుంది, వీడియోను కాదు.'>Uncalibrated pulsation visualizer. The camera shows the pulsation and its rate; <b>JVP height is read by eye against the sternal angle</b> — the fluid-status flag uses the cm value you enter, not the video.</div>
+      </div>
+      <div class="card" id="jLogCard" style="display:none"><div class="ct" data-te='JVP లాగ్'>JVP log</div><div id="jLogTable"></div><button id="jCsv" class="dl" data-te='⬇ JVP CSV డౌన్‌లోడ్'>⬇ Download JVP CSV</button></div>
+    </div>
+
+    <!-- ---- Heart sound (PCG) ---- -->
+    <div id="csC" style="display:none">
+      <div class="card">
+        <details class="tech">
+          <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
+          <div class="howto" data-te='<h3>గుండె శబ్దాలు (PCG) ఎలా రికార్డ్ చేయాలి</h3>రోగి కూర్చొని లేదా పడుకొని, <b>ఛాతీ ఖాళీగా, నిశ్శబ్ద గది.</b> ఫోన్ యొక్క <b>కింది (మైక్) అంచును గట్టిగా చదునుగా</b> గుండెపై — కింది-ఎడమ ఛాతీ, ఎడమ ముచ్చిక కింద (కార్డియాక్ ఎపెక్స్) ఆనించండి. స్థిరంగా ఉంచండి; రోగి మెల్లగా శ్వాస తీసుకుంటారు లేదా కొద్దిసేపు శ్వాస ఆపుతారు.<div class="m"><span class="tag">LISTEN</span>నిజమైన గుండె శబ్దాలను <b>.wav</b> కు రికార్డ్ చేసి రేటు + లయను అంచనా వేసి, <b>ఆన్-డివైస్ AI మోడల్</b> మర్మర్/అసాధారణ గుండె శబ్దాల కోసం స్క్రీన్ చేస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.</div><div class="m" style="color:var(--mut)">సంఖ్యను నమ్మే ముందు ట్రేస్ శుభ్రమైన లబ్-డబ్ బీట్‌ల్లా ఉందో చూడండి.'>
+            <h3>How to record heart sounds (PCG)</h3>
+            Patient sitting or lying, <b>bare chest, quiet room.</b> Press the phone's <b>bottom (mic) edge firmly flat</b> over the heart — lower-left chest, just below the left nipple (cardiac apex). Hold still; patient breathes gently or briefly holds breath.
+            <div class="m"><span class="tag">LISTEN</span>Records the actual heart sounds to a <b>.wav</b>, estimates rate + rhythm, and runs an <b>on-device AI model</b> that screens for murmur / abnormal heart sounds. Screening only — refer positives; not a diagnosis.</div>
+            <div class="m" style="color:var(--mut)">Check the trace looks like clean lub-dub beats before trusting the number.</div>
+          </div>
+        </details>
+        <div class="note" style="text-align:center;margin-bottom:2px" data-te='ఎపెక్స్ చుక్కను టాప్ చేయండి → ఫోన్ మైక్ అంచును అక్కడ ఆనించి రికార్డ్ చేయండి.'>Tap the apex dot → press the phone mic-edge there and record.</div>
+        <div class="imgwrap"><img class="bodyimg" src="heart_phone.jpg" alt="heart"><div id="pcspot" class="overlay"></div></div>
+        <div class="legend">
+          <span><span class="dot" style="background:#5A6B94"></span>not done</span>
+          <span><span class="dot" style="background:#FFB454"></span>recording</span>
+          <span><span class="dot" style="background:#2FBF8F"></span>done</span>
+        </div>
+        <button id="pcRec" class="rec" disabled data-te='● గుండె శబ్దం రికార్డ్ (15s)'>● Record heart sound (15s)</button>
+        <button id="pcStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
+        <div id="pcStatus" class="vst">Phone mic-edge on the cardiac apex, quiet room, then Start.</div>
+        <canvas id="pcWave"></canvas>
+        <audio id="pcPlayer" controls style="display:none"></audio>
+        <button id="pcAmp" class="dl" style="display:none;margin-top:8px" data-te='🔊 పెంచి వినండి (గుండె-బ్యాండ్ 20–150Hz)'>🔊 Amplify &amp; listen (heart-band)</button>
+      </div>
+      <div class="card res" id="pcResCard">
+        <div class="cls" id="pcVerdict">—</div>
+        <div id="pcSig" style="display:none;font-size:13px;font-weight:600;margin-top:3px;text-align:center">📶 —</div>
+        <div class="cls" id="pcAI" style="display:none;margin-top:2px;font-size:16px">🧠 AI screen: —</div>
+        <div id="pcAIsub" style="display:none;color:var(--mut);font-size:11px;margin:2px 0 4px;text-align:center" data-te='ఆన్-డివైస్ AI మోడల్ (CirCor + CinC హృదయ-శబ్ద డేటాపై శిక్షణ). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on CirCor + CinC heart-sound data). Screening only — not a diagnosis.</div>
+        <div class="grid">
+          <div class="kv">Heart rate<b id="pcHR">—</b>bpm</div>
+          <div class="kv">Rhythm<b id="pcReg">—</b></div>
+          <div class="kv">Confidence<b id="pcConf">—</b></div>
+          <div class="kv">Signal quality<b id="pcQ">—</b></div>
+        </div>
+        <button id="pcDl" class="dl" data-te='⬇ ఈ రికార్డింగ్ డౌన్‌లోడ్ (.wav)'>⬇ Download this recording (.wav)</button>
+        <div class="note" style="margin-top:10px" data-te='రేటు/లయ మరియు AI మర్మర్ స్క్రీన్ <b>స్క్రీనింగ్ సాధనాలు, నిర్ధారణ కాదు</b>. పాజిటివ్‌లను రెఫర్ చేయండి; క్లినికల్‌గా నిర్ధారించండి.'>Rate/rhythm and the AI murmur screen are <b>screening tools, not a diagnosis</b>. Refer positives; confirm clinically.</div>
+      </div>
+      <div class="card" id="pcLogCard" style="display:none"><div class="ct" data-te='గుండె-శబ్దం లాగ్'>Heart-sound log</div><div id="pcLogTable"></div><button id="pcCsv" class="dl" data-te='⬇ గుండె-శబ్దం CSV డౌన్‌లోడ్'>⬇ Download heart-sound CSV</button></div>
+    </div>
+  </section>
+
+  <!-- ================= PULMOSCOPE · LUNG SOUND (p5) ================= -->
+  <section class="pane" id="p5" data-screen-label="PulmoScope · Lung sound">
+    <div class="mhead">
+      <div class="mkicker">Suite 02 · PulmoScope</div>
+      <h2 class="mtitle" data-te='ఊపిరితిత్తుల శబ్ద స్క్రీన్'>Lung-sound screen</h2>
+      <p class="msub" data-te='ఫోన్ మైక్‌తో <b>ఊపిరితిత్తుల శబ్దాలను</b> రికార్డ్ చేసి, ఆన్-డివైస్ AI నమూనా <b>సాధారణ vs అసాధారణ (క్రాకిల్స్/వీజెస్)</b> కోసం స్క్రీన్ చేస్తుంది. వీపుపై <b>6 పాయింట్‌లను</b> టాప్ చేసి రికార్డ్ చేయండి — యాప్ వాటిని సగటు చేసి ఒక ఫలితం ఇస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్ కాదు.'><b>Records lung sounds</b> with the phone mic and an on-device AI model screens for <b>normal vs abnormal (crackles/wheezes)</b>. Tap and record <b>6 points on the back</b> — the app averages them into one result. Screening only — not a diagnosis, not a stethoscope.</p>
+    </div>
+
+    <div class="card">
+      <details class="tech">
+        <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
+        <div class="howto" data-te='<h3>ఊపిరితిత్తుల శబ్దాలను ఎలా రికార్డ్ చేయాలి</h3>రోగి <b>కూర్చొని, వీపు ఖాళీగా, కొద్దిగా ముందుకు వంగి</b>, నిశ్శబ్ద గది. దిగువ శరీర చిత్రంపై ఒక పాయింట్‌ను టాప్ చేయండి, ఫోన్ యొక్క <b>కింది (మైక్) అంచును ఆ స్థానంలో చర్మంపై గట్టిగా</b> ఆనించి, రోగిని <b>నోటి ద్వారా లోతుగా శ్వాస</b> తీసుకోమనండి, ఆపై రికార్డ్ నొక్కండి. 6 పాయింట్‌లన్నీ చేయండి.<div class="m"><span class="tag">LISTEN</span>ప్రతి పాయింట్‌ను <b>.wav</b> కు రికార్డ్ చేసి ఆన్-డివైస్ AI నమూనాను నడుపుతుంది. 6 పాయింట్‌ల సగటు అత్యంత నమ్మదగిన స్క్రీన్ ఇస్తుంది.</div><div class="m" style="color:var(--mut)">సన్నని దుస్తులు లేదా ఖాళీ చర్మం. రికార్డింగ్ సమయంలో మాట్లాడవద్దు.'>
+          <h3>How to record lung sounds</h3>
+          Patient <b>seated, back bared, leaning slightly forward</b>, quiet room. Tap a point on the body image below, press the phone's <b>bottom (mic) edge firmly on the skin</b> at that spot, ask the patient to <b>breathe deeply through the mouth</b>, then press record. Do all 6 points.
+          <div class="m"><span class="tag">LISTEN</span>Records each point to a <b>.wav</b> and runs the on-device AI model. Averaging 6 points gives the most reliable normal/abnormal screen.</div>
+          <div class="m" style="color:var(--mut)">Thin clothing or bare skin. No talking during capture.</div>
+        </div>
+      </details>
+      <div class="banner">BACK view · image-RIGHT = patient's RIGHT</div>
+      <div class="note" style="text-align:center;margin-bottom:2px" data-te='వీపు చిత్రంపై ఒక పాయింట్‌ను టాప్ చేయండి → 15 సెకన్ల లోతైన శ్వాసను రికార్డ్ చేయండి. ఉత్తమ ఫలితం కోసం 6 పాయింట్‌లన్నీ చేయండి.'>Tap a point on the back image → record 15 s of deep breathing. Do all 6 for the most reliable screen.</div>
+      <div class="imgwrap"><img id="lgImg" class="bodyimg" src="lung_back.jpg" alt="back"><div id="lgzones" class="overlay"></div></div>
+      <div class="legend">
+        <span><span class="dot" style="background:#5A6B94"></span>not done</span>
+        <span><span class="dot" style="background:#FFB454"></span>recording</span>
+        <span><span class="dot" style="background:#2FBF8F"></span>done</span>
+        <span><span class="dot" style="background:#fff;border:1px solid #999"></span>selected</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="lgSelName" class="note" style="text-align:center;margin-bottom:2px">Tap a point on the back above.</div>
+      <button id="lgRec" class="rec" disabled data-te='● ముందుగా ఒక పాయింట్ ఎంచుకోండి'>● Select a point first</button>
+      <button id="lgStop" class="stop" disabled data-te='■ ఆపండి'>■ Stop</button>
+      <div id="lgStatus" class="vst">Quiet room, phone mic on skin, patient breathes deeply through the mouth.</div>
+      <canvas id="lgWave"></canvas>
+      <audio id="lgPlayer" controls style="display:none"></audio>
+    </div>
+
+    <div class="card res" id="lgResCard">
+      <div class="cls" id="lgVerdict">—</div>
+      <div id="lgAIsub" style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='ఆన్-డివైస్ AI నమూనా (ICBHI ఊపిరితిత్తుల శబ్ద డేటాపై శిక్షణ; బహుళ-పాయింట్ సగటు). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>On-device AI model (trained on ICBHI lung-sound data; multi-point average). Screening only — not a diagnosis.</div>
+      <div class="grid" id="lgGrid"></div>
+      <div class="grid">
+        <div class="kv" data-te='సగటు అసాధారణ సంభావ్యత<b id="lgAvg">—</b>'>Mean abnormal probability<b id="lgAvg">—</b></div>
+        <div class="kv" data-te='పాయింట్‌లు రికార్డ్ చేయబడ్డాయి<b id="lgN">0/6</b>'>Points recorded<b id="lgN">0/6</b></div>
+      </div>
+      <button id="lgReset" class="dl" data-te='↺ ఈ రోగికి పాయింట్‌లు రీసెట్'>↺ Reset points for this patient</button>
+      <button id="lgCsv" class="dl" data-te='⬇ ఊపిరితిత్తుల CSV డౌన్‌లోడ్'>⬇ Download lung CSV</button>
+      <div class="note" style="margin-top:10px" data-te='AI ఊపిరితిత్తుల స్క్రీన్ ఒక <b>స్క్రీనింగ్ సాధనం, నిర్ధారణ కాదు</b>. పాజిటివ్‌లను క్లినికల్‌గా నిర్ధారించండి. థ్రెషోల్డ్ ప్రొవిజనల్ — మీ స్వంత డేటాతో కాలిబ్రేట్ చేయండి.'>The AI lung screen is a <b>screening tool, not a diagnosis</b>. Confirm positives clinically. Threshold is provisional — calibrate with your own data.</div>
+    </div>
+  </section>
+
+  <!-- ================= ABOUT (p6) ================= -->
+  <section class="pane" id="p6" data-screen-label="About">
+    <div class="mhead">
+      <div class="mkicker">CardioPulmo</div>
+      <h2 class="mtitle" data-te='CardioPulmo గురించి'>About CardioPulmo</h2>
+    </div>
+
+    <div class="card">
+      <div id="authWho" class="note" style="margin-bottom:8px">—</div>
+      <button id="authLogout" class="dl" style="margin-top:0" data-te='లాగ్ అవుట్'>Log out</button>
+    </div>
+
+    <div class="card">
+      <div class="note" data-te='CardioPulmo అనేది గుండె &amp; ఊపిరితిత్తుల శబ్దాల కోసం ఒక స్మార్ట్‌ఫోన్ స్క్రీనింగ్ సాధనం — ఆసుపత్రిలోనే కాదు, ఎక్కడైనా సాధారణ ప్రజల కోసం. అన్ని AI నమూనాలు పరికరంలోనే నడుస్తాయి (డేటా బయటకు వెళ్లదు). ఇది స్క్రీనింగ్ సాధనం మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్‌కు ప్రత్యామ్నాయం కాదు.'>CardioPulmo is a smartphone screening tool for heart and lung sounds, made for everyday people — anywhere, not just at a hospital bedside. All AI models run entirely on-device (no audio leaves the phone by default). It is a screening aid only — not a diagnosis, and not a replacement for a stethoscope or clinical judgement.</div>
+    </div>
+
+    <div class="card">
+      <div class="ct" style="color:var(--acc)" data-te='పరీక్షల పనితీరు'>Test performance</div>
+      <div class="note" style="margin-top:8px" data-te='AI నమూనాలకు నిపుణులు లేబుల్ చేసిన ఓపెన్ డేటాసెట్‌లపై విశ్లేషణాత్మక ధ్రువీకరణ చూపబడింది. క్లినికల్ PPV/NPV/ఆడ్స్ రేషియో వ్యాధి వ్యాప్తిపై ఆధారపడతాయి మరియు ప్రాస్పెక్టివ్ అధ్యయనం (IEC BDX-CARDIO/2026/01) ద్వారా నిర్ధారించబడతాయి.'>Analytical validation on expert-labelled open datasets. AUC and dataset predictive values are shown; clinical PPV/NPV and odds ratios depend on disease prevalence and are being confirmed in a prospective study (IEC BDX-CARDIO/2026/01).</div>
+      <table>
+        <tr><th>Metric</th><th>Cardioscope (heart)</th><th>PulmoScope (lung)</th></tr>
+        <tr><td>Dataset</td><td>PhysioNet/CinC-2016</td><td>ICBHI-2017</td></tr>
+        <tr><td>Test set (n)</td><td>1,357</td><td>26 patients (held-out)</td></tr>
+        <tr><td>AUC</td><td><b>0.996</b></td><td><b>0.87</b> (patient-level)</td></tr>
+        <tr><td>Sensitivity</td><td>98.3% (96.1–99.3)</td><td>63.2% (41.0–80.9)</td></tr>
+        <tr><td>Specificity</td><td>95.6% (94.2–96.7)</td><td>100% (64.6–100)</td></tr>
+        <tr><td>PPV</td><td>86.1% (82.0–89.4)</td><td>100%</td></tr>
+        <tr><td>NPV</td><td>99.5% (98.9–99.8)</td><td>50%</td></tr>
+        <tr><td>LR+ / LR−</td><td>22.2 / 0.02</td><td>high / 0.37</td></tr>
+        <tr><td>Operating threshold</td><td>0.25</td><td>0.022 (Youden)</td></tr>
+      </table>
+      <div class="note" style="margin-top:10px;color:var(--mut)">Cardioscope figures are analytical performance on the held-out CinC-2016 test set (clean audio). Real-world smartphone performance in noisy settings is lower; the on-device model is noise-augmented for robustness. PulmoScope was evaluated at patient level on a small held-out set (26 patients), so its operating-point confidence intervals are wide; the prospective study tightens these. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively.</div>
+    </div>
+
+    <div class="card">
+      <div class="ct" style="color:var(--acc)" data-te='ఇతర మాడ్యూల్స్'>Other modules</div>
+      <div class="note" style="margin-top:8px">VascAge (fingertip PPG), EchoLat (lung asymmetry), Percussion, Rhythm (seismocardiography) and JVP are signal-processing aids, not machine-learning classifiers. Their sensitivity, specificity, PPV, NPV and odds ratios are being determined in the prospective validation study. They are investigational and must not be used for diagnosis.</div>
+    </div>
+
+    <div class="card">
+      <div class="ct" style="color:var(--acc)" data-te='పరిశోధకుడు'>Investigator</div>
+      <div class="note" style="margin-top:8px">Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana. Research use only.</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ================= DOCK NAV ================= -->
+<nav class="dock" aria-label="Main navigation">
+  <button id="tHome" class="dockbtn on" onclick="topTab('home')"><span class="di">🏠</span><span class="dlabel" data-te='హోమ్'>Home</span></button>
+  <button id="tCardio" class="dockbtn" onclick="topTab('cardio')"><span class="di">🫀</span><span class="dlabel" data-te='కార్డియో'>Cardio</span></button>
+  <button id="tPulmo" class="dockbtn" onclick="topTab('pulmo')"><span class="di">🫁</span><span class="dlabel" data-te='పల్మో'>Pulmo</span></button>
+  <button id="tVasc" class="dockbtn" onclick="topTab('vasc')"><span class="di">❤️</span><span class="dlabel" data-te='వాస్క్'>Vasc</span></button>
+  <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
+</nav>
 
 <script src="app.js"></script>
 </body>
