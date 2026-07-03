@@ -520,7 +520,7 @@ function jRenderLog(){let h='<table><tr><th>ID</th><th>Rate/min</th><th>Amp</th>
   $('jLogTable').innerHTML=h+'</table>';}
 
 /* --- Heart sound (PCG) via microphone --- */
-let pcStream,pcCtx,pcProc,pcZg,pcBuf=[],pcSr=48000,pcWav=null,pcRows=[],pcTimer,pcLeft,pcLastBuf=null;
+let pcStream,pcCtx,pcProc,pcZg,pcBuf=[],pcSr=48000,pcWav=null,pcRows=[],pcTimer,pcLeft,pcLastBuf=null,pcLastResult=null;
 const pcSt=m=>$('pcStatus').textContent=m;
 /* Cardioscope Sound: single interactive apex dot (same pattern as Percussion) */
 let pcDotState='pending';
@@ -586,6 +586,7 @@ function pcAnalyze(s,fs){
   $('pcVerdict').textContent=verdict;$('pcVerdict').style.color=col;
   $('pcReg').textContent=reg;$('pcConf').textContent=bestC.toFixed(2);$('pcQ').textContent=q;
   $('pcResCard').style.display='block';
+  pcLastResult={bpm:uncertain?null:bpm,rhythm:reg,confidence:bestC.toFixed(2),quality:q,age:($('age')?$('age').value:'')||null,sex:($('sex')?$('sex').value:'')||null};
   pcSt('Done. Check the trace looks like clean lub-dub beats before trusting the number.');
   let pcRow=null;
   if(!uncertain){pcRow={pid:$('pid').value,age:$('age').value,sex:$('sex').value,bpm:bpm,reg:bestC>=0.5?'reg':'irreg',conf:bestC.toFixed(2),ai:'',t:new Date().toISOString()};pcRows.push(pcRow);
@@ -675,8 +676,8 @@ function pcHeartSignal(s,fs){
   let rms=0;for(let i=0;i<x.length;i++)rms+=x[i]*x[i];rms=Math.sqrt(rms/x.length);
   let verdict,ok,col,quality;
   if(rms<0.0004){verdict='Mic silent — no input (check mic permission / port)';ok=false;col='var(--mut)';quality='none';}
-  else if(ratioLow>=0.45){verdict='Heart-sound signal detected ✓';ok=true;col='var(--ok)';quality='good';}
-  else if(ratioLow>=0.28){verdict='Partial heart signal — AI shown, interpret with caution';ok=true;col='var(--warn)';quality='low';}
+  else if(ratioLow>=0.30){verdict='Heart-sound signal detected ✓';ok=true;col='var(--ok)';quality='good';}
+  else if(ratioLow>=0.15){verdict='Partial heart signal — AI shown, interpret with caution';ok=true;col='var(--warn)';quality='low';}
   else{verdict='Mostly high-freq noise — reposition';ok=false;col='var(--bad)';quality='none';}
   return {ratioLow:ratioLow,rms:rms,verdict:verdict,ok:ok,col:col,quality:quality};
 }
@@ -711,9 +712,6 @@ async function pcMLScreen(s,fs,pcRow){
   if(!q.ok){el.textContent='🧠 AI screen: skipped — mostly noise';el.style.color='var(--mut)';
     sub.textContent='Press the phone tip firmly on bare skin at the heart, hold still, quiet room, then re-record.';
     pcUploadSafe('no_signal',null,q,s,fs,sub);return;}
-  if(q.quality!=='good'){el.textContent='🧠 AI screen: signal too noisy for a reliable result';el.style.color='var(--warn)';
-    sub.textContent='Too much background noise for the AI. Move to a quieter spot, press firmly on bare skin, hold still — aim for the green "Heart-sound signal detected ✓" before trusting the AI.';
-    pcUploadSafe('low_quality',null,q,s,fs,sub);return;}
   el.textContent='🧠 AI screen: loading model…';el.style.color='var(--mut)';
   const ok=await pcLoadModel();
   if(!ok){el.textContent='🧠 AI screen unavailable — '+pcModelErr;el.style.color='var(--mut)';
@@ -723,19 +721,21 @@ async function pcMLScreen(s,fs,pcRow){
     const p=pcInfer(pcLogMel(pcResample(s,fs,PC_SR2))),pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
-    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic';
+    var caution=(q.quality==='low')?'  ·  ⚠ partial signal — interpret with extra caution':'';
+    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only, not diagnostic'+caution;
     if(pcRow)pcRow.ai=p.toFixed(3);
     pcUploadSafe(pos?'screen_positive':'screen_negative',p,q,s,fs,sub);
   }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';
     pcUploadSafe('processing_error',null,q,s,fs,sub);}
 }
+function pcExtra(base){var L=pcLastResult||{};return Object.assign({bpm:L.bpm,rhythm:L.rhythm,confidence:L.confidence,signal_quality:L.quality,age:L.age,sex:L.sex},base);}
 async function pcUploadSafe(verdict,prob,q,s,fs,subEl){
-  const r=await uploadRecording('cardioscope','apex_raw',makeSmallWav(s,fs,PC_SR2),prob,verdict,{quality:q.quality,ratioLow:q.ratioLow,band:'raw'});
+  const r=await uploadRecording('cardioscope','apex_raw',makeSmallWav(s,fs,PC_SR2),prob,verdict,pcExtra({band:'raw',ratioLow:q.ratioLow}));
   if(!r.ok&&subEl)subEl.textContent+=' · ⚠ raw not saved — '+r.reason;
   else if(r.ok&&r.reason&&subEl)subEl.textContent+=' · ⚠ '+r.reason;
   try{
     const amp=await pcRenderAmplified(s,fs);
-    const r2=await uploadRecording('cardioscope','apex_ampl_20_150hz',makeSmallWav(amp,fs,PC_SR2),prob,verdict,{quality:q.quality,band:'20-150Hz',amplified:true});
+    const r2=await uploadRecording('cardioscope','apex_ampl_20_150hz',makeSmallWav(amp,fs,PC_SR2),prob,verdict,pcExtra({band:'20-150Hz',amplified:true}));
     if(!r2.ok&&subEl)subEl.textContent+=' · ⚠ amplified not saved — '+r2.reason;
   }catch(e){console.warn('amplified save failed',e);}
 }

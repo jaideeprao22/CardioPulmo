@@ -80,7 +80,7 @@ audio{height:34px;vertical-align:middle}
       <input id="recFilter" placeholder="Filter (name / module / verdict)" style="min-width:220px">
     </div>
     <div class="tblwrap"><table id="recTbl"><thead><tr>
-      <th>Date</th><th>Patient</th><th>User</th><th>Module</th><th>Zone</th><th>Prob</th><th>Verdict</th><th>Audio</th>
+      <th>Date</th><th>Patient</th><th>User</th><th>Module</th><th>Zone</th><th>BPM</th><th>Rhythm</th><th>Conf</th><th>Quality</th><th>Prob</th><th>Verdict</th><th>Audio</th>
     </tr></thead><tbody></tbody></table></div>
   </div>
 
@@ -153,16 +153,33 @@ function renderRecs(){
     return (uname(r.user_id)+' '+(r.module||'')+' '+(r.verdict||'')+' '+(r.subject_code||'')).toLowerCase().indexOf(f)>=0;
   }).forEach(function(r){
     var tr=document.createElement('tr');
+    var ex=r.extra||{};if(typeof ex==='string'){try{ex=JSON.parse(ex);}catch(e){ex={};}}
+    var bpm=(ex.bpm!=null&&ex.bpm!=='')?ex.bpm:'';
+    var rhy=ex.rhythm||'';
+    var cf=(ex.confidence!=null&&ex.confidence!=='')?ex.confidence:'';
+    var ql=ex.signal_quality||ex.quality_label||ex.quality||'';
     var vpill=r.verdict?('<span class="pill '+(/pos|abnormal/i.test(r.verdict)?'pos':'neg')+'">'+r.verdict+'</span>'):'';
     var prob=(r.probability!=null)?Math.round(r.probability*100)+'%':'';
-    tr.innerHTML='<td>'+fmtDate(r.created_at)+'</td><td>'+(r.subject_code||'')+'</td><td>'+uname(r.user_id)+'</td><td>'+(r.module||'')+'</td><td>'+(r.zone||'')+'</td><td>'+prob+'</td><td>'+vpill+'</td><td></td>';
+    tr.innerHTML='<td>'+fmtDate(r.created_at)+'</td><td>'+(r.subject_code||'')+'</td><td>'+uname(r.user_id)+'</td><td>'+(r.module||'')+'</td><td>'+(r.zone||'')+'</td><td>'+bpm+'</td><td>'+rhy+'</td><td>'+cf+'</td><td>'+ql+'</td><td>'+prob+'</td><td>'+vpill+'</td><td></td>';
     var td=tr.lastChild;
-    if(r.audio_path){var b=document.createElement('button');b.textContent='▶ Play';b.onclick=function(){playAudio(r.audio_path,b);};td.appendChild(b);}
-    else td.innerHTML='<span class="mut">—</span>';
+    if(r.audio_path){
+      var b=document.createElement('button');b.textContent='▶ Play';b.onclick=function(){playAudio(r.audio_path,b);};td.appendChild(b);
+      var d=document.createElement('button');d.textContent='⬇';d.title='Download .wav';d.style.marginLeft='6px';d.onclick=function(){dlAudio(r.audio_path,d);};td.appendChild(d);
+    } else td.innerHTML='<span class="mut">—</span>';
     tb.appendChild(tr);
   });
 }
 $('recFilter').oninput=renderRecs;
+
+async function dlAudio(path,btn){
+  var old=btn.textContent;btn.textContent='…';
+  try{
+    var {data,error}=await sb.storage.from('recordings').createSignedUrl(path,3600,{download:true});
+    if(error||!data){btn.textContent='✕';return;}
+    var a=document.createElement('a');a.href=data.signedUrl;a.download=path.split('/').pop();document.body.appendChild(a);a.click();a.remove();
+    btn.textContent=old;
+  }catch(e){btn.textContent='✕';}
+}
 
 async function playAudio(path,btn){
   btn.textContent='…';
@@ -209,11 +226,12 @@ $('addUserBtn').onclick=function(){
 /* ---------- export ---------- */
 function csvCell(v){v=(v==null?'':String(v));return '"'+v.replace(/"/g,'""')+'"';}
 function buildCsv(){
-  var head=['id','datetime','patient_code','user_name','user_email','user_age','user_sex','module','zone','probability','verdict','audio_path'];
+  var head=['id','datetime','patient_code','user_name','user_email','user_age','user_sex','module','zone','bpm','rhythm','confidence','signal_quality','probability','verdict','audio_path'];
   var lines=[head.join(',')];
   recs.forEach(function(r){
     var p=profs[r.user_id]||{};
-    lines.push([r.id,r.created_at,r.subject_code,uname(r.user_id),uemail(r.user_id),p.age||'',p.sex||'',r.module,r.zone,(r.probability!=null?r.probability:''),r.verdict,r.audio_path].map(csvCell).join(','));
+    var ex=r.extra||{};if(typeof ex==='string'){try{ex=JSON.parse(ex);}catch(e){ex={};}}
+    lines.push([r.id,r.created_at,r.subject_code,uname(r.user_id),uemail(r.user_id),p.age||'',p.sex||'',r.module,r.zone,(ex.bpm!=null?ex.bpm:''),ex.rhythm||'',(ex.confidence!=null?ex.confidence:''),ex.signal_quality||ex.quality||'',(r.probability!=null?r.probability:''),r.verdict,r.audio_path].map(csvCell).join(','));
   });
   return lines.join('\\n');
 }
