@@ -162,6 +162,10 @@
 
     <div class="card">
       <div id="selName" class="note" style="text-align:center;margin-bottom:2px">Tap a zone on the body above.</div>
+      <div id="pkNoise" style="display:none;margin:0 0 10px">
+        <div id="pkNoiseLbl" style="text-align:center;font-size:13px;font-weight:700;margin-bottom:6px">Listening for a quiet moment…</div>
+        <canvas id="pkNoiseCanvas" style="width:100%;height:56px;display:block"></canvas>
+      </div>
       <button id="recBtn" class="rec" disabled>● Select a zone first</button>
       <button id="stopBtn" class="stop" disabled>■ Stop</button>
       <div id="status">Quiet room. Phone mic against skin. Tap firmly with ONE finger, 5–6× ~1s apart.</div>
@@ -257,6 +261,10 @@
       <div class="imgwrap"><img class="bodyimg" src="back.jpg" alt="back"><div id="espots" class="overlay"></div></div>
       <div class="legend"><span><span class="dot" style="background:#5A6B94"></span>not done</span><span><span class="dot" style="background:#FFB454"></span>recording</span><span><span class="dot" style="background:#2FBF8F"></span>done</span></div>
       <div id="eSelName" class="note" style="text-align:center;margin-bottom:2px">Tap a lung base on the figure (mic on posterior base; patient breathes deeply).</div>
+      <div id="elNoise" style="display:none;margin:0 0 10px">
+        <div id="elNoiseLbl" style="text-align:center;font-size:13px;font-weight:700;margin-bottom:6px">Listening for a quiet moment…</div>
+        <canvas id="elNoiseCanvas" style="width:100%;height:56px;display:block"></canvas>
+      </div>
       <button id="eRec" class="rec" disabled>● Select a side first</button>
       <div id="eStatus" class="vst">Record both sides to compare.</div>
     </div>
@@ -497,7 +505,8 @@
       <table>
         <tr><th>Metric</th><th>Cardioscope (heart)</th><th>PulmoScope (lung)</th><th>Murmur AI (CirCor)</th></tr>
         <tr><td>Dataset</td><td>PhysioNet/CinC-2016</td><td>ICBHI-2017</td><td>CirCor DigiScope</td></tr>
-        <tr><td>Test set (n)</td><td>1,357</td><td>26 patients (held-out)</td><td>602 (patient-split)</td></tr>
+        <tr><td>Training set (n)</td><td>3,153 recordings</td><td>920 rec · 6,898 cycles</td><td>3,003 (patient-split)</td></tr>
+        <tr><td>Test set (n)</td><td>1,357</td><td>26 patients (held-out)</td><td>602 (held-out)</td></tr>
         <tr><td>AUC</td><td><b>0.996</b></td><td><b>0.87</b> (patient-level)</td><td><b>0.875</b></td></tr>
         <tr><td>Sensitivity</td><td>98.3% (96.1–99.3)</td><td>63.2% (41.0–80.9)</td><td>72.8%</td></tr>
         <tr><td>Specificity</td><td>95.6% (94.2–96.7)</td><td>100% (64.6–100)</td><td>93.3%</td></tr>
@@ -506,7 +515,7 @@
         <tr><td>LR+ / LR−</td><td>22.2 / 0.02</td><td>high / 0.37</td><td>6.4 / 0.27</td></tr>
         <tr><td>Operating threshold</td><td>0.25</td><td>0.022 (Youden)</td><td>0.62 (Youden)</td></tr>
       </table>
-      <div class="note" style="margin-top:10px;color:var(--mut)">Cardioscope figures are analytical performance on the held-out CinC-2016 test set (clean audio). Real-world smartphone performance in noisy settings is lower; the on-device model is noise-augmented for robustness. PulmoScope was evaluated at patient level on a small held-out set (26 patients), so its operating-point confidence intervals are wide; the prospective study tightens these. Murmur AI is trained on the CirCor DigiScope dataset and evaluated on a patient-split held-out set (602 recordings); it also outputs systolic/diastolic timing. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively.</div>
+      <div class="note" style="margin-top:10px;color:var(--mut)">Cardioscope was trained on the PhysioNet/CinC-2016 heart-sound corpus (3,153 recordings, 764 subjects) and figures are analytical performance on a held-out test set (clean audio); real-world smartphone performance in noisy settings is lower, so the on-device model is noise-augmented for robustness. PulmoScope was trained on ICBHI-2017 (920 recordings, 6,898 cycles) and reported at patient level on a held-out patient set. Murmur AI was trained on the CirCor DigiScope dataset (3,003 recordings, patient-level split) and also outputs systolic/diastolic timing. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively (IEC BDX-CARDIO/2026/01).</div>
     </div>
 
     <div class="card">
