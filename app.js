@@ -872,23 +872,38 @@ function pcMurmurMel(sig,fs){
   for(let i=0;i<mel.length;i++)mel[i]=(mel[i]-mean)/(sd+1e-9);
   return mel;
 }
+async function cpCloud(ep,wavBlob){try{var fd=new FormData();fd.append('file',wavBlob,'rec.wav');var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/'+ep,{method:'POST',body:fd});if(!r.ok)return null;return await r.json();}catch(e){return null;}}
 async function pcRunMurmur(s,fs){
   var el=$('pcMurmur'),sub=$('pcMurmurSub');if(!el)return;
   el.style.display='block';el.textContent='🫀 Murmur AI: analysing…';el.style.color='var(--mut)';
+  try{
+    var fd=new FormData();fd.append('file',makeSmallWav(s,fs,MM_SR),'rec.wav');
+    var resp=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/murmur',{method:'POST',body:fd});
+    if(resp.ok){
+      var j=await resp.json();
+      var pm=j.murmur_prob,ps=j.systolic_prob,pd=j.diastolic_prob;
+      var present=(j.murmur==='present'),timing=j.timing||[];
+      if(present){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing.length?' — '+timing.join(' + '):'');el.style.color='var(--bad)';}
+      else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
+      if(sub){sub.style.display='block';sub.textContent=present?('Murmur '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · screening only');}
+      if(pcLastResult){pcLastResult.murmur=present?'present':'absent';pcLastResult.murmur_p=pm.toFixed(3);pcLastResult.systolic_p=ps.toFixed(3);pcLastResult.diastolic_p=pd.toFixed(3);}
+      return;
+    }
+  }catch(e){console.warn('cloud murmur failed, using on-device',e);}
   var ok=await mmLoad();
   if(!ok){el.textContent='🫀 Murmur AI unavailable — '+mmErr;el.style.color='var(--mut)';return;}
   try{
     var mel=pcMurmurMel(s,fs);
     var t=tf.tensor4d(mel,[1,MM_NMEL,MM_FR,1]);
     var yy=mmModel.predict(t),arr=Array.isArray(yy)?yy:[yy];
-    var pm=arr[0].dataSync()[0],ps=arr[1].dataSync()[0],pd=arr[2].dataSync()[0];
+    var pm2=arr[0].dataSync()[0],ps2=arr[1].dataSync()[0],pd2=arr[2].dataSync()[0];
     tf.dispose([t].concat(arr));
-    var present=pm>=MM_THR,timing=[];
-    if(present){if(ps>=0.5)timing.push('systolic');if(pd>=0.5)timing.push('diastolic');}
-    if(present){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing.length?' — '+timing.join(' + '):'');el.style.color='var(--bad)';}
+    var present2=pm2>=MM_THR,timing2=[];
+    if(present2){if(ps2>=0.5)timing2.push('systolic');if(pd2>=0.5)timing2.push('diastolic');}
+    if(present2){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing2.length?' — '+timing2.join(' + '):'');el.style.color='var(--bad)';}
     else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
-    if(sub){sub.style.display='block';sub.textContent=present?('Murmur '+(pm*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · screening only');}
-    if(pcLastResult){pcLastResult.murmur=present?'present':'absent';pcLastResult.murmur_p=pm.toFixed(3);pcLastResult.systolic_p=ps.toFixed(3);pcLastResult.diastolic_p=pd.toFixed(3);}
+    if(sub){sub.style.display='block';sub.textContent=present2?('Murmur '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · systolic '+(ps2*100).toFixed(0)+'% · diastolic '+(pd2*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · screening only');}
+    if(pcLastResult){pcLastResult.murmur=present2?'present':'absent';pcLastResult.murmur_p=pm2.toFixed(3);pcLastResult.systolic_p=ps2.toFixed(3);pcLastResult.diastolic_p=pd2.toFixed(3);}
   }catch(e){console.error(e);el.textContent='🫀 Murmur AI: error';el.style.color='var(--mut)';}
 }
 async function pcMLScreen(s,fs,pcRow){
@@ -906,7 +921,8 @@ async function pcMLScreen(s,fs,pcRow){
     sub.textContent='Model files must sit in the same folder as index.html.';
     pcUploadSafe('model_unavailable',null,q,s,fs,sub);return;}
   try{
-    const p=pcInfer(pcLogMel(pcResample(s,fs,PC_SR2)));
+    var cj=await cpCloud('cinc',makeSmallWav(s,fs,PC_SR2));
+    const p=(cj&&cj.prob!=null)?cj.prob:pcInfer(pcLogMel(pcResample(s,fs,PC_SR2)));
     var pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
@@ -1076,7 +1092,8 @@ async function lgScreen(s,fs,zone){
   const ok=await lgLoadModel();
   if(!ok){lgSt('AI model unavailable \u2014 '+lgModelErr);lgUploadSafe(zone,'model_unavailable',null,s,fs);return;}
   try{
-    const pr=lgProbForBuffer(s,fs);
+    var lj=await cpCloud('lung',makeSmallWavNorm(s,fs,LG_SR));
+    const pr=(lj&&lj.prob!=null)?lj.prob:lgProbForBuffer(s,fs);
     lgState[zone].p=pr;lgState[zone].status='done';
     lgUpdate();lgRenderMap();lgRenderGrid();
     lgUploadSafe(zone,pr>=LG_THR?'abnormal':'normal',pr,s,fs);
