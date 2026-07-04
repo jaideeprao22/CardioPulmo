@@ -738,7 +738,7 @@ function pcRenderLog(){let h='<table><tr><th>ID</th><th>BPM</th><th>Rhythm</th><
   $('pcLogTable').innerHTML=h+'</table>';}
 
 /* ===== Cardioscope on-device AI: murmur/abnormal heart-sound screen (TF.js) ===== */
-const PC_SR2=2000,PC_NFFT=512,PC_HOP=64,PC_NMEL=64,PC_TFR=157,PC_LWAV=10000,PC_NB=PC_NFFT/2+1,PC_THR=0.25;
+const PC_SR2=2000,PC_NFFT=512,PC_HOP=64,PC_NMEL=64,PC_TFR=157,PC_LWAV=10000,PC_NB=PC_NFFT/2+1;let PC_THR=0.25;
 const PC_WIN=new Float32Array(PC_NFFT);for(let n=0;n<PC_NFFT;n++)PC_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/PC_NFFT);
 let pcModel=null,pcMel=null,pcModelLoading=null,pcModelErr='';
 async function pcLoadModel(){
@@ -834,7 +834,7 @@ async function pcAmplifyPlay(){
   }catch(e){console.error(e);pcSt('Amplify failed on this device.');}
 }
 /* ===== CirCor murmur model (multi-head: murmur / systolic / diastolic) ===== */
-const MM_SR=2000,MM_N=20000,MM_NFFT=512,MM_HOP=64,MM_NMEL=64,MM_NB=257,MM_FR=313,MM_THR=0.619;
+const MM_SR=2000,MM_N=20000,MM_NFFT=512,MM_HOP=64,MM_NMEL=64,MM_NB=257,MM_FR=313;let MM_THR=0.619;
 const MM_WIN=new Float32Array(MM_NFFT);for(let n=0;n<MM_NFFT;n++)MM_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/MM_NFFT);
 let mmModel=null,mmMel=null,mmErr='',mmLoading=null;
 function mmLoad(){
@@ -887,7 +887,7 @@ async function pcRunMurmur(s,fs){
     if(present){if(ps>=0.5)timing.push('systolic');if(pd>=0.5)timing.push('diastolic');}
     if(present){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing.length?' — '+timing.join(' + '):'');el.style.color='var(--bad)';}
     else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
-    if(sub){sub.style.display='block';sub.textContent=present?('Murmur '+(pm*100).toFixed(0)+'% (threshold 62%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm*100).toFixed(0)+'% (threshold 62%) · screening only');}
+    if(sub){sub.style.display='block';sub.textContent=present?('Murmur '+(pm*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · screening only');}
     if(pcLastResult){pcLastResult.murmur=present?'present':'absent';pcLastResult.murmur_p=pm.toFixed(3);pcLastResult.systolic_p=ps.toFixed(3);pcLastResult.diastolic_p=pd.toFixed(3);}
   }catch(e){console.error(e);el.textContent='🫀 Murmur AI: error';el.style.color='var(--mut)';}
 }
@@ -930,7 +930,7 @@ async function pcUploadSafe(verdict,prob,q,s,fs,subEl){
 }
 
 /* ===== PulmoScope on-device AI: lung-sound normal/abnormal screen (TF.js) ===== */
-const LG_SR=4000,LG_NFFT=512,LG_HOP=128,LG_NMEL=64,LG_TFR=157,LG_LWAV=20000,LG_NB=LG_NFFT/2+1,LG_THR=0.5;
+const LG_SR=4000,LG_NFFT=512,LG_HOP=128,LG_NMEL=64,LG_TFR=157,LG_LWAV=20000,LG_NB=LG_NFFT/2+1;let LG_THR=0.5;
 const LG_WIN=new Float32Array(LG_NFFT);for(let n=0;n<LG_NFFT;n++)LG_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/LG_NFFT);
 let lgModel=null,lgMel=null,lgModelLoading=null,lgModelErr='';
 async function lgLoadModel(){
@@ -1160,6 +1160,20 @@ async function fbSend(btn){
   }catch(e){msg.style.color='#ff6b6b';msg.textContent='Could not send.';}
 }
 fbInstall();
+
+/* ===== global model thresholds (set by admin, same on every device) ===== */
+async function loadThresholds(){
+  try{
+    if(!sb)return;
+    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr').eq('id',1).maybeSingle();
+    if(r&&r.data){
+      if(r.data.cardio_thr!=null)PC_THR=parseFloat(r.data.cardio_thr);
+      if(r.data.murmur_thr!=null)MM_THR=parseFloat(r.data.murmur_thr);
+      if(r.data.lung_thr!=null)LG_THR=parseFloat(r.data.lung_thr);
+    }
+  }catch(e){}
+}
+loadThresholds();
 applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';}catch(e){return 'en';}})());
 csTab('c');
 topTab('home');
