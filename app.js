@@ -872,24 +872,20 @@ function pcMurmurMel(sig,fs){
   for(let i=0;i<mel.length;i++)mel[i]=(mel[i]-mean)/(sd+1e-9);
   return mel;
 }
-async function cpCloud(ep,wavBlob){try{var fd=new FormData();fd.append('file',wavBlob,'rec.wav');var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/'+ep,{method:'POST',body:fd});if(!r.ok)return null;return await r.json();}catch(e){return null;}}
+async function cpCloud(ep,wavBlob){try{var fd=new FormData();fd.append('file',wavBlob,'rec.wav');var ac=new AbortController();var to=setTimeout(function(){ac.abort();},20000);var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/'+ep,{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
 async function pcRunMurmur(s,fs){
   var el=$('pcMurmur'),sub=$('pcMurmurSub');if(!el)return;
   el.style.display='block';el.textContent='🫀 Murmur AI: analysing…';el.style.color='var(--mut)';
-  try{
-    var fd=new FormData();fd.append('file',makeSmallWav(s,fs,MM_SR),'rec.wav');
-    var resp=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/murmur',{method:'POST',body:fd});
-    if(resp.ok){
-      var j=await resp.json();
-      var pm=j.murmur_prob,ps=j.systolic_prob,pd=j.diastolic_prob;
-      var present=(j.murmur==='present'),timing=j.timing||[];
-      if(present){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing.length?' — '+timing.join(' + '):'');el.style.color='var(--bad)';}
-      else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
-      if(sub){sub.style.display='block';sub.textContent=present?('Murmur '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · screening only');}
-      if(pcLastResult){pcLastResult.murmur=present?'present':'absent';pcLastResult.murmur_p=pm.toFixed(3);pcLastResult.systolic_p=ps.toFixed(3);pcLastResult.diastolic_p=pd.toFixed(3);}
-      return;
-    }
-  }catch(e){console.warn('cloud murmur failed, using on-device',e);}
+  var j=await cpCloud('murmur',makeSmallWav(s,fs,MM_SR));
+  if(j&&j.murmur_prob!=null){
+    var pm=j.murmur_prob,ps=j.systolic_prob,pd=j.diastolic_prob;
+    var present=(j.murmur==='present'),timing=j.timing||[];
+    if(present){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing.length?' — '+timing.join(' + '):'');el.style.color='var(--bad)';}
+    else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
+    if(sub){sub.style.display='block';sub.textContent=present?('Murmur '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · screening only');}
+    if(pcLastResult){pcLastResult.murmur=present?'present':'absent';pcLastResult.murmur_p=pm.toFixed(3);pcLastResult.systolic_p=ps.toFixed(3);pcLastResult.diastolic_p=pd.toFixed(3);}
+    return;
+  }
   var ok=await mmLoad();
   if(!ok){el.textContent='🫀 Murmur AI unavailable — '+mmErr;el.style.color='var(--mut)';return;}
   try{
