@@ -1124,6 +1124,42 @@ function applyLang(l){document.body.setAttribute('lang',l);
   try{localStorage.setItem('cardiopulmo_lang',l);}catch(e){}}
 function setLang(l){applyLang(l);}
 function toggleLang(){applyLang(document.body.getAttribute('lang')==='te'?'en':'te');}
+
+/* ===== per-result feedback (shows in admin) ===== */
+function fbInstall(){
+  var map={resCard:'percussion',vResCard:'vascage',eResCard:'echolat',jResCard:'jvp',pcResCard:'cardioscope',lgResCard:'pulmoscope'};
+  Object.keys(map).forEach(function(id){
+    var card=document.getElementById(id);if(!card||card.querySelector('.fbcard'))return;
+    var d=document.createElement('div');d.className='fbcard';d.setAttribute('data-mod',map[id]);d.setAttribute('data-src',id);
+    d.innerHTML='<div class="fbttl" data-te="మీ అభిప్రాయం">Your feedback</div>'+
+      '<div class="fbrow"><button type="button" class="fbbtn" data-r="up" onclick="fbRate(this)">👍</button>'+
+      '<button type="button" class="fbbtn" data-r="down" onclick="fbRate(this)">👎</button>'+
+      '<span class="fbhint" data-te="ఈ ఫలితం సరైనదేనా?">Was this result correct?</span></div>'+
+      '<input class="fbcomment" placeholder="What was right / wrong? (optional)">'+
+      '<button type="button" class="fbsend" onclick="fbSend(this)" data-te="అభిప్రాయం పంపండి">Send feedback</button>'+
+      '<div class="fbmsg"></div>';
+    card.appendChild(d);
+  });
+}
+function fbRate(btn){var c=btn.closest('.fbcard');c.querySelectorAll('.fbbtn').forEach(function(b){b.classList.remove('sel');});btn.classList.add('sel');c.setAttribute('data-rating',btn.getAttribute('data-r'));}
+async function fbSend(btn){
+  var c=btn.closest('.fbcard'),msg=c.querySelector('.fbmsg');
+  var mod=c.getAttribute('data-mod'),rating=c.getAttribute('data-rating')||null;
+  var comment=(c.querySelector('.fbcomment').value||'').trim()||null;
+  if(!rating&&!comment){msg.style.color='#ff6b6b';msg.textContent='Tap 👍 / 👎 or add a comment first.';return;}
+  var src=document.getElementById(c.getAttribute('data-src'));
+  var context=src?src.textContent.replace(/\s+/g,' ').trim().slice(0,700):'';
+  var subj=($('pid')?$('pid').value:'')||null;
+  if(!sb||!sbUser){msg.style.color='#ff6b6b';msg.textContent='Please log in (Cardio/Pulmo/Vasc) to send feedback.';return;}
+  msg.style.color='var(--mut)';msg.textContent='Sending…';
+  try{
+    var r=await sb.from('feedback').insert({user_id:sbUser.id,module:mod,rating:rating,comment:comment,context:context,subject_code:subj});
+    if(r.error){msg.style.color='#ff6b6b';msg.textContent='Could not send — '+r.error.message;return;}
+    msg.style.color='#2FBF8F';msg.textContent='✓ Thank you! Feedback sent.';
+    c.querySelector('.fbcomment').value='';c.querySelectorAll('.fbbtn').forEach(function(b){b.classList.remove('sel');});c.removeAttribute('data-rating');
+  }catch(e){msg.style.color='#ff6b6b';msg.textContent='Could not send.';}
+}
+fbInstall();
 applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';}catch(e){return 'en';}})());
 csTab('c');
 topTab('home');

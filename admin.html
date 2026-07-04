@@ -86,6 +86,17 @@ audio{height:34px;vertical-align:middle}
 
   <div class="card">
     <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <b>Feedback</b>
+      <input id="fbFilter" placeholder="Filter (user / module / text)" style="max-width:260px">
+    </div>
+    <div class="tblwrap"><table id="fbTbl"><thead><tr>
+      <th>Date</th><th>User</th><th>Module</th><th>Rating</th><th>Comment</th><th>Patient</th><th>Result context</th>
+    </tr></thead><tbody></tbody></table></div>
+    <div class="mut" style="font-size:11px;margin-top:6px">Every 👍/👎 and comment users leave on a result, with the exact result shown at that moment — so you can act on it immediately.</div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
       <b>Users</b>
       <button id="addUserBtn">+ Add user</button>
     </div>
@@ -104,7 +115,7 @@ const SB_URL='https://cxqvghjdqyvtxdavhzjw.supabase.co';
 const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cXZnaGpkcXl2dHhkYXZoemp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMDY5MzUsImV4cCI6MjA5ODU4MjkzNX0.vSEowF2M4Hv_j0LOSSJto_TulEce-wcA337ffK7kd5s';
 const GOOGLE_CLIENT_ID='533637534015-8eob9q94fecugvf6d4rm41hnc1fd6f4u.apps.googleusercontent.com';
 const sb=window.supabase.createClient(SB_URL,SB_ANON,{auth:{storageKey:"cp-admin-auth",autoRefreshToken:true,persistSession:true}});
-let recs=[],profs={},profList=[];
+let recs=[],profs={},profList=[],fbs=[];
 
 /* ---------- auth ---------- */
 $('loginBtn').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value});if(error)$('msg').textContent=error.message;};
@@ -133,7 +144,21 @@ async function loadAll(){
   profList=pf||[];profs={};profList.forEach(p=>profs[p.id]=p);
   const {data:rc}=await sb.from('recordings').select('*').order('created_at',{ascending:false});
   recs=rc||[];
-  renderStats();renderRecs();renderUsers();
+  try{const {data:fb}=await sb.from('feedback').select('*').order('created_at',{ascending:false});fbs=fb||[];}catch(e){fbs=[];}
+  renderStats();renderRecs();renderUsers();renderFb();
+}
+function renderFb(){
+  var tb=$('fbTbl')&&$('fbTbl').querySelector('tbody');if(!tb)return;
+  var f=($('fbFilter')&&$('fbFilter').value||'').toLowerCase();
+  tb.innerHTML='';
+  (fbs||[]).filter(function(r){
+    if(!f)return true;return (uname(r.user_id)+' '+(r.module||'')+' '+(r.comment||'')+' '+(r.context||'')).toLowerCase().indexOf(f)>=0;
+  }).forEach(function(r){
+    var tr=document.createElement('tr');
+    var rate=r.rating==='up'?'<span style="color:#2FBF8F">👍 helpful</span>':(r.rating==='down'?'<span style="color:#ff6b6b">👎 not</span>':'—');
+    tr.innerHTML='<td>'+fmtDate(r.created_at)+'</td><td>'+uname(r.user_id)+'</td><td>'+(r.module||'')+'</td><td>'+rate+'</td><td>'+(r.comment?String(r.comment).replace(/</g,'&lt;'):'—')+'</td><td>'+(r.subject_code||'')+'</td><td style="max-width:340px;font-size:11px;color:#9fb0c0">'+(r.context?String(r.context).replace(/</g,'&lt;'):'')+'</td>';
+    tb.appendChild(tr);
+  });
 }
 function renderStats(){
   $('stUsers').textContent=profList.length;
@@ -171,6 +196,7 @@ function renderRecs(){
   });
 }
 $('recFilter').oninput=renderRecs;
+if($('fbFilter'))$('fbFilter').oninput=renderFb;
 
 async function dlAudio(path,btn){
   var old=btn.textContent;btn.textContent='…';
