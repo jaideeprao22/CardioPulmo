@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<link rel="stylesheet" href="globals.css?v=11">
+<link rel="stylesheet" href="globals.css?v=13">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -116,10 +116,10 @@
 
     <div class="seclabel rule" data-te='స్క్రీనింగ్ విభాగాలు'>Screening suites</div>
 
-    <div class="suite" onclick="topTab('cardio')" data-screen-label="Home · Cardioscope card">
+    <div class="suite" onclick="topTab('cardio')" data-screen-label="Home · CardioScope card">
       <div class="ic ic-c">🫀</div>
       <div class="sinfo">
-        <div class="st">Cardioscope</div>
+        <div class="st">CardioScope</div>
         <div class="ss" data-te='గుండె శబ్దం · లయ · JVP'>Heart sound · Rhythm · JVP</div>
       </div>
       <div class="chip" data-te='తెరవండి'>Open</div>
@@ -308,9 +308,9 @@
   </section>
 
   <!-- ================= CARDIOSCOPE (p4) ================= -->
-  <section class="pane on" id="p4" data-screen-label="Cardioscope">
+  <section class="pane on" id="p4" data-screen-label="CardioScope">
     <div class="mhead">
-      <div class="mkicker">Suite 01 · Cardioscope</div>
+      <div class="mkicker">Suite 01 · CardioScope</div>
       <h2 class="mtitle" data-te='హృదయ-రక్తనాళ పరీక్ష'>Cardiovascular exam</h2>
       <p class="msub" data-te='<b>ఆన్-డిమాండ్</b> గుండె లయ (ఛాతీపై ఫోన్ యాక్సిలరోమీటర్) + <b>మెడ / JVP స్పందన</b> (కెమెరా). కేవలం ఫ్లాగ్‌లు — <b>ఇది</b> నిర్ధారణ కాదు, <b>స్టెతస్కోప్</b> కాదు. రాత్రంతా పాసివ్ మానిటరింగ్‌కు నేటివ్ యాప్ అవసరం (స్క్రీన్ ఆఫ్ అయితే బ్రౌజర్‌లు సెన్సర్‌లను నిలిపివేస్తాయి).'><b>On-demand</b> heart-rhythm (phone accelerometer on the chest) + <b>neck / JVP pulsation</b> (camera). Flags only — <b>not</b> a diagnosis, <b>not</b> a stethoscope. Passive all-night monitoring needs the native app (browsers suspend sensors when the screen is off).</p>
     </div>
@@ -528,7 +528,7 @@
       <div class="ct" style="color:var(--acc)" data-te='పరీక్షల పనితీరు'>Test performance</div>
       <div class="note" style="margin-top:8px" data-te='AI నమూనాలకు నిపుణులు లేబుల్ చేసిన ఓపెన్ డేటాసెట్‌లపై విశ్లేషణాత్మక ధ్రువీకరణ చూపబడింది. క్లినికల్ PPV/NPV/ఆడ్స్ రేషియో వ్యాధి వ్యాప్తిపై ఆధారపడతాయి మరియు ప్రాస్పెక్టివ్ అధ్యయనం ద్వారా నిర్ధారించబడతాయి.'>Analytical validation on expert-labelled open datasets. AUC and dataset predictive values are shown; clinical PPV/NPV and odds ratios depend on disease prevalence and are being confirmed in a prospective study.</div>
       <table>
-        <tr><th>Metric</th><th>Cardioscope (heart)</th><th>PulmoScope (lung)</th><th>Murmur AI (CirCor)</th></tr>
+        <tr><th>Metric</th><th>CardioScope (heart)</th><th>PulmoScope (lung)</th><th>Murmur AI (CirCor)</th></tr>
         <tr><td>Dataset</td><td>PhysioNet/CinC-2016</td><td>ICBHI-2017</td><td>CirCor DigiScope</td></tr>
         <tr><td>Training set (n)</td><td>3,153 recordings</td><td>920 rec · 6,898 cycles</td><td>3,003 (patient-split)</td></tr>
         <tr><td>Test set (n)</td><td>1,357</td><td>26 patients (held-out)</td><td>602 (held-out)</td></tr>
@@ -540,7 +540,7 @@
         <tr><td>LR+ / LR−</td><td>22.2 / 0.02</td><td>high / 0.37</td><td>6.4 / 0.27</td></tr>
         <tr><td>Operating threshold</td><td>0.25</td><td>0.022 (Youden)</td><td>0.62 (Youden)</td></tr>
       </table>
-      <div class="note" style="margin-top:10px;color:var(--mut)">Cardioscope was trained on the PhysioNet/CinC-2016 heart-sound corpus (3,153 recordings, 764 subjects) and figures are analytical performance on a held-out test set (clean audio); real-world smartphone performance in noisy settings is lower, so the model is noise-augmented for robustness. PulmoScope was trained on ICBHI-2017 (920 recordings, 6,898 cycles) and reported at patient level on a held-out patient set. Murmur AI was trained on the CirCor DigiScope dataset (3,003 recordings, patient-level split) and also outputs systolic/diastolic timing. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively.</div>
+      <div class="note" style="margin-top:10px;color:var(--mut)">CardioScope was trained on the PhysioNet/CinC-2016 heart-sound corpus (3,153 recordings, 764 subjects) and figures are analytical performance on a held-out test set (clean audio); real-world smartphone performance in noisy settings is lower, so the model is noise-augmented for robustness. PulmoScope was trained on ICBHI-2017 (920 recordings, 6,898 cycles) and reported at patient level on a held-out patient set. Murmur AI was trained on the CirCor DigiScope dataset (3,003 recordings, patient-level split) and also outputs systolic/diastolic timing. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively.</div>
     </div>
 
     <div class="card">

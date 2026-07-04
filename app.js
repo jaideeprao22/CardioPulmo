@@ -601,7 +601,7 @@ function jRenderLog(){let h='<table><tr><th>ID</th><th>Rate/min</th><th>Amp</th>
 /* --- Heart sound (PCG) via microphone --- */
 let pcStream,pcCtx,pcProc,pcZg,pcBuf=[],pcSr=48000,pcWav=null,pcRows=[],pcTimer,pcLeft,pcLastBuf=null,pcLastResult=null;
 const pcSt=m=>$('pcStatus').textContent=m;
-/* Cardioscope Sound: single interactive apex dot (same pattern as Percussion) */
+/* CardioScope Sound: single interactive apex dot (same pattern as Percussion) */
 let pcDotState='pending';
 function pcRenderDot(){var g=$('pcspot');if(!g)return;g.innerHTML='';var d=document.createElement('div');d.className='dot2';d.style.left='62%';d.style.top='63%';d.style.width='7%';d.style.background=(pcDotState==='active')?'#FFB454':((pcDotState==='done')?'#2FBF8F':'#5A6B94');if(pcDotState==='active'){d.style.borderColor='#fff';d.style.borderWidth='3px';d.style.boxShadow='0 0 0 4px rgba(255,255,255,.3)';}d.onclick=pcSelectDot;g.appendChild(d);if(pcDotState==='pending'){var ar=document.createElement('div');ar.className='dothint';ar.style.left='34%';ar.style.top='52%';ar.innerHTML='<b>\uD83D\uDC49</b> Tap the blue dot to start';g.appendChild(ar);}}
 function pcSelectDot(){pcDotState='active';$('pcRec').disabled=false;pcRenderDot();pcStartQuietGate();}
@@ -737,7 +737,7 @@ function pcRenderLog(){let h='<table><tr><th>ID</th><th>BPM</th><th>Rhythm</th><
   pcRows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.bpm+'</td><td>'+r.reg+'</td><td>'+r.conf+'</td></tr>');
   $('pcLogTable').innerHTML=h+'</table>';}
 
-/* ===== Cardioscope on-device AI: murmur/abnormal heart-sound screen (TF.js) ===== */
+/* ===== CardioScope on-device AI: murmur/abnormal heart-sound screen (TF.js) ===== */
 const PC_SR2=2000,PC_NFFT=512,PC_HOP=64,PC_NMEL=64,PC_TFR=157,PC_LWAV=10000,PC_NB=PC_NFFT/2+1;let PC_THR=0.25;
 const PC_WIN=new Float32Array(PC_NFFT);for(let n=0;n<PC_NFFT;n++)PC_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/PC_NFFT);
 let pcModel=null,pcMel=null,pcModelLoading=null,pcModelErr='';
