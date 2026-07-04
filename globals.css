@@ -75,15 +75,15 @@ body::after{
   max-width:760px;margin:0 auto;padding:14px 18px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;
 }
-.brandblk{cursor:pointer;user-select:none}
+.brandblk{cursor:pointer;user-select:none;display:flex;align-items:flex-end;gap:10px}
 .wordmark{
   font-family:'Electrolize',var(--font-disp);font-weight:400;font-size:16px;letter-spacing:.22em;
   background:linear-gradient(92deg,#DCEBFF 0%,#9BD8FF 55%,#B79CFF 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
   white-space:nowrap;
 }
-.wordmarkimg{height:18px;width:auto;display:block;filter:drop-shadow(0 0 6px rgba(111,211,255,.35))}
-.wordmarkapp{height:8px;width:auto;display:block;margin-top:4px;opacity:.9;filter:drop-shadow(0 0 4px rgba(111,211,255,.3))}
+.wordmarkimg{height:30px;width:auto;display:block;filter:drop-shadow(0 0 7px rgba(111,211,255,.4))}
+.wordmarkapp{height:12px;width:auto;display:block;margin-bottom:3px;opacity:.9;filter:drop-shadow(0 0 4px rgba(111,211,255,.3))}
 .wordsub{font-family:'Electrolize',var(--font-disp);font-size:8.5px;font-weight:400;letter-spacing:.30em;color:var(--mut);margin-top:4px;text-transform:uppercase}
 #langBtn{
   width:auto;margin:0;padding:8px 16px;font-size:12.5px;font-weight:700;
