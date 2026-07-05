@@ -881,9 +881,9 @@ function pcMurmurMel(sig,fs){
   for(let i=0;i<mel.length;i++)mel[i]=(mel[i]-mean)/(sd+1e-9);
   return mel;
 }
-function cpBeep(freq,dur,vol){try{var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();var o=x.createOscillator(),g=x.createGain();o.type='sine';o.frequency.value=freq;var t=x.currentTime;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}
-function cpBeepStart(){cpBeep(880,0.18,0.22);}
-function cpBeepDone(){cpBeep(620,0.14,0.22);setTimeout(function(){cpBeep(990,0.16,0.22);},150);}
+function cpBeep(freq,dur,vol){try{var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();var o=x.createOscillator(),g=x.createGain();o.type='square';o.frequency.value=freq;var t=x.currentTime;g.gain.setValueAtTime(vol,t);g.gain.setValueAtTime(vol,t+dur*0.7);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}
+function cpBeepStart(){cpBeep(1046,0.30,1.0);setTimeout(function(){cpBeep(1318,0.30,1.0);},260);}
+function cpBeepDone(){cpBeep(880,0.28,1.0);setTimeout(function(){cpBeep(660,0.40,1.0);},240);}
 async function cpCloud(ep,wavBlob){try{var fd=new FormData();fd.append('file',wavBlob,'rec.wav');var ac=new AbortController();var to=setTimeout(function(){ac.abort();},20000);var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/'+ep,{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
 async function pcRunMurmur(s,fs){
   var el=$('pcMurmur'),sub=$('pcMurmurSub');if(!el)return;
