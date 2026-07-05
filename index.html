@@ -559,6 +559,18 @@
     </div>
 
     <div class="card">
+      <div class="ct" style="color:var(--acc)" data-te='లయ / AF స్క్రీన్ (VascAge)'>Rhythm / AF screen (VascAge)</div>
+      <div class="note" style="margin-top:8px" data-te='VascAge కెమెరా-ఆధారిత పల్స్ (PPG) నుండి అస్థిర పల్స్‌ను (అట్రియల్ ఫిబ్రిలేషన్ నమూనా) స్క్రీన్ చేస్తుంది. ఇది ధ్రువీకరించబడిన McManus/Chon స్మార్ట్‌ఫోన్ పద్ధతిని ఉపయోగిస్తుంది — పల్స్ విరామాల RMSSD/mean మరియు షానన్ ఎంట్రోపీ — ఇది 76-రోగుల అధ్యయనంలో AF కోసం 96.2% సెన్సిటివిటీ మరియు 97.5% స్పెసిఫిసిటీ చూపింది. ఇది స్క్రీనింగ్ మాత్రమే — ఏ పాజిటివ్ ఫలితాన్ని అయినా ECGతో నిర్ధారించండి.'>VascAge screens for an irregular pulse (atrial fibrillation pattern) from the camera-based pulse (PPG). It uses the validated McManus/Chon smartphone method — RMSSD/mean and Shannon entropy of the pulse intervals — which showed 96.2% sensitivity and 97.5% specificity for AF in a 76-patient study. Screening only — confirm any positive with an ECG.</div>
+      <table>
+        <tr><th data-te='కొలత'>Metric</th><th data-te='లయ స్క్రీన్'>Rhythm screen</th></tr>
+        <tr><td data-te='పద్ధతి'>Method</td><td>RMSSD/mean + Shannon entropy</td></tr>
+        <tr><td data-te='ఫ్లాగ్ థ్రెష్‌హోల్డ్'>Flag threshold</td><td>RMSSD/mean &gt; 0.115 &amp; ShE &gt; 0.55</td></tr>
+        <tr><td>Sensitivity / Specificity</td><td><b>96.2% / 97.5%</b> (source study)</td></tr>
+      </table>
+      <div class="note" style="margin-top:10px;color:var(--mut)" data-te='పనితీరు గణాంకాలు మూల ప్రచురిత అధ్యయనం నుండి; మీ జనాభాలో ధ్రువీకరణ పెండింగ్‌లో ఉంది. కదలిక లేదా పేలవమైన సిగ్నల్ తప్పుడు ఫలితాలను ఇవ్వవచ్చు — నిశ్చలంగా, మంచి వెలుతురులో రికార్డ్ చేయండి. ఇది నిర్ధారణ కాదు.'>Performance figures are from the source study; validation in your own population is pending. Motion or poor signal can cause false results — record still, in good light. Not a diagnosis.</div>
+    </div>
+
+    <div class="card">
       <div class="ct" style="color:var(--acc)" data-te='ఇతర మాడ్యూల్స్'>Other modules</div>
       <div class="note" style="margin-top:8px">VascAge (fingertip PPG), EchoLat (lung asymmetry), Percussion, Rhythm (seismocardiography) and JVP are signal-processing aids, not machine-learning classifiers. Their sensitivity, specificity, PPV, NPV and odds ratios are being determined in the prospective validation study. They are investigational and must not be used for diagnosis.</div>
     </div>
@@ -669,6 +681,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

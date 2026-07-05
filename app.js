@@ -302,6 +302,49 @@ function vStop(){
   if(vData.length<30){vst('No signal captured. Cover the lens+flash fully and retry.');vSpot('#5A6B94');return;}
   vAnalyze();
 }
+function vAF(ibis){
+  var n=ibis.length; if(n<8) return null;
+  var i,mean=0; for(i=0;i<n;i++)mean+=ibis[i]; mean/=n;
+  var ss=0; for(i=1;i<n;i++){var dd=ibis[i]-ibis[i-1]; ss+=dd*dd;}
+  var rmssdN=Math.sqrt(ss/(n-1))/mean;
+  var s=ibis.slice().sort(function(a,b){return a-b;});
+  var core=s.slice(1,s.length-1); if(core.length<4) core=s.slice();
+  var lo=core[0],hi=core[core.length-1],rng=(hi-lo)||1,B=16,h=new Array(B).fill(0);
+  for(i=0;i<core.length;i++){var bi=Math.min(B-1,Math.floor((core[i]-lo)/rng*B)); h[bi]++;}
+  var she=0,tot=core.length;
+  for(i=0;i<B;i++){ if(h[i]>0){var p=h[i]/tot; she-=p*Math.log(p);} }
+  she/=Math.log(B);
+  return {rmssdN:rmssdN, she:she, af:(rmssdN>0.115&&she>0.55), n:n};
+}
+async function vEcgPreview(ppg,fs){
+  var card=$('vResCard'); if(!card)return;
+  var box=document.getElementById('vEcgBox');
+  if(!box){box=document.createElement('div');box.id='vEcgBox';box.style.marginTop='10px';card.appendChild(box);}
+  box.innerHTML='<div class="note" style="margin-bottom:4px">Experimental AI ECG preview <span style="color:var(--warn)">\u2014 not diagnostic, research only</span></div><canvas id="vEcgCanvas" style="width:100%;height:120px;display:block;background:#070B16;border-radius:8px"></canvas><div id="vEcgSt" class="note" style="font-size:11px;margin-top:2px;color:var(--mut)">Generating\u2026</div>';
+  try{
+    var ac=new AbortController();var to=setTimeout(function(){ac.abort();},20000);
+    var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/ppg2ecg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ppg:Array.prototype.slice.call(ppg),fs:fs}),signal:ac.signal});
+    clearTimeout(to);
+    if(!r.ok)throw 0;
+    var j=await r.json();
+    if(!j||!j.ecg)throw 0;
+    vDrawEcg(j.ecg);
+    var st=document.getElementById('vEcgSt');if(st)st.textContent='\u2601 cloud AI \u00b7 experimental reconstruction from your pulse \u2014 not for diagnosis';
+  }catch(e){
+    var st2=document.getElementById('vEcgSt');if(st2)st2.textContent='Preview unavailable \u2014 open the AI service link once to wake it, then re-scan.';
+  }
+}
+function vDrawEcg(ecg){
+  var c=document.getElementById('vEcgCanvas');if(!c)return;
+  c.width=c.clientWidth*2;c.height=240;
+  var g=c.getContext('2d'),W=c.width,H=c.height,n=ecg.length,i;
+  var mn=Infinity,mx=-Infinity;for(i=0;i<n;i++){if(ecg[i]<mn)mn=ecg[i];if(ecg[i]>mx)mx=ecg[i];}
+  var rng=(mx-mn)||1;
+  g.fillStyle='#070B16';g.fillRect(0,0,W,H);
+  g.strokeStyle='#6FD3FF';g.lineWidth=2;g.beginPath();
+  for(i=0;i<n;i++){var x=i/(n-1)*W,y=H-((ecg[i]-mn)/rng)*H*0.85-H*0.075;i?g.lineTo(x,y):g.moveTo(x,y);}
+  g.stroke();
+}
 function vAnalyze(){
   const red=vData.slice(),t=vTimes.slice(),N=red.length;
   const durSec=(t[N-1]-t[0])/1000||1,sr=N/durSec;
@@ -324,7 +367,24 @@ function vAnalyze(){
   const ri=ris.length>=2?(ris.reduce((p,c)=>p+c,0)/ris.length).toFixed(2):'—';
   const q=(ibis.length>=10&&(sd/mean)<0.25)?'Good':'Fair';
   vShow(hr,Math.round(sd),ri,q);
+  /* ===== AF / irregular-pulse screen (McManus/Chon smartphone method: RMSSD/mean + Shannon entropy) ===== */
+  try{
+    var _af=vAF(ibis);
+    var _ar=document.getElementById('vAFrow');
+    if(!_ar){_ar=document.createElement('div');_ar.id='vAFrow';_ar.className='note';_ar.style.marginTop='8px';var _vc=$('vResCard');if(_vc)_vc.appendChild(_ar);}
+    if(_af&&_af.n>=8){
+      _ar.style.display='block';
+      if(_af.af){
+        _ar.innerHTML='<b style="color:var(--bad)">\u26A0 Irregular pulse — possible atrial fibrillation.</b> Please get an ECG or see a doctor. <span style="color:var(--mut)">(screening only, not a diagnosis \u00b7 variability index '+_af.rmssdN.toFixed(2)+')</span>';
+        cpSetR('vasc',{title:'Rhythm screen (VascAge PPG)',lines:['Result: POSSIBLE AF — irregular pulse detected','Advice: confirm with a 12-lead ECG','Heart rate: '+hr+' bpm \u00b7 variability index: '+_af.rmssdN.toFixed(2)+' (flag > 0.115)']});
+      } else {
+        _ar.innerHTML='<b style="color:var(--ok)">Rhythm looks regular</b> — no irregular-pulse pattern detected. <span style="color:var(--mut)">(screening only \u00b7 variability index '+_af.rmssdN.toFixed(2)+')</span>';
+        cpSetR('vasc',{title:'Rhythm screen (VascAge PPG)',lines:['Result: regular rhythm — no AF pattern detected','Heart rate: '+hr+' bpm \u00b7 variability index: '+_af.rmssdN.toFixed(2)+' (flag > 0.115)']});
+      }
+    } else if(_ar){_ar.style.display='block';_ar.innerHTML='Rhythm screen: <b>not enough clear beats</b> — hold very still through the full recording in good light to check for an irregular pulse.';}
+  }catch(e){}
   vDrawFinal(detr,t,peaks);
+  vEcgPreview(red,sr);
   const tl=vTally();
   vRows.push({pid:$('pid').value,age:$('age').value,sex:$('sex').value,sm:tl.sm?'Y':'N',ht:tl.ht?'Y':'N',dm:tl.dm?'Y':'N',
     h:$('vHt').value,w:$('vWt').value,bmi:tl.bmi?tl.bmi.toFixed(1):'',rt:tl.n,hr:hr,ibi:Math.round(ibi),sdnn:Math.round(sd),ri:ri,q:q,t:new Date().toISOString()});
@@ -1253,7 +1313,7 @@ applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';
 
 /* ===== report store + positive-retest + PDF ===== */
 var cpReport={};
-function cpSetR(k,v){cpReport[k]=v;var _c={cardio:'pcResCard',murmur:'pcResCard',rhythm:'csResCard',lung:'lgResCard'}[k];if(typeof cpShowResultBar==='function')cpShowResultBar(_c);}
+function cpSetR(k,v){cpReport[k]=v;var _c={cardio:'pcResCard',murmur:'pcResCard',rhythm:'csResCard',lung:'lgResCard',vasc:'vResCard'}[k];if(typeof cpShowResultBar==='function')cpShowResultBar(_c);}
 function cpPositive(cond,isPos){
   var pid=($('pid')?$('pid').value:'')||'anon';var key='cp_pos_'+pid+'_'+cond;var n=0;
   try{n=parseInt(localStorage.getItem(key)||'0');}catch(e){}
@@ -1316,9 +1376,9 @@ function cpHideResultBar(){var b=document.getElementById('cpResultBar');if(b)b.s
 function cpBuildSummary(){
   var R=cpReport;
   function has(k,w){return R[k]&&R[k].lines&&R[k].lines.join(' ').toUpperCase().indexOf(w)>=0;}
-  var cardPos=has('cardio','SCREEN POSITIVE')||has('murmur','MURMUR PRESENT')||has('rhythm','IRREGULAR');
+  var cardPos=has('cardio','SCREEN POSITIVE')||has('murmur','MURMUR PRESENT')||has('rhythm','IRREGULAR')||has('vasc','POSSIBLE AF');
   var respPos=has('lung','ABNORMAL');
-  var cardTested=!!(R.cardio||R.murmur||R.rhythm), respTested=!!R.lung;
+  var cardTested=!!(R.cardio||R.murmur||R.rhythm||R.vasc), respTested=!!R.lung;
   var poorQ=has('cardio','POOR')||has('cardio','LOW')||has('lung','POOR');
   var cardiac=!cardTested?'Not tested':(cardPos?'High':(poorQ?'Moderate':'Low'));
   var resp=!respTested?'Not tested':(respPos?'High':'Low');
