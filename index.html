@@ -111,7 +111,7 @@
     <div class="hero">
       <div class="badge" data-te='రీసెర్చ్ పరికరం · AI'>Research instrument · AI</div>
       <h2 class="heroT" data-te='మీ గుండె &amp; ఊపిరితిత్తులు ఈరోజు ఎలా ఉన్నాయి?'>How are your heart &amp; lungs today?</h2>
-      <p class="heroS" data-te='మీ జేబులోని ఫోన్‌తోనే గుండె శబ్దాలు, ఊపిరితిత్తుల శబ్దాలు, లయ మరియు పల్స్ స్క్రీన్ చేయండి — అదనపు పరికరాలు అవసరం లేదు, ఆడియో ఫోన్ దాటదు.'>Screen heart sounds, lung sounds, rhythm and pulse with the phone already in your pocket — no extra hardware, and audio stays on the device.</p>
+      <p class="heroS" data-te='మీ జేబులోని ఫోన్‌తోనే గుండె శబ్దాలు, ఊపిరితిత్తుల శబ్దాలు, లయ మరియు పల్స్ స్క్రీన్ చేయండి — అదనపు పరికరాలు అవసరం లేదు, మీ రికార్డింగ్ సురక్షిత కనెక్షన్ ద్వారా విశ్లేషించబడుతుంది.'>Screen heart sounds, lung sounds, rhythm and pulse with the phone already in your pocket — no extra hardware, and your recording is analysed over a secure connection.</p>
       <button class="cta" onclick="topTab('cardio')" data-te='స్క్రీనింగ్ ప్రారంభించండి →'>Begin screening →</button>
     </div>
 
@@ -522,7 +522,7 @@
     </div>
 
     <div class="card">
-      <div class="note" data-te='CardioPulmo అనేది గుండె &amp; ఊపిరితిత్తుల శబ్దాల కోసం ఒక స్మార్ట్‌ఫోన్ స్క్రీనింగ్ సాధనం — ఆసుపత్రిలోనే కాదు, ఎక్కడైనా సాధారణ ప్రజల కోసం. అన్ని AI నమూనాలు పరికరంలోనే నడుస్తాయి (డేటా బయటకు వెళ్లదు). ఇది స్క్రీనింగ్ సాధనం మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్‌కు ప్రత్యామ్నాయం కాదు.'>CardioPulmo is a smartphone screening tool for heart and lung sounds, made for everyday people — anywhere, not just at a hospital bedside. All AI models run entirely on-device (no audio leaves the phone by default). It is a screening aid only — not a diagnosis, and not a replacement for a stethoscope or clinical judgement.</div>
+      <div class="note" data-te='CardioPulmo అనేది గుండె &amp; ఊపిరితిత్తుల శబ్దాల కోసం ఒక స్మార్ట్‌ఫోన్ స్క్రీనింగ్ సాధనం — ఆసుపత్రిలోనే కాదు, ఎక్కడైనా సాధారణ ప్రజల కోసం. AI విశ్లేషణ క్లౌడ్‌లో సురక్షితంగా జరుగుతుంది, ఆఫ్‌లైన్‌లో ఉంటే పరికరంలోనే ఫాల్‌బ్యాక్ నడుస్తుంది; మీ అనుమతితో మాత్రమే రికార్డింగ్‌లు పరిశోధన కోసం సేవ్ చేయబడతాయి — ప్రైవసీ నోటీసులో వివరించినట్లు. ఇది స్క్రీనింగ్ సాధనం మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్‌కు ప్రత్యామ్నాయం కాదు.'>CardioPulmo is a smartphone screening tool for heart and lung sounds, made for everyday people — anywhere, not just at a hospital bedside. AI analysis runs securely in the cloud, with an on-device fallback when you're offline; recordings are saved for research only with your consent, as described in the Privacy notice. It is a screening aid only — not a diagnosis, and not a replacement for a stethoscope or clinical judgement.</div>
     </div>
 
     <div class="card">
@@ -542,6 +542,20 @@
         <tr><td>Operating threshold</td><td>0.25</td><td>0.022 (Youden)</td><td>0.62 (Youden)</td></tr>
       </table>
       <div class="note" style="margin-top:10px;color:var(--mut)">CardioScope was trained on the PhysioNet/CinC-2016 heart-sound corpus (3,153 recordings, 764 subjects) and figures are analytical performance on a held-out test set (clean audio); real-world smartphone performance in noisy settings is lower, so the model is noise-augmented for robustness. PulmoScope was trained on ICBHI-2017 (920 recordings, 6,898 cycles) and reported at patient level on a held-out patient set. Murmur AI was trained on the CirCor DigiScope dataset (3,003 recordings, patient-level split) and also outputs systolic/diastolic timing. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively.</div>
+    </div>
+
+    <div class="card">
+      <div class="ct" style="color:var(--acc)" data-te='గుండె టైమింగ్ (S1-S2 సిస్టోలిక్ విరామం)'>Cardiac timing (S1-S2 systolic interval)</div>
+      <div class="note" style="margin-top:8px" data-te='CardioScope ఇప్పుడు ఫోన్ రికార్డింగ్ నుండే సిస్టోలిక్ విరామాన్ని — మొదటి (S1) మరియు రెండవ (S2) గుండె శబ్దాల మధ్య వ్యవధిని — కొలిచి, గుండె వేగానికి సరిదిద్ది చూపుతుంది. ఆరోగ్యకర రిఫరెన్స్ పరిధిని EPHNOGRAM (PhysioNet) డేటాబేస్ నుండి — 24 ఆరోగ్యవంతులైన వ్యక్తుల నుండి తీసుకున్న 69 ఏకకాల ECG–ఫోనోకార్డియోగ్రామ్ రికార్డింగ్‌ల నుండి రూపొందించాం.'>CardioScope now measures the systolic interval — the gap between the first (S1) and second (S2) heart sounds — directly from the phone recording and reports it corrected for heart rate. The healthy reference range was derived from the EPHNOGRAM (PhysioNet) database: 69 simultaneous ECG-phonocardiogram recordings from 24 healthy adults.</div>
+      <table>
+        <tr><th data-te='కొలత'>Metric</th><th data-te='గుండె టైమింగ్'>Cardiac timing</th></tr>
+        <tr><td data-te='రిఫరెన్స్ డేటాసెట్'>Reference dataset</td><td>EPHNOGRAM (PhysioNet v1.0.0)</td></tr>
+        <tr><td data-te='రికార్డింగ్‌లు / వ్యక్తులు'>Recordings / subjects</td><td>69 rec · 24 healthy adults</td></tr>
+        <tr><td data-te='వేగంతో సంబంధం'>Rate relationship</td><td>S1-S2 = 396 − 1.57 × HR ms (r = −0.88)</td></tr>
+        <tr><td data-te='ఆరోగ్యకర పరిధి (@60 bpm)'>Healthy band (@60 bpm)</td><td><b>270–337 ms</b></td></tr>
+        <tr><td data-te='ఆధారం'>Basis</td><td>Weissler systolic time intervals</td></tr>
+      </table>
+      <div class="note" style="margin-top:10px;color:var(--mut)" data-te='వేగానికి సరిదిద్దిన S1-S2 విలువ 270–337 ms పరిధి దాటితే క్లినికల్ కోరిలేషన్ కోసం ఫ్లాగ్ చేయబడుతుంది. ఈ రిఫరెన్స్ స్టెతస్కోప్ రికార్డింగ్‌ల నుండి తీసుకోబడింది; కాబట్టి స్మార్ట్‌ఫోన్‌తో కొలిచిన విలువలు పరికర-నిర్దిష్ట ధ్రువీకరణ పెండింగ్‌లో ఉండగా చూపబడతాయి. ఇది స్క్రీనింగ్ సహాయం మాత్రమే — నిర్ధారణ కాదు.'>Rate-corrected S1-S2 values outside 270–337 ms are flagged for clinical correlation. This reference was derived from stethoscope recordings, so smartphone-measured values are shown pending device-specific validation. Screening aid only — not a diagnosis.</div>
     </div>
 
     <div class="card">
@@ -655,6 +669,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

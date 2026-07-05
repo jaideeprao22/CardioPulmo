@@ -53,6 +53,7 @@ function topTab(name){
   else if(name==='vasc'){$('p2').classList.add('on');}
   else if(name==='about'){$('p6').classList.add('on');}
   else if(name==='home'){var _h=$('p0');if(_h)_h.classList.add('on');}
+  if(typeof cpHideResultBar==='function')cpHideResultBar();
   try{window.scrollTo(0,0);}catch(e){}
 }
 function pulmoSub(which){
@@ -730,11 +731,47 @@ function pcAnalyze(s,fs){
   $('pcReg').textContent=reg;$('pcConf').textContent=bestC.toFixed(2);$('pcQ').textContent=q;
   $('pcResCard').style.display='block';
   pcLastResult={bpm:uncertain?null:bpm,rhythm:reg,confidence:bestC.toFixed(2),quality:q,age:($('age')?$('age').value:'')||null,sex:($('sex')?$('sex').value:'')||null};
+  /* ===== EPHNOGRAM cardiac-timing readout (S1-S2 systolic interval, rate-corrected flag) ===== */
+  try{
+    var _tr=document.getElementById('pcTiming');
+    if(!_tr){_tr=document.createElement('div');_tr.id='pcTiming';_tr.className='note';_tr.style.marginTop='6px';var _pc=$('pcResCard');if(_pc)_pc.appendChild(_tr);}
+    var _sy=(!uncertain&&bpm)?pcSystole(s,fs):null;
+    if(_sy&&_sy.s1s2){
+      var _corr=_sy.s1s2-(-1.57)*(bpm-60);
+      var _flag=(_corr<270||_corr>337);
+      pcLastResult.s1s2=Math.round(_sy.s1s2);
+      pcLastResult.s1s2_corr=Math.round(_corr);
+      pcLastResult.timing_flag=_flag?'outside healthy range':'within healthy range';
+      _tr.style.display='block';
+      _tr.innerHTML='Systolic interval (S1\u2013S2): <b>'+Math.round(_sy.s1s2)+' ms</b> \u00b7 rate-corrected '+Math.round(_corr)+' ms \u00b7 '+(_flag?'<b style="color:var(--warn)">outside healthy range (270\u2013337 ms) \u2014 clinical correlation advised</b>':'<b style="color:var(--ok)">within healthy range</b>');
+    } else if(_tr){_tr.style.display='none';if(pcLastResult){pcLastResult.s1s2=null;}}
+  }catch(e){}
   pcSt('Done. Check the trace looks like clean lub-dub beats before trusting the number.');
   let pcRow=null;
   if(!uncertain){pcRow={pid:$('pid').value,age:$('age').value,sex:$('sex').value,bpm:bpm,reg:bestC>=0.5?'reg':'irreg',conf:bestC.toFixed(2),ai:'',t:new Date().toISOString()};pcRows.push(pcRow);
     pcRenderLog();$('pcLogCard').style.display='block';}
   return pcRow;
+}
+/* ===== EPHNOGRAM: S1-S2 systolic interval from heart sound (envelope peaks) ===== */
+function pcSystole(s,fs){
+  try{
+    s=pcBandpass(s,fs);
+    var f=Math.max(1,Math.round(fs/1000)),fd=fs/f,L=Math.floor(s.length/f),ds=new Float32Array(L),i,j;
+    for(i=0;i<L;i++){var a=0;for(j=0;j<f;j++)a+=s[i*f+j];ds[i]=a/f;}
+    var mx=0;for(i=0;i<L;i++)mx=Math.max(mx,Math.abs(ds[i]));if(mx>0)for(i=0;i<L;i++)ds[i]/=mx;
+    var env=new Float32Array(L);for(i=0;i<L;i++){var x=ds[i]*ds[i];env[i]=x>1e-9?-x*Math.log(x):0;}
+    var w=Math.max(1,Math.round(0.02*fd)),run=0,sm=new Float32Array(L);
+    for(i=0;i<L;i++){run+=env[i];if(i>=w)run-=env[i-w];sm[i]=run/Math.min(i+1,w);}
+    var em=0;for(i=0;i<L;i++)em=Math.max(em,sm[i]);if(em>0)for(i=0;i<L;i++)sm[i]/=em;
+    var thr=0.25,minSep=Math.max(1,Math.round(0.12*fd)),pk=[],last=-1;
+    for(i=1;i<L-1;i++){if(sm[i]>thr&&sm[i]>=sm[i-1]&&sm[i]>sm[i+1]){if(last<0||i-last>=minSep){pk.push(i);last=i;}}}
+    if(pk.length<4)return null;
+    var iv=[];for(i=1;i<pk.length;i++)iv.push((pk[i]-pk[i-1])/fd*1000);
+    var sys=[];for(i=0;i+1<iv.length;i+=2)sys.push(Math.min(iv[i],iv[i+1]));
+    sys=sys.filter(function(v){return v>=120&&v<=450;}).sort(function(p,q){return p-q;});
+    if(sys.length<2)return null;
+    return {s1s2:sys[Math.floor(sys.length/2)],n:sys.length};
+  }catch(e){return null;}
 }
 function pcDraw(s){const c=$('pcWave');c.style.display='block';c.width=c.clientWidth*2;c.height=180;
   const g=c.getContext('2d'),W=c.width,H=c.height,step=Math.floor(s.length/W)||1;
@@ -944,7 +981,7 @@ async function pcMLScreen(s,fs,pcRow){
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
     sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  '+(usedCloud?'☁ cloud AI':'📱 on-device')+'  ·  screening only'+cpPosNote('cinc','abnormal heart sound',pos);
-    cpSetR('cardio',{title:'Heart sound (CardioScope)',lines:['Result: '+(pos?'SCREEN POSITIVE':'Screen negative'),'Abnormal-sound probability: '+(p*100).toFixed(0)+'% (threshold '+(PC_THR*100).toFixed(0)+'%)','Heart rate: '+((pcLastResult&&pcLastResult.bpm)?pcLastResult.bpm+' bpm':'—')+' · Rhythm: '+((pcLastResult&&pcLastResult.rhythm)||'—')+' · Quality: '+((pcLastResult&&pcLastResult.quality)||'—')]});
+    cpSetR('cardio',{title:'Heart sound (CardioScope)',lines:['Result: '+(pos?'SCREEN POSITIVE':'Screen negative'),'Abnormal-sound probability: '+(p*100).toFixed(0)+'% (threshold '+(PC_THR*100).toFixed(0)+'%)','Heart rate: '+((pcLastResult&&pcLastResult.bpm)?pcLastResult.bpm+' bpm':'—')+' · Rhythm: '+((pcLastResult&&pcLastResult.rhythm)||'—')+' · Quality: '+((pcLastResult&&pcLastResult.quality)||'—'),'Systolic interval (S1-S2): '+((pcLastResult&&pcLastResult.s1s2)?pcLastResult.s1s2+' ms (rate-corrected '+pcLastResult.s1s2_corr+' ms · '+pcLastResult.timing_flag+')':'not measured')]});
     if(pcRow)pcRow.ai=p.toFixed(3);
     pcUploadSafe(pos?'screen_positive':'screen_negative',p,q,s,fs,sub);
     pcRunMurmur(s,fs);
@@ -1216,7 +1253,7 @@ applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';
 
 /* ===== report store + positive-retest + PDF ===== */
 var cpReport={};
-function cpSetR(k,v){cpReport[k]=v;}
+function cpSetR(k,v){cpReport[k]=v;if(typeof cpShowResultBar==='function')cpShowResultBar();}
 function cpPositive(cond,isPos){
   var pid=($('pid')?$('pid').value:'')||'anon';var key='cp_pos_'+pid+'_'+cond;var n=0;
   try{n=parseInt(localStorage.getItem(key)||'0');}catch(e){}
@@ -1265,12 +1302,16 @@ function cpMakePDF(){
     d.save('CardioPulmo_report_'+pid+'.pdf');
   }catch(e){alert('Could not build PDF: '+e.message);}
 }
-(function(){var b=document.createElement('button');b.id='cpRepBtn';b.textContent='📄 Report';b.onclick=cpMakePDF;
-  b.style.cssText='position:fixed;right:14px;bottom:88px;z-index:50;padding:10px 16px;border-radius:999px;background:linear-gradient(135deg,#6FD3FF,#4CC9F0);color:#04121f;font-weight:800;border:none;box-shadow:0 4px 14px rgba(76,201,240,.4);cursor:pointer';
-  document.body.appendChild(b);
+/* Summary + Report — hidden until a test produces a result; shown as a bottom bar on the result screen only */
+(function(){var bar=document.createElement('div');bar.id='cpResultBar';
+  bar.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:78px;z-index:50;display:none;gap:10px;justify-content:center';
   var s=document.createElement('button');s.id='cpSumBtn';s.textContent='🩺 Summary';s.onclick=cpShowSummary;
-  s.style.cssText='position:fixed;right:14px;bottom:140px;z-index:50;padding:10px 16px;border-radius:999px;background:linear-gradient(135deg,#a78bfa,#7c5cff);color:#fff;font-weight:800;border:none;box-shadow:0 4px 14px rgba(124,92,255,.4);cursor:pointer';
-  document.body.appendChild(s);})();
+  s.style.cssText='padding:10px 18px;border-radius:999px;background:linear-gradient(135deg,#a78bfa,#7c5cff);color:#fff;font-weight:800;border:none;box-shadow:0 4px 14px rgba(124,92,255,.4);cursor:pointer';
+  var b=document.createElement('button');b.id='cpRepBtn';b.textContent='📄 Report';b.onclick=cpMakePDF;
+  b.style.cssText='padding:10px 18px;border-radius:999px;background:linear-gradient(135deg,#6FD3FF,#4CC9F0);color:#04121f;font-weight:800;border:none;box-shadow:0 4px 14px rgba(76,201,240,.4);cursor:pointer';
+  bar.appendChild(s);bar.appendChild(b);document.body.appendChild(bar);})();
+function cpShowResultBar(){var b=document.getElementById('cpResultBar');if(b)b.style.display='flex';}
+function cpHideResultBar(){var b=document.getElementById('cpResultBar');if(b)b.style.display='none';}
 
 function cpBuildSummary(){
   var R=cpReport;
