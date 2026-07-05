@@ -510,7 +510,9 @@ function csAnalyze(){
     $('csResCard').style.display='block';csSt('Weak SCG. Lie down, phone flat on lower sternum, fully still.');return;}
   const q=r.sr>=40&&stt.rr.length>=15?'Good':(stt.rr.length>=8?'Fair':'Low');
   let verdict,col;if(stt.irrFrac>=0.20){verdict='Irregular rhythm flag ⚠';col='var(--bad)';}else{verdict='Regular rhythm';col='var(--ok)';}
-  $('csVerdict').textContent=verdict+' · ~'+r.sr.toFixed(0)+' Hz';$('csVerdict').style.color=col;
+  var rirr=stt.irrFrac>=0.20;var rnote=cpPosNote('rhythm','irregular heart rhythm',rirr);
+  $('csVerdict').textContent=verdict+' · ~'+r.sr.toFixed(0)+' Hz'+rnote;$('csVerdict').style.color=col;
+  cpSetR('rhythm',{title:'Rhythm (seismocardiography)',lines:['Result: '+verdict,'Heart rate: '+stt.hr+' bpm · Irregular beats: '+(stt.irrFrac*100).toFixed(0)+'%']});
   $('csHR').textContent=stt.hr;$('csRR').textContent=stt.meanRR;$('csSD').textContent=stt.sd;$('csQ').textContent=q;
   $('csResCard').style.display='block';csSt('Done. Tap Start to repeat.');
   csRows.push({pid:$('pid').value,age:$('age').value,sex:$('sex').value,hr:stt.hr,meanRR:stt.meanRR,sdnn:stt.sd,
@@ -615,6 +617,7 @@ pcRenderDot();
 
 /* ---- live ambient-noise gate: auto-start recording only when the room is quiet ---- */
 const pcNoiseThresh=60;            /* high-freq noise level 0..~120; LOWER = stricter quiet */
+const pcContactThresh=0.30;        /* low-band share for good skin contact 0..1; LOWER = easier to pass */
 let pcGating=false,pcGateRAF=null,pcGateCancel=null;
 function pcRR(g,x,y,w,h,r){if(w<0){x+=w;w=-w;}if(r>h/2)r=h/2;if(r>w/2)r=w/2;g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
 function pcNoiseLabel(t,c){var l=$('pcNoiseLbl');if(l){l.textContent=t;l.style.color=c||'#e6edf3';}}
@@ -637,16 +640,21 @@ function pcStartQuietGate(){
     var ctx=new (window.AudioContext||window.webkitAudioContext)();var src=ctx.createMediaStreamSource(stream);
     var an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.8;src.connect(an);
     var freq=new Uint8Array(an.frequencyBinCount),binHz=ctx.sampleRate/an.fftSize,i0=Math.max(1,Math.floor(500/binHz));
+    var loIdx=Math.max(2,Math.floor(150/binHz));
     var quietSince=0,gateStart=performance.now(),HOLD=1500,MAXWAIT=15000;
     pcGateCancel=function(){try{cancelAnimationFrame(pcGateRAF);}catch(e){}try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}try{ctx.close();}catch(e){}pcGating=false;if(meter)meter.style.display='none';};
     function loop(){
       an.getByteFrequencyData(freq);var vs=[];for(var i=i0;i<freq.length;i++)vs.push(freq[i]);vs.sort(function(a,b){return b-a;});var kk=Math.min(8,vs.length),ns=0;for(var j=0;j<kk;j++)ns+=vs[j];var noise=kk?ns/kk:0;
+      var sLo=0,sAll=1e-6;for(var b=1;b<freq.length;b++){sAll+=freq[b];if(b<=loIdx)sLo+=freq[b];}var contact=sLo/sAll;
       pcDrawNoise(noise,pcNoiseThresh);
       var now=performance.now(),forced=(now-gateStart)>MAXWAIT;
-      if(noise<pcNoiseThresh){if(!quietSince)quietSince=now;var held=now-quietSince;
-        pcNoiseLabel('Quiet ✓ — hold still, starting in '+Math.max(0,Math.ceil((HOLD-held)/1000))+'s','#2FBF8F');
+      var quiet=noise<pcNoiseThresh, touch=contact>=pcContactThresh;
+      if(quiet&&touch){if(!quietSince)quietSince=now;var held=now-quietSince;
+        pcNoiseLabel('Good contact ✓ — hold still, starting in '+Math.max(0,Math.ceil((HOLD-held)/1000))+'s','#2FBF8F');
         if(held>=HOLD){cpBeepStart();setTimeout(function(){pcGateArmDone(stream,ctx,src,an,meter,false);},1200);return;}
-      }else{quietSince=0;pcNoiseLabel('Too noisy — move away from fans/voices, quieten the room','#ff6b6b');}
+      }else{quietSince=0;
+        if(!quiet)pcNoiseLabel('Too noisy — move away from fans/voices, quieten the room','#ff6b6b');
+        else pcNoiseLabel('Poor contact — press the phone bottom edge firmly on bare skin','#ffb020');}
       if(forced){cpBeepStart();setTimeout(function(){pcGateArmDone(stream,ctx,src,an,meter,true);},1200);return;}
       pcGateRAF=requestAnimationFrame(loop);
     }
@@ -891,7 +899,8 @@ async function pcRunMurmur(s,fs){
     var present=(j.murmur==='present'),timing=j.timing||[];
     if(present){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing.length?' — '+timing.join(' + '):'');el.style.color='var(--bad)';}
     else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
-    if(sub){sub.style.display='block';sub.textContent=present?('Murmur '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · screening only');}
+    if(sub){sub.style.display='block';sub.textContent=(present?('Murmur '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · ☁ cloud AI · screening only'):('Murmur probability '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · ☁ cloud AI · screening only'))+cpPosNote('murmur','heart murmur',present);}
+    cpSetR('murmur',{title:'Murmur (CirCor AI)',lines:['Result: '+(present?'MURMUR PRESENT'+(timing.length?' ('+timing.join(', ')+')':''):'No murmur detected'),'Murmur probability: '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%)']});
     if(pcLastResult){pcLastResult.murmur=present?'present':'absent';pcLastResult.murmur_p=pm.toFixed(3);pcLastResult.systolic_p=ps.toFixed(3);pcLastResult.diastolic_p=pd.toFixed(3);}
     return;
   }
@@ -907,7 +916,8 @@ async function pcRunMurmur(s,fs){
     if(present2){if(ps2>=0.5)timing2.push('systolic');if(pd2>=0.5)timing2.push('diastolic');}
     if(present2){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing2.length?' — '+timing2.join(' + '):'');el.style.color='var(--bad)';}
     else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
-    if(sub){sub.style.display='block';sub.textContent=present2?('Murmur '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · systolic '+(ps2*100).toFixed(0)+'% · diastolic '+(pd2*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · screening only');}
+    if(sub){sub.style.display='block';sub.textContent=(present2?('Murmur '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · systolic '+(ps2*100).toFixed(0)+'% · diastolic '+(pd2*100).toFixed(0)+'% · 📱 on-device · screening only'):('Murmur probability '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · 📱 on-device · screening only'))+cpPosNote('murmur','heart murmur',present2);}
+    cpSetR('murmur',{title:'Murmur (CirCor AI)',lines:['Result: '+(present2?'MURMUR PRESENT'+(timing2.length?' ('+timing2.join(', ')+')':''):'No murmur detected'),'Murmur probability: '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%)']});
     if(pcLastResult){pcLastResult.murmur=present2?'present':'absent';pcLastResult.murmur_p=pm2.toFixed(3);pcLastResult.systolic_p=ps2.toFixed(3);pcLastResult.diastolic_p=pd2.toFixed(3);}
   }catch(e){console.error(e);el.textContent='🫀 Murmur AI: error';el.style.color='var(--mut)';}
 }
@@ -933,7 +943,8 @@ async function pcMLScreen(s,fs,pcRow){
     var pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
-    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  '+(usedCloud?'☁ cloud AI':'📱 on-device')+'  ·  screening only';
+    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  '+(usedCloud?'☁ cloud AI':'📱 on-device')+'  ·  screening only'+cpPosNote('cinc','abnormal heart sound',pos);
+    cpSetR('cardio',{title:'Heart sound (CardioScope)',lines:['Result: '+(pos?'SCREEN POSITIVE':'Screen negative'),'Abnormal-sound probability: '+(p*100).toFixed(0)+'% (threshold '+(PC_THR*100).toFixed(0)+'%)','Heart rate: '+((pcLastResult&&pcLastResult.bpm)?pcLastResult.bpm+' bpm':'—')+' · Rhythm: '+((pcLastResult&&pcLastResult.rhythm)||'—')+' · Quality: '+((pcLastResult&&pcLastResult.quality)||'—')]});
     if(pcRow)pcRow.ai=p.toFixed(3);
     pcUploadSafe(pos?'screen_positive':'screen_negative',p,q,s,fs,sub);
     pcRunMurmur(s,fs);
@@ -1105,7 +1116,9 @@ async function lgScreen(s,fs,zone){
     lgState[zone].p=pr;lgState[zone].status='done';
     lgUpdate();lgRenderMap();lgRenderGrid();
     lgUploadSafe(zone,pr>=LG_THR?'abnormal':'normal',pr,s,fs);
-    lgSt(zone+' done ('+(pr*100).toFixed(0)+'%, '+((lj&&lj.prob!=null)?'☁ cloud AI':'📱 on-device')+'). Tap the next point, or read the result below.');
+    var lpos=pr>=LG_THR;
+    lgSt(zone+' done ('+(pr*100).toFixed(0)+'%, '+((lj&&lj.prob!=null)?'☁ cloud AI':'📱 on-device')+').'+cpPosNote('lung_'+zone,'abnormal lung sound ('+zone+')',lpos));
+    cpSetR('lung',{title:'Lung sound (PulmoScope)',lines:[zone+': '+(lpos?'ABNORMAL':'normal')+' ('+(pr*100).toFixed(0)+'%, threshold '+(LG_THR*100).toFixed(0)+'%)']});
   }catch(e){console.error(e);lgSt('Error processing '+zone+'.');lgUploadSafe(zone,'processing_error',null,s,fs);}
 }
 async function lgUploadSafe(zone,verdict,prob,s,fs){
@@ -1200,6 +1213,98 @@ async function loadThresholds(){
 }
 loadThresholds();
 applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';}catch(e){return 'en';}})());
+
+/* ===== report store + positive-retest + PDF ===== */
+var cpReport={};
+function cpSetR(k,v){cpReport[k]=v;}
+function cpPositive(cond,isPos){
+  var pid=($('pid')?$('pid').value:'')||'anon';var key='cp_pos_'+pid+'_'+cond;var n=0;
+  try{n=parseInt(localStorage.getItem(key)||'0');}catch(e){}
+  n=isPos?n+1:0;try{localStorage.setItem(key,n);}catch(e){}return n;
+}
+function cpShowDoc(label){
+  var b=document.getElementById('cpDoc');
+  if(!b){b=document.createElement('div');b.id='cpDoc';b.className='cpdoc';document.body.appendChild(b);}
+  b.innerHTML='<div style="font-size:16px;font-weight:800;margin-bottom:6px">⚠ Screened positive 3 times — '+label+'</div><div style="font-size:13px;line-height:1.4">Please visit the nearest doctor or health centre soon. This app is a screening aid, not a diagnosis.</div><button onclick="document.getElementById(\'cpDoc\').style.display=\'none\'" style="margin-top:8px;padding:8px 16px;border-radius:10px;background:#fff;color:#7a0012;font-weight:700;border:none">OK</button>';
+  b.style.display='block';
+}
+function cpPosNote(cond,label,isPos){
+  var n=cpPositive(cond,isPos);
+  if(!isPos)return '';
+  if(n>=3){cpShowDoc(label);return '  ·  ⚠ POSITIVE 3× — SEE A DOCTOR';}
+  return '  ·  ⚠ positive ('+n+'/3) — re-take in a few minutes to confirm';
+}
+function cpMakePDF(){
+  try{
+    var J=(window.jspdf&&window.jspdf.jsPDF);if(!J){alert('PDF engine still loading — try again in a moment.');return;}
+    var d=new J(),y=16,pid=($('pid')?$('pid').value:'')||'—';
+    var age=($('age')?$('age').value:'')||'—',sex=($('sex')?$('sex').value:'')||'—';
+    d.setFontSize(18);d.setTextColor(20,60,120);d.text('CardioPulmo — Screening Report',14,y);y+=8;
+    d.setFontSize(10);d.setTextColor(90,90,90);
+    d.text('Patient ID: '+pid+'    Age: '+age+'    Sex: '+sex,14,y);y+=5;
+    d.text('Date: '+new Date().toLocaleString(),14,y);y+=8;
+    d.setDrawColor(200);d.line(14,y,196,y);y+=8;
+    var sm=cpBuildSummary();
+    d.setFontSize(13);d.setTextColor(124,92,255);d.text('Screening Summary',14,y);y+=7;
+    d.setFontSize(11);d.setTextColor(30,30,30);
+    d.text('Cardiac concern: '+sm.cardiac+'      Respiratory concern: '+sm.respiratory,14,y);y+=6;
+    d.text('Recording quality: '+sm.quality,14,y);y+=6;
+    d.setTextColor(20,60,120);d.text('Next action: '+sm.next,14,y);y+=8;
+    d.setDrawColor(220);d.line(14,y,196,y);y+=8;
+    var keys=Object.keys(cpReport);
+    if(!keys.length){d.setTextColor(120,120,120);d.text('No tests completed yet. Run Cardio / Pulmo / Rhythm first.',14,y);}
+    keys.forEach(function(k){
+      var r=cpReport[k];
+      d.setFontSize(12);d.setTextColor(20,60,120);d.text(r.title,14,y);y+=6;
+      d.setFontSize(10);d.setTextColor(30,30,30);
+      (r.lines||[]).forEach(function(ln){d.text('•  '+ln,18,y);y+=5;if(y>270){d.addPage();y=16;}});
+      y+=4;if(y>270){d.addPage();y=16;}
+    });
+    d.setFontSize(8);d.setTextColor(140,140,140);
+    d.text('Screening aid only — not a diagnosis. Confirm all positives with a clinician.',14,288);
+    d.save('CardioPulmo_report_'+pid+'.pdf');
+  }catch(e){alert('Could not build PDF: '+e.message);}
+}
+(function(){var b=document.createElement('button');b.id='cpRepBtn';b.textContent='📄 Report';b.onclick=cpMakePDF;
+  b.style.cssText='position:fixed;right:14px;bottom:88px;z-index:50;padding:10px 16px;border-radius:999px;background:linear-gradient(135deg,#6FD3FF,#4CC9F0);color:#04121f;font-weight:800;border:none;box-shadow:0 4px 14px rgba(76,201,240,.4);cursor:pointer';
+  document.body.appendChild(b);
+  var s=document.createElement('button');s.id='cpSumBtn';s.textContent='🩺 Summary';s.onclick=cpShowSummary;
+  s.style.cssText='position:fixed;right:14px;bottom:140px;z-index:50;padding:10px 16px;border-radius:999px;background:linear-gradient(135deg,#a78bfa,#7c5cff);color:#fff;font-weight:800;border:none;box-shadow:0 4px 14px rgba(124,92,255,.4);cursor:pointer';
+  document.body.appendChild(s);})();
+
+function cpBuildSummary(){
+  var R=cpReport;
+  function has(k,w){return R[k]&&R[k].lines&&R[k].lines.join(' ').toUpperCase().indexOf(w)>=0;}
+  var cardPos=has('cardio','SCREEN POSITIVE')||has('murmur','MURMUR PRESENT')||has('rhythm','IRREGULAR');
+  var respPos=has('lung','ABNORMAL');
+  var cardTested=!!(R.cardio||R.murmur||R.rhythm), respTested=!!R.lung;
+  var poorQ=has('cardio','POOR')||has('cardio','LOW')||has('lung','POOR');
+  var cardiac=!cardTested?'Not tested':(cardPos?'High':(poorQ?'Moderate':'Low'));
+  var resp=!respTested?'Not tested':(respPos?'High':'Low');
+  var next;
+  if(cardiac==='High'||resp==='High')next='Medical review advised — show this report to a doctor.';
+  else if(cardiac==='Moderate')next='Recording quality low — re-take, then review.';
+  else if(cardTested||respTested)next='Low screening concern today. Routine follow-up.';
+  else next='No tests completed yet — run Cardio / Pulmo / Rhythm.';
+  return {cardiac:cardiac,respiratory:resp,quality:poorQ?'Repeat recommended':'Adequate',next:next};
+}
+function cpConcCol(v){return v==='High'?'#ff5470':v==='Moderate'?'#ffb020':v==='Low'?'#2FBF8F':'#8b98a5';}
+function cpShowSummary(){
+  var sm=cpBuildSummary();var pid=($('pid')?$('pid').value:'')||'—';
+  var o=document.getElementById('cpSumOvl');
+  if(!o){o=document.createElement('div');o.id='cpSumOvl';o.className='cpsumovl';document.body.appendChild(o);}
+  o.innerHTML='<div class="cpsumcard">'
+    +'<div style="font-family:var(--font-disp);font-weight:800;font-size:17px;color:var(--acc);margin-bottom:2px">Screening Summary</div>'
+    +'<div class="note" style="margin-bottom:12px">Patient '+pid+' · '+new Date().toLocaleString()+'</div>'
+    +'<div class="cpsumrow"><span>Cardiac concern</span><b style="color:'+cpConcCol(sm.cardiac)+'">'+sm.cardiac+'</b></div>'
+    +'<div class="cpsumrow"><span>Respiratory concern</span><b style="color:'+cpConcCol(sm.respiratory)+'">'+sm.respiratory+'</b></div>'
+    +'<div class="cpsumrow"><span>Recording quality</span><b>'+sm.quality+'</b></div>'
+    +'<div style="margin-top:12px;padding:12px;border-radius:12px;background:rgba(76,201,240,.1);border:1px solid rgba(111,211,255,.25)"><div style="font-weight:700;color:var(--acc);font-size:13px;margin-bottom:4px">Next action</div><div style="font-size:13px;line-height:1.4">'+sm.next+'</div></div>'
+    +'<div class="note" style="margin-top:10px;font-size:11px">Screening aid only — not a diagnosis. Confirm all concerns with a clinician.</div>'
+    +'<button onclick="document.getElementById(\'cpSumOvl\').style.display=\'none\'" style="width:100%;margin-top:12px;padding:11px;border-radius:12px;background:linear-gradient(135deg,#6FD3FF,#4CC9F0);color:#04121f;font-weight:800;border:none">Close</button>'
+    +'</div>';
+  o.style.display='flex';
+}
 csTab('c');
 topTab('home');
 
