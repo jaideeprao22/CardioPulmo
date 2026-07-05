@@ -744,7 +744,7 @@ function pcAnalyze(s,fs){
       pcLastResult.timing_flag=_flag?'outside healthy range':'within healthy range';
       _tr.style.display='block';
       _tr.innerHTML='Systolic interval (S1\u2013S2): <b>'+Math.round(_sy.s1s2)+' ms</b> \u00b7 rate-corrected '+Math.round(_corr)+' ms \u00b7 '+(_flag?'<b style="color:var(--warn)">outside healthy range (270\u2013337 ms) \u2014 clinical correlation advised</b>':'<b style="color:var(--ok)">within healthy range</b>');
-    } else if(_tr){_tr.style.display='none';if(pcLastResult){pcLastResult.s1s2=null;}}
+    } else if(_tr){_tr.style.display='block';if(pcLastResult){pcLastResult.s1s2=null;}_tr.innerHTML='Systolic interval (S1\u2013S2): <b>not measured</b> \u2014 beats unclear, re-record in a quieter room with firmer contact <span style="color:var(--mut)">(needs a clear heart rate first)</span>';}
   }catch(e){}
   pcSt('Done. Check the trace looks like clean lub-dub beats before trusting the number.');
   let pcRow=null;
@@ -988,7 +988,7 @@ async function pcMLScreen(s,fs,pcRow){
   }catch(e){console.error(e);el.textContent='🧠 AI screen: error processing audio';el.style.color='var(--mut)';
     pcUploadSafe('processing_error',null,q,s,fs,sub);}
 }
-function pcExtra(base){var L=pcLastResult||{};return Object.assign({bpm:L.bpm,rhythm:L.rhythm,confidence:L.confidence,signal_quality:L.quality,age:L.age,sex:L.sex},base);}
+function pcExtra(base){var L=pcLastResult||{};return Object.assign({bpm:L.bpm,rhythm:L.rhythm,confidence:L.confidence,signal_quality:L.quality,s1s2:L.s1s2,s1s2_corr:L.s1s2_corr,timing_flag:L.timing_flag,age:L.age,sex:L.sex},base);}
 async function pcUploadSafe(verdict,prob,q,s,fs,subEl){
   const r=await uploadRecording('cardioscope','apex_raw',makeSmallWavNorm(s,fs,PC_SR2),prob,verdict,pcExtra({band:'raw',ratioLow:q.ratioLow}));
   if(!r.ok&&subEl)subEl.textContent+=' · ⚠ raw not saved — '+r.reason;
@@ -1253,7 +1253,7 @@ applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';
 
 /* ===== report store + positive-retest + PDF ===== */
 var cpReport={};
-function cpSetR(k,v){cpReport[k]=v;if(typeof cpShowResultBar==='function')cpShowResultBar();}
+function cpSetR(k,v){cpReport[k]=v;var _c={cardio:'pcResCard',murmur:'pcResCard',rhythm:'csResCard',lung:'lgResCard'}[k];if(typeof cpShowResultBar==='function')cpShowResultBar(_c);}
 function cpPositive(cond,isPos){
   var pid=($('pid')?$('pid').value:'')||'anon';var key='cp_pos_'+pid+'_'+cond;var n=0;
   try{n=parseInt(localStorage.getItem(key)||'0');}catch(e){}
@@ -1302,15 +1302,15 @@ function cpMakePDF(){
     d.save('CardioPulmo_report_'+pid+'.pdf');
   }catch(e){alert('Could not build PDF: '+e.message);}
 }
-/* Summary + Report — hidden until a test produces a result; shown as a bottom bar on the result screen only */
+/* Summary + Report — hidden until a test completes; then shown IN-FLOW at the bottom of that result card (not floating) */
 (function(){var bar=document.createElement('div');bar.id='cpResultBar';
-  bar.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:78px;z-index:50;display:none;gap:10px;justify-content:center';
+  bar.style.cssText='display:none;gap:10px;justify-content:center;flex-wrap:wrap;margin:16px 0 2px';
   var s=document.createElement('button');s.id='cpSumBtn';s.textContent='🩺 Summary';s.onclick=cpShowSummary;
   s.style.cssText='padding:10px 18px;border-radius:999px;background:linear-gradient(135deg,#a78bfa,#7c5cff);color:#fff;font-weight:800;border:none;box-shadow:0 4px 14px rgba(124,92,255,.4);cursor:pointer';
   var b=document.createElement('button');b.id='cpRepBtn';b.textContent='📄 Report';b.onclick=cpMakePDF;
   b.style.cssText='padding:10px 18px;border-radius:999px;background:linear-gradient(135deg,#6FD3FF,#4CC9F0);color:#04121f;font-weight:800;border:none;box-shadow:0 4px 14px rgba(76,201,240,.4);cursor:pointer';
-  bar.appendChild(s);bar.appendChild(b);document.body.appendChild(bar);})();
-function cpShowResultBar(){var b=document.getElementById('cpResultBar');if(b)b.style.display='flex';}
+  bar.appendChild(s);bar.appendChild(b);})();
+function cpShowResultBar(cardId){var bar=document.getElementById('cpResultBar');if(!bar)return;var card=cardId&&document.getElementById(cardId);if(card){card.appendChild(bar);}bar.style.display='flex';}
 function cpHideResultBar(){var b=document.getElementById('cpResultBar');if(b)b.style.display='none';}
 
 function cpBuildSummary(){
@@ -1374,21 +1374,36 @@ async function cpLoadMine(){
   if(!sb||!sbUser){if($('myRecCard'))$('myRecCard').style.display='none';return;}
   if($('myRecCard'))$('myRecCard').style.display='block';
   var body=$('myRecBody');if(!body)return;
+  body.innerHTML='<span class="note">Loading…</span>';
   try{
     const {data}=await sb.from('recordings').select('*').eq('user_id',sbUser.id).order('created_at',{ascending:false});
     var rows=data||[];
-    if(!rows.length){body.innerHTML='<span class="note">No recordings yet. Record from Cardio or Pulmo.</span>';return;}
-    var h='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--mut)"><th style="text-align:left;padding:6px">Date</th><th style="text-align:left;padding:6px">Module</th><th style="text-align:left;padding:6px">Zone</th><th style="text-align:left;padding:6px">BPM</th><th style="text-align:left;padding:6px">Verdict</th><th style="padding:6px"></th></tr>';
-    rows.forEach(function(r){var ex=r.extra||{};if(typeof ex==='string'){try{ex=JSON.parse(ex);}catch(e){ex={};}}
-      h+='<tr><td style="padding:6px">'+new Date(r.created_at).toLocaleString()+'</td><td style="padding:6px">'+(r.module||'')+'</td><td style="padding:6px">'+(r.zone||'')+'</td><td style="padding:6px">'+(ex.bpm!=null?ex.bpm:'')+'</td><td style="padding:6px">'+(r.verdict||'')+'</td><td style="padding:6px;white-space:nowrap" data-id="'+r.id+'" data-path="'+(r.audio_path||'')+'"></td></tr>';
+    if(!rows.length){body.innerHTML='<span class="note">No recordings yet. Record from Cardio or Pulmo and everything will appear here.</span>';return;}
+    rows.forEach(function(r){var ex=r.extra;if(typeof ex==='string'){try{ex=JSON.parse(ex);}catch(e){ex={};}}r._ex=ex||{};});
+    var nTot=rows.length;
+    var nHeart=rows.filter(function(r){return (r.module||'').indexOf('cardio')>=0;}).length;
+    var nLung=rows.filter(function(r){return (r.module||'').indexOf('lung')>=0||(r.module||'').indexOf('pulmo')>=0;}).length;
+    var nFlag=rows.filter(function(r){var v=(r.verdict||'').toLowerCase();return v.indexOf('positive')>=0||v.indexOf('abnormal')>=0||(r._ex.timing_flag&&r._ex.timing_flag.indexOf('outside')>=0);}).length;
+    var stat=function(n,l,c){return '<div style="flex:1;min-width:66px;background:rgba(76,201,240,.08);border:1px solid rgba(111,211,255,.2);border-radius:12px;padding:10px 6px;text-align:center"><div style="font-family:var(--font-disp);font-weight:800;font-size:20px;color:'+c+'">'+n+'</div><div class="note" style="font-size:11px">'+l+'</div></div>';};
+    var h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'+stat(nTot,'Recordings','var(--acc)')+stat(nHeart,'Heart','#6FD3FF')+stat(nLung,'Lung','#a78bfa')+stat(nFlag,'Flagged',nFlag?'#ff5470':'#2FBF8F')+'</div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button onclick="cpShowSummary()" style="flex:1;min-width:120px;padding:10px;border-radius:12px;background:linear-gradient(135deg,#a78bfa,#7c5cff);color:#fff;font-weight:800;border:none;cursor:pointer">🩺 Summary</button><button onclick="cpMakePDF()" style="flex:1;min-width:120px;padding:10px;border-radius:12px;background:linear-gradient(135deg,#6FD3FF,#4CC9F0);color:#04121f;font-weight:800;border:none;cursor:pointer">📄 Report</button></div>';
+    var groups={};rows.forEach(function(r){var d=new Date(r.created_at).toLocaleDateString();(groups[d]=groups[d]||[]).push(r);});
+    Object.keys(groups).forEach(function(d){
+      h+='<div class="ct" style="margin:10px 0 4px;color:var(--acc);font-size:13px">'+d+'</div>';
+      h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="color:var(--mut)"><th style="text-align:left;padding:6px">Time</th><th style="text-align:left;padding:6px">Test</th><th style="text-align:left;padding:6px">Result</th><th style="text-align:left;padding:6px">BPM</th><th style="text-align:left;padding:6px">S1-S2</th><th style="padding:6px"></th></tr>';
+      groups[d].forEach(function(r){
+        var mod=(r.module||'').indexOf('cardio')>=0?'Heart':((r.module||'').indexOf('lung')>=0?'Lung':(r.module||''));
+        var s12=r._ex.s1s2!=null?(r._ex.s1s2+' ms'+((r._ex.timing_flag&&r._ex.timing_flag.indexOf('outside')>=0)?' ⚠':'')):'—';
+        h+='<tr><td style="padding:6px">'+new Date(r.created_at).toLocaleTimeString()+'</td><td style="padding:6px">'+mod+(r.zone?' ('+r.zone+')':'')+'</td><td style="padding:6px">'+(r.verdict||'')+'</td><td style="padding:6px">'+(r._ex.bpm!=null?r._ex.bpm:'—')+'</td><td style="padding:6px">'+s12+'</td><td style="padding:6px;white-space:nowrap" data-id="'+r.id+'" data-path="'+(r.audio_path||'')+'"></td></tr>';
+      });
+      h+='</table></div>';
     });
-    h+='</table></div>';body.innerHTML=h;
+    body.innerHTML=h;
     body.querySelectorAll('td[data-id]').forEach(function(td){
-      var path=td.getAttribute('data-path'),id=td.getAttribute('data-id');
-      if(path){var pb=document.createElement('button');pb.className='sbtn';pb.textContent='▶';pb.style.marginRight='6px';pb.onclick=function(){cpPlayMine(path,pb);};td.appendChild(pb);}
-      /* user delete temporarily disabled */
+      var path=td.getAttribute('data-path');
+      if(path){var pb=document.createElement('button');pb.className='sbtn';pb.textContent='▶';pb.onclick=function(){cpPlayMine(path,pb);};td.appendChild(pb);}
     });
-  }catch(e){body.innerHTML='<span class="note">Could not load your recordings.</span>';}
+  }catch(e){body.innerHTML='<span class="note">Could not load your dashboard.</span>';}
 }
 async function cpPlayMine(path,btn){
   var old=btn.textContent;btn.textContent='…';
