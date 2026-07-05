@@ -133,7 +133,7 @@ function quietGate(cfg){
     var freq=new Uint8Array(an.frequencyBinCount),binHz=ctx.sampleRate/an.fftSize,i0=Math.max(1,Math.floor(500/binHz));
     var quietSince=0,gateStart=performance.now(),HOLD=1500,MAXWAIT=15000,raf=null;
     cfg.setCancel(function(){try{cancelAnimationFrame(raf);}catch(e){}try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}try{ctx.close();}catch(e){}cfg.setGating(false);if(meter)meter.style.display='none';});
-    function done(noisy){try{cancelAnimationFrame(raf);}catch(e){}cfg.setGating(false);cfg.setCancel(null);try{an.disconnect();}catch(e){}if(meter)meter.style.display='none';cpBeepStart();setTimeout(function(){cfg.onReady(stream,ctx,src,noisy);},700);}
+    function done(noisy){try{cancelAnimationFrame(raf);}catch(e){}cfg.setGating(false);cfg.setCancel(null);try{an.disconnect();}catch(e){}if(meter)meter.style.display='none';cpBeepStart();setTimeout(function(){cfg.onReady(stream,ctx,src,noisy);},1200);}
     function loop(){
       an.getByteFrequencyData(freq);var vs=[];for(var i=i0;i<freq.length;i++)vs.push(freq[i]);vs.sort(function(a,b){return b-a;});var kk=Math.min(8,vs.length),ns=0;for(var j=0;j<kk;j++)ns+=vs[j];var noise=kk?ns/kk:0;
       genDrawNoise(cfg.canvasId,noise,pcNoiseThresh);
@@ -171,7 +171,7 @@ function pkBeginRecording(s_,c_,src_,noisy){
   timer=setInterval(function(){tLeft--;st('● Recording '+selected+'… tap 5–6× ('+tLeft+'s)');if(tLeft<=0)stopRec();},1000);
 }
 $('stopBtn').onclick=function(){if(pkGating&&pkCancel){pkCancel();$('stopBtn').disabled=true;$('recBtn').style.display='';$('recBtn').disabled=false;st('Cancelled — tap a zone and record again.');return;}stopRec();};
-function stopRec(){setTimeout(cpBeepDone,250);
+function stopRec(){setTimeout(cpBeepDone,350);
   clearInterval(timer);try{proc.disconnect();}catch(e){}
   stream.getTracks().forEach(t=>t.stop());$('stopBtn').disabled=true;$('recBtn').style.display='';$('recBtn').disabled=false;st('Analysing…');
   let n=0;buf.forEach(b=>n+=b.length);
@@ -398,7 +398,7 @@ function elBeginRecording(side,s_,c_,src_,noisy){
   eLeft=15;est(lead+'('+eLeft+'s)');
   eTimer=setInterval(function(){eLeft--;est('● Recording '+side+' lung… ('+eLeft+'s)');if(eLeft<=0)eStop();},1000);
 }
-function eStop(){setTimeout(cpBeepDone,250);
+function eStop(){setTimeout(cpBeepDone,350);
   clearInterval(eTimer);try{eProc.disconnect();}catch(e){}
   if(eStream)eStream.getTracks().forEach(t=>t.stop());
   $('eRec').style.display='';$('eRec').disabled=false;
@@ -645,9 +645,9 @@ function pcStartQuietGate(){
       var now=performance.now(),forced=(now-gateStart)>MAXWAIT;
       if(noise<pcNoiseThresh){if(!quietSince)quietSince=now;var held=now-quietSince;
         pcNoiseLabel('Quiet ✓ — hold still, starting in '+Math.max(0,Math.ceil((HOLD-held)/1000))+'s','#2FBF8F');
-        if(held>=HOLD){cpBeepStart();setTimeout(function(){pcGateArmDone(stream,ctx,src,an,meter,false);},700);return;}
+        if(held>=HOLD){cpBeepStart();setTimeout(function(){pcGateArmDone(stream,ctx,src,an,meter,false);},1200);return;}
       }else{quietSince=0;pcNoiseLabel('Too noisy — move away from fans/voices, quieten the room','#ff6b6b');}
-      if(forced){cpBeepStart();setTimeout(function(){pcGateArmDone(stream,ctx,src,an,meter,true);},700);return;}
+      if(forced){cpBeepStart();setTimeout(function(){pcGateArmDone(stream,ctx,src,an,meter,true);},1200);return;}
       pcGateRAF=requestAnimationFrame(loop);
     }
     loop();
@@ -672,7 +672,7 @@ function pcBeginRecording(stream,ctx,src,noisy){
 }
 $('pcRec').onclick=pcStartQuietGate;
 $('pcStop').onclick=function(){if(pcGating&&pcGateCancel){pcGateCancel();$('pcStop').disabled=true;$('pcRec').style.display='';$('pcRec').disabled=false;pcDotState='pending';pcRenderDot();pcSt('Cancelled — tap the apex dot to try again.');return;}pcStopRec();};
-function pcStopRec(){setTimeout(cpBeepDone,250);
+function pcStopRec(){setTimeout(cpBeepDone,350);
   clearInterval(pcTimer);try{pcProc.disconnect();}catch(e){}
   if(pcStream)pcStream.getTracks().forEach(t=>t.stop());
   $('pcRec').style.display='';$('pcRec').disabled=false;$('pcStop').disabled=true;pcSt('Analysing…');
@@ -879,8 +879,8 @@ function pcMurmurMel(sig,fs){
   return mel;
 }
 function cpBeep(freq,dur,vol){try{var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();var o=x.createOscillator(),g=x.createGain();o.type='square';o.frequency.value=freq;var t=x.currentTime;g.gain.setValueAtTime(vol,t);g.gain.setValueAtTime(vol,t+dur*0.7);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}
-function cpBeepStart(){cpBeep(1046,0.28,0.55);setTimeout(function(){cpBeep(1318,0.28,0.55);},260);}
-function cpBeepDone(){cpBeep(880,0.26,0.55);setTimeout(function(){cpBeep(660,0.36,0.55);},240);}
+function cpBeepStart(){cpBeep(1046,0.28,0.7);setTimeout(function(){cpBeep(1318,0.28,0.7);},260);}
+function cpBeepDone(){cpBeep(880,0.26,0.7);setTimeout(function(){cpBeep(660,0.36,0.7);},240);}
 async function cpCloud(ep,wavBlob){try{var fd=new FormData();fd.append('file',wavBlob,'rec.wav');var ac=new AbortController();var to=setTimeout(function(){ac.abort();},20000);var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/'+ep,{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
 async function pcRunMurmur(s,fs){
   var el=$('pcMurmur'),sub=$('pcMurmurSub');if(!el)return;
@@ -1057,9 +1057,9 @@ function lgStartQuietGate(){
       var now=performance.now(),forced=(now-gateStart)>MAXWAIT;
       if(noise<pcNoiseThresh){if(!quietSince)quietSince=now;var held=now-quietSince;
         lgNoiseLabel('Quiet ✓ — breathe deep, starting in '+Math.max(0,Math.ceil((HOLD-held)/1000))+'s','#2FBF8F');
-        if(held>=HOLD){cpBeepStart();setTimeout(function(){lgGateArmDone(stream,ctx,src,an,meter,false);},700);return;}
+        if(held>=HOLD){cpBeepStart();setTimeout(function(){lgGateArmDone(stream,ctx,src,an,meter,false);},1200);return;}
       }else{quietSince=0;lgNoiseLabel('Too noisy — move away from fans/voices, quieten the room','#ff6b6b');}
-      if(forced){cpBeepStart();setTimeout(function(){lgGateArmDone(stream,ctx,src,an,meter,true);},700);return;}
+      if(forced){cpBeepStart();setTimeout(function(){lgGateArmDone(stream,ctx,src,an,meter,true);},1200);return;}
       lgGateRAF=requestAnimationFrame(loop);
     }
     loop();
@@ -1083,7 +1083,7 @@ function lgBeginRecording(stream,ctx,src,noisy){
 }
 $('lgRec').onclick=lgStartQuietGate;
 $('lgStop').onclick=function(){if(lgGating&&lgGateCancel){lgGateCancel();$('lgStop').disabled=true;$('lgRec').style.display='';$('lgRec').disabled=false;lgSt('Cancelled — tap a point and record again.');return;}lgStopRec();};
-function lgStopRec(){setTimeout(cpBeepDone,250);
+function lgStopRec(){setTimeout(cpBeepDone,350);
   clearInterval(lgTimer);try{lgProc.disconnect();}catch(e){}
   if(lgStream)lgStream.getTracks().forEach(t=>t.stop());
   $('lgStop').disabled=true;$('lgRec').style.display='';$('lgRec').disabled=false;lgSt('Analysing '+lgSel+'\u2026');
