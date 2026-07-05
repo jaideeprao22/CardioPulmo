@@ -160,6 +160,7 @@ $('recBtn').onclick=function(){
     onReady:function(s_,c_,src_,noisy){pkBeginRecording(s_,c_,src_,noisy);}});
 };
 function pkBeginRecording(s_,c_,src_,noisy){
+  cpBeepStart();
   stream=s_;ctx=c_;fs=c_.sampleRate;buf=[];
   proc=c_.createScriptProcessor(4096,1,1);zg=c_.createGain();zg.gain.value=0;
   proc.onaudioprocess=function(e){buf.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
@@ -171,7 +172,7 @@ function pkBeginRecording(s_,c_,src_,noisy){
   timer=setInterval(function(){tLeft--;st('● Recording '+selected+'… tap 5–6× ('+tLeft+'s)');if(tLeft<=0)stopRec();},1000);
 }
 $('stopBtn').onclick=function(){if(pkGating&&pkCancel){pkCancel();$('stopBtn').disabled=true;$('recBtn').style.display='';$('recBtn').disabled=false;st('Cancelled — tap a zone and record again.');return;}stopRec();};
-function stopRec(){
+function stopRec(){cpBeepDone();
   clearInterval(timer);try{proc.disconnect();}catch(e){}
   stream.getTracks().forEach(t=>t.stop());$('stopBtn').disabled=true;$('recBtn').style.display='';$('recBtn').disabled=false;st('Analysing…');
   let n=0;buf.forEach(b=>n+=b.length);
@@ -387,6 +388,7 @@ $('eRec').onclick=function(){
     onReady:function(s_,c_,src_,noisy){elBeginRecording(side,s_,c_,src_,noisy);}});
 };
 function elBeginRecording(side,s_,c_,src_,noisy){
+  cpBeepStart();
   eSide=side;eStream=s_;eCtx=c_;eFs=c_.sampleRate;eBuf=[];
   eProc=c_.createScriptProcessor(4096,1,1);eZg=c_.createGain();eZg.gain.value=0;
   eProc.onaudioprocess=function(ev){eBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
@@ -398,7 +400,7 @@ function elBeginRecording(side,s_,c_,src_,noisy){
   eLeft=15;est(lead+'('+eLeft+'s)');
   eTimer=setInterval(function(){eLeft--;est('● Recording '+side+' lung… ('+eLeft+'s)');if(eLeft<=0)eStop();},1000);
 }
-function eStop(){
+function eStop(){cpBeepDone();
   clearInterval(eTimer);try{eProc.disconnect();}catch(e){}
   if(eStream)eStream.getTracks().forEach(t=>t.stop());
   $('eRec').style.display='';$('eRec').disabled=false;
@@ -480,17 +482,23 @@ $('csRec').onclick=async()=>{
   try{if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
     const p=await DeviceMotionEvent.requestPermission();if(p!=='granted'){csSt('Motion access denied — enable Motion & Orientation in Settings, reload.');return;}}}catch(e){}
   if(typeof DeviceMotionEvent==='undefined'){csSt('No motion sensor exposed by this browser — use the native app for rhythm.');return;}
-  csMag=[];csT=[];csRun=true;csT0=performance.now();
+  csMag=[];csT=[];csRun=false;csT0=performance.now();
   try{if(navigator.wakeLock)csWake=await navigator.wakeLock.request('screen');}catch(e){csWake=null;}
   $('csRec').disabled=true;$('csStop').disabled=false;$('csResCard').style.display='none';
+  var rdy=5;csSt('Place the phone flat on your chest — starting in '+rdy+'s…');
+  var rdyT=setInterval(function(){rdy--;if(rdy>0){csSt('Place the phone flat on your chest — starting in '+rdy+'s…');}else{clearInterval(rdyT);csBeginSCG();}},1000);
+};
+function csBeginSCG(){
+  cpBeepStart();
+  csMag=[];csT=[];csRun=true;csT0=performance.now();
   csHandler=ev=>{if(!csRun)return;let a=ev.acceleration;if(!a||a.x==null)a=ev.accelerationIncludingGravity;if(!a||a.x==null)return;
     csMag.push(Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z));csT.push(performance.now()-csT0);csDrawLive();};
   window.addEventListener('devicemotion',csHandler);
   let left=60;csSt('● Recording… phone flat & still on chest ('+left+'s)');
   csTimer=setInterval(()=>{left--;csSt('● Recording… still ('+left+'s)');if(left<=0)csStopR();},1000);
-  setTimeout(()=>{if(csRun&&csMag.length<20){csSt('No motion data arriving — sensor blocked. Use the native app.');csStopR();}},3000);};
+  setTimeout(()=>{if(csRun&&csMag.length<20){csSt('No motion data arriving — sensor blocked. Use the native app.');csStopR();}},3000);}
 $('csStop').onclick=csStopR;
-function csStopR(){csRun=false;clearInterval(csTimer);
+function csStopR(){cpBeepDone();csRun=false;clearInterval(csTimer);
   if(csHandler)window.removeEventListener('devicemotion',csHandler);
   if(csWake){try{csWake.release();}catch(e){}csWake=null;}
   $('csRec').disabled=false;$('csStop').disabled=true;
@@ -654,6 +662,7 @@ function pcGateArmDone(stream,ctx,src,an,meter,noisy){
   pcBeginRecording(stream,ctx,src,noisy);
 }
 function pcBeginRecording(stream,ctx,src,noisy){
+  cpBeepStart();
   pcStream=stream;pcCtx=ctx;pcSr=ctx.sampleRate;pcBuf=[];
   pcProc=ctx.createScriptProcessor(4096,1,1);pcZg=ctx.createGain();pcZg.gain.value=0;
   pcProc.onaudioprocess=function(ev){pcBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
@@ -666,7 +675,7 @@ function pcBeginRecording(stream,ctx,src,noisy){
 }
 $('pcRec').onclick=pcStartQuietGate;
 $('pcStop').onclick=function(){if(pcGating&&pcGateCancel){pcGateCancel();$('pcStop').disabled=true;$('pcRec').style.display='';$('pcRec').disabled=false;pcDotState='pending';pcRenderDot();pcSt('Cancelled — tap the apex dot to try again.');return;}pcStopRec();};
-function pcStopRec(){
+function pcStopRec(){cpBeepDone();
   clearInterval(pcTimer);try{pcProc.disconnect();}catch(e){}
   if(pcStream)pcStream.getTracks().forEach(t=>t.stop());
   $('pcRec').style.display='';$('pcRec').disabled=false;$('pcStop').disabled=true;pcSt('Analysing…');
@@ -872,10 +881,23 @@ function pcMurmurMel(sig,fs){
   for(let i=0;i<mel.length;i++)mel[i]=(mel[i]-mean)/(sd+1e-9);
   return mel;
 }
+function cpBeep(freq,dur,vol){try{var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();var o=x.createOscillator(),g=x.createGain();o.type='sine';o.frequency.value=freq;var t=x.currentTime;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}
+function cpBeepStart(){cpBeep(880,0.18,0.22);}
+function cpBeepDone(){cpBeep(620,0.14,0.22);setTimeout(function(){cpBeep(990,0.16,0.22);},150);}
 async function cpCloud(ep,wavBlob){try{var fd=new FormData();fd.append('file',wavBlob,'rec.wav');var ac=new AbortController();var to=setTimeout(function(){ac.abort();},20000);var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/'+ep,{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
 async function pcRunMurmur(s,fs){
   var el=$('pcMurmur'),sub=$('pcMurmurSub');if(!el)return;
   el.style.display='block';el.textContent='🫀 Murmur AI: analysing…';el.style.color='var(--mut)';
+  var j=await cpCloud('murmur',makeSmallWav(s,fs,MM_SR));
+  if(j&&j.murmur_prob!=null){
+    var pm=j.murmur_prob,ps=j.systolic_prob,pd=j.diastolic_prob;
+    var present=(j.murmur==='present'),timing=j.timing||[];
+    if(present){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing.length?' — '+timing.join(' + '):'');el.style.color='var(--bad)';}
+    else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
+    if(sub){sub.style.display='block';sub.textContent=present?('Murmur '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · systolic '+(ps*100).toFixed(0)+'% · diastolic '+(pd*100).toFixed(0)+'% · screening only'):('Murmur probability '+(pm*100).toFixed(0)+'% (threshold '+(j.threshold*100).toFixed(0)+'%) · screening only');}
+    if(pcLastResult){pcLastResult.murmur=present?'present':'absent';pcLastResult.murmur_p=pm.toFixed(3);pcLastResult.systolic_p=ps.toFixed(3);pcLastResult.diastolic_p=pd.toFixed(3);}
+    return;
+  }
   var ok=await mmLoad();
   if(!ok){el.textContent='🫀 Murmur AI unavailable — '+mmErr;el.style.color='var(--mut)';return;}
   try{
@@ -907,11 +929,14 @@ async function pcMLScreen(s,fs,pcRow){
     sub.textContent='Model files must sit in the same folder as index.html.';
     pcUploadSafe('model_unavailable',null,q,s,fs,sub);return;}
   try{
-    const p=pcInfer(pcLogMel(pcResample(s,fs,PC_SR2)));
+    await loadThresholds();
+    var cj=await cpCloud('cinc',makeSmallWav(s,fs,PC_SR2));
+    var usedCloud=!!(cj&&cj.prob!=null);
+    const p=usedCloud?cj.prob:pcInfer(pcLogMel(pcResample(s,fs,PC_SR2)));
     var pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
-    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  screening only';
+    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  '+(usedCloud?'☁ cloud AI':'📱 on-device')+'  ·  screening only';
     if(pcRow)pcRow.ai=p.toFixed(3);
     pcUploadSafe(pos?'screen_positive':'screen_negative',p,q,s,fs,sub);
     pcRunMurmur(s,fs);
@@ -1049,6 +1074,7 @@ function lgGateArmDone(stream,ctx,src,an,meter,noisy){
   lgBeginRecording(stream,ctx,src,noisy);
 }
 function lgBeginRecording(stream,ctx,src,noisy){
+  cpBeepStart();
   lgStream=stream;lgCtx=ctx;lgSr=ctx.sampleRate;lgBuf=[];
   lgProc=ctx.createScriptProcessor(4096,1,1);lgZg=ctx.createGain();lgZg.gain.value=0;
   lgProc.onaudioprocess=function(e){lgBuf.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
@@ -1061,7 +1087,7 @@ function lgBeginRecording(stream,ctx,src,noisy){
 }
 $('lgRec').onclick=lgStartQuietGate;
 $('lgStop').onclick=function(){if(lgGating&&lgGateCancel){lgGateCancel();$('lgStop').disabled=true;$('lgRec').style.display='';$('lgRec').disabled=false;lgSt('Cancelled — tap a point and record again.');return;}lgStopRec();};
-function lgStopRec(){
+function lgStopRec(){cpBeepDone();
   clearInterval(lgTimer);try{lgProc.disconnect();}catch(e){}
   if(lgStream)lgStream.getTracks().forEach(t=>t.stop());
   $('lgStop').disabled=true;$('lgRec').style.display='';$('lgRec').disabled=false;lgSt('Analysing '+lgSel+'\u2026');
@@ -1077,11 +1103,13 @@ async function lgScreen(s,fs,zone){
   const ok=await lgLoadModel();
   if(!ok){lgSt('AI model unavailable \u2014 '+lgModelErr);lgUploadSafe(zone,'model_unavailable',null,s,fs);return;}
   try{
-    const pr=lgProbForBuffer(s,fs);
+    await loadThresholds();
+    var lj=await cpCloud('lung',makeSmallWavNorm(s,fs,LG_SR));
+    const pr=(lj&&lj.prob!=null)?lj.prob:lgProbForBuffer(s,fs);
     lgState[zone].p=pr;lgState[zone].status='done';
     lgUpdate();lgRenderMap();lgRenderGrid();
     lgUploadSafe(zone,pr>=LG_THR?'abnormal':'normal',pr,s,fs);
-    lgSt(zone+' done ('+(pr*100).toFixed(0)+'%). Tap the next point, or read the result below.');
+    lgSt(zone+' done ('+(pr*100).toFixed(0)+'%, '+((lj&&lj.prob!=null)?'☁ cloud AI':'📱 on-device')+'). Tap the next point, or read the result below.');
   }catch(e){console.error(e);lgSt('Error processing '+zone+'.');lgUploadSafe(zone,'processing_error',null,s,fs);}
 }
 async function lgUploadSafe(zone,verdict,prob,s,fs){
