@@ -104,7 +104,29 @@
     <div class="tab on" id="psLung" onclick="pulmoSub('lung')" data-te='శబ్దం'>Lung sound</div>
     <div class="tab" id="psPerc" onclick="pulmoSub('perc')" data-te='పెర్కషన్'>Percussion</div>
     <div class="tab" id="psEcho" onclick="pulmoSub('echo')">EchoLat</div>
+    <div class="tab" id="psXray" onclick="pulmoSub('xray')" data-te='TB ఎక్స్‌రే'>TB X-ray</div>
   </div>
+
+  <section class="pane" id="pXray" data-screen-label="PulmoScope · TB X-ray">
+    <div class="wrap">
+      <div class="mkicker">Suite 02 · TB Chest X-ray screen</div>
+      <div style="background:linear-gradient(135deg,rgba(111,211,255,.10),rgba(124,92,255,.08));border:1px solid rgba(111,211,255,.28);border-radius:12px;padding:10px 12px;margin:0 0 12px">
+        <div style="font-weight:800;color:var(--acc);font-size:13px;margin-bottom:5px" data-te='📸 స్పష్టమైన ఫోటో కోసం'>📸 For a clear photo</div>
+        <div class="note" style="font-size:12.5px;line-height:1.6" data-te='• <b>ఛాతీ (PA) ఎక్స్‌రే</b> మాత్రమే — వేరే శరీర భాగాలు కాదు<br>• ఫిల్మ్‌ను <b>లైట్‌బాక్స్ / ప్రకాశవంతమైన స్క్రీన్</b>పై పెట్టండి<br>• ఫిల్మ్ <b>ఫ్రేమ్‌ను నింపేలా</b>, నేరుగా, మెరుపు (glare) లేకుండా<br>• ఇది స్క్రీనింగ్ సహాయం మాత్రమే — నిర్ధారణ కాదు'>• <b>Chest (PA) X-ray only</b> — not other body parts<br>• Place the film on a <b>lightbox / bright screen</b><br>• <b>Fill the frame</b>, keep it straight, avoid glare/reflections<br>• Screening aid only — not a diagnosis</div>
+      </div>
+      <input type="file" id="tbxFile" accept="image/*" style="display:none" onchange="tbxPick(this)">
+      <button class="rec" onclick="document.getElementById('tbxFile').click()" data-te='📁 ఎక్స్‌రే ఫోటో ఎంచుకోండి / తీయండి'>📁 Choose / capture X-ray photo</button>
+      <div id="tbxPrevWrap" style="display:none;margin-top:12px">
+        <img id="tbxImg" style="width:100%;border-radius:10px;background:#000" alt="x-ray">
+        <button class="rec" style="margin-top:10px" onclick="tbxAnalyze()" data-te='🔬 TB కోసం విశ్లేషించండి'>🔬 Analyse for TB</button>
+      </div>
+      <div id="tbxResCard" class="card" style="display:none;margin-top:12px">
+        <div id="tbxResult" style="text-align:center;font-size:16px;font-weight:800"></div>
+        <div id="tbxSub" class="note" style="text-align:center;margin-top:6px"></div>
+      </div>
+      <div class="note" style="margin-top:12px;color:var(--mut);font-size:12px" data-te='ఫోటో సురక్షిత కనెక్షన్ ద్వారా విశ్లేషించబడుతుంది, నిల్వ చేయబడదు. ఈ మోడల్ ప్రజా ఎక్స్‌రే డేటాపై శిక్షణ పొందింది; భారతీయ మెషీన్లపై స్థానిక ధ్రువీకరణ పెండింగ్‌లో ఉంది. పాజిటివ్ ఫలితాన్ని కఫం/NAAT పరీక్షతో నిర్ధారించండి (NTEP).'>The photo is analysed over a secure connection and not stored. This model was trained on public X-ray data; local validation on Indian machines is pending. Confirm any positive with sputum/NAAT testing (NTEP). Screening aid, not a diagnosis.</div>
+    </div>
+  </section>
 
   <!-- ================= HOME ================= -->
   <section class="pane" id="p0" data-screen-label="Home">
@@ -576,6 +598,18 @@
     </div>
 
     <div class="card">
+      <div class="ct" style="color:var(--acc)" data-te='ఛాతీ ఎక్స్‌రే స్క్రీన్ (TB + గుండె)'>Chest X-ray screen (TB + heart)</div>
+      <div class="note" style="margin-top:8px" data-te='ఛాతీ ఎక్స్‌రే ఫోటో నుండి క్షయ (TB)-సంబంధిత మార్పులను స్క్రీన్ చేస్తుంది. ప్రజాపరంగా అందుబాటులో ఉన్న TB ఎక్స్‌రే డేటాసెట్‌లపై (NLM షెన్‌జెన్ + మోంట్‌గోమెరీ + ఖతార్ DB) ట్రాన్స్‌ఫర్-లెర్నింగ్ (MobileNetV2)తో శిక్షణ పొందింది. WHO వనరుల-పరిమిత సెట్టింగ్‌లలో TB స్క్రీనింగ్ కోసం కంప్యూటర్-సహాయ గుర్తింపును సిఫార్సు చేస్తుంది. ఇది స్క్రీనింగ్ మాత్రమే — పాజిటివ్‌ను NTEP ప్రకారం కఫం/NAATతో నిర్ధారించండి.'>Screens a chest X-ray photo for tuberculosis-consistent changes. Trained with transfer learning (MobileNetV2) on publicly available TB X-ray datasets (NLM Shenzhen + Montgomery + Qatar DB). WHO recommends computer-aided detection for TB screening where radiologists are scarce. Screening only — confirm any positive with sputum/NAAT per NTEP.</div>
+      <table>
+        <tr><th data-te='కొలత'>Metric</th><th>TB X-ray</th></tr>
+        <tr><td data-te='శిక్షణ డేటా'>Training data</td><td>Open TB CXR (Shenzhen + Montgomery + Qatar DB, ~4,200 films)</td></tr>
+        <tr><td data-te='పద్ధతి'>Method</td><td>MobileNetV2 transfer learning</td></tr>
+        <tr><td data-te="ఇంటర్నల్ టెస్ట్ AUC">Internal test AUC</td><td>TB <b>~0.99</b> · Cardiomegaly <b>~0.81</b></td></tr>
+      </table>
+      <div class="note" style="margin-top:10px;color:var(--mut)" data-te='ఇంటర్నల్ AUC ఎక్కువగా ఉన్నా, మోడల్ విదేశీ ఫిల్మ్‌లపై శిక్షణ పొందింది — భారతీయ ఎక్స్‌రే మెషీన్లు మరియు జనాభాపై స్థానిక ధ్రువీకరణ పెండింగ్‌లో ఉంది. ఫోన్‌తో ఫోటో తీయడం (మెరుపు, కోణం) ఫలితాలను ప్రభావితం చేయవచ్చు. ఇది నిర్ధారణ కాదు.'>Internal AUC is high, but the model was trained on foreign films — local validation on Indian X-ray machines and populations is pending, and photographing a film (glare, angle) can affect results. Not a diagnosis.</div>
+    </div>
+
+    <div class="card">
       <div class="ct" style="color:var(--acc)" data-te='ఇతర మాడ్యూల్స్'>Other modules</div>
       <div class="note" style="margin-top:8px">VascAge (fingertip PPG), EchoLat (lung asymmetry), Percussion, Rhythm (seismocardiography) and JVP are signal-processing aids, not machine-learning classifiers. Their sensitivity, specificity, PPV, NPV and odds ratios are being determined in the prospective validation study. They are investigational and must not be used for diagnosis.</div>
     </div>
@@ -686,6 +720,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=13"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>

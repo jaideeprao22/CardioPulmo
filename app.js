@@ -61,9 +61,54 @@ function pulmoSub(which){
   $('p5').classList.toggle('on',which==='lung');
   $('p1').classList.toggle('on',which==='perc');
   $('p3').classList.toggle('on',which==='echo');
+  var _px=$('pXray'); if(_px)_px.classList.toggle('on',which==='xray');
   $('psLung').classList.toggle('on',which==='lung');
   $('psPerc').classList.toggle('on',which==='perc');
   $('psEcho').classList.toggle('on',which==='echo');
+  var _pxt=$('psXray'); if(_pxt)_pxt.classList.toggle('on',which==='xray');
+}
+function tbxPick(input){
+  var f=input.files&&input.files[0]; if(!f)return;
+  var img=document.getElementById('tbxImg');
+  img.onload=function(){document.getElementById('tbxPrevWrap').style.display='block';var r=document.getElementById('tbxResCard');if(r)r.style.display='none';};
+  img.src=URL.createObjectURL(f);
+}
+async function tbxAnalyze(){
+  var img=document.getElementById('tbxImg'),res=document.getElementById('tbxResCard'),out=document.getElementById('tbxResult'),sub=document.getElementById('tbxSub');
+  if(!img||!img.src||!img.naturalWidth){return;}
+  res.style.display='block'; out.style.color='var(--acc)'; out.textContent='Analysing\u2026'; sub.textContent='';
+  try{
+    var W=img.naturalWidth,H=img.naturalHeight,scl=Math.min(1,512/Math.max(W,H));
+    var c=document.createElement('canvas'); c.width=Math.max(1,Math.round(W*scl)); c.height=Math.max(1,Math.round(H*scl));
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    var blob=await new Promise(function(rs){c.toBlob(rs,'image/jpeg',0.9);});
+    if(!blob){out.textContent='Could not read the image'; return;}
+    var fd=new FormData(); fd.append('file',blob,'xray.jpg');
+    var ac=new AbortController(),to=setTimeout(function(){ac.abort();},30000);
+    var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/tbxray',{method:'POST',body:fd,signal:ac.signal});
+    clearTimeout(to);
+    if(!r.ok)throw 0;
+    var j=await r.json();
+    if(!j||(j.prob==null&&j.tb_prob==null&&j.tb!=='not_xray'))throw 0;
+    if(j.tb==='not_xray'){
+      out.style.color='var(--warn)';
+      out.innerHTML='\u26A0 Not a chest X-ray';
+      sub.textContent='This doesn\u2019t look like a chest X-ray. Photograph a chest (PA) film on a lightbox and try again.';
+      return;
+    }
+    var tbFlag=(j.tb==='flag'),hasCard=(j.cardio_prob!=null),cardFlag=(j.cardio==='flag');
+    function _ln(f,b,o){return '<span style="color:'+(f?'var(--bad)':'var(--ok)')+'">'+(f?b:o)+'</span>';}
+    out.style.color='inherit';
+    var _h=_ln(tbFlag,'\u26A0 TB-consistent findings','\u2713 No TB pattern');
+    if(hasCard)_h+='<br>'+_ln(cardFlag,'\u26A0 Enlarged heart (cardiomegaly)','\u2713 Heart size normal');
+    out.innerHTML=_h;
+    var _tp=(j.tb_prob!=null?j.tb_prob:j.prob);
+    var _adv=(tbFlag?'TB: refer for sputum/NAAT (NTEP). ':'')+((hasCard&&cardFlag)?'Heart: refer for clinical / echo evaluation. ':'');
+    sub.innerHTML=_adv+'TB '+Math.round(_tp*100)+'%'+(hasCard?' \u00b7 Heart '+Math.round(j.cardio_prob*100)+'%':'')+'  \u00b7  \u2601 cloud AI  \u00b7  screening only, not a diagnosis';
+  }catch(e){
+    out.style.color='var(--acc)'; out.textContent='Could not analyse';
+    sub.innerHTML='The AI service may be asleep \u2014 open <a href="https://jaideeprao-cardiopulmo-api.hf.space/" target="_blank" style="color:var(--acc)">this link</a> once to wake it, then try again. Also check the photo is a clear chest X-ray.';
+  }
 }
 function dl(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
 function fft(re,im){const n=re.length;
