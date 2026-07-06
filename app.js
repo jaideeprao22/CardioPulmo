@@ -827,6 +827,10 @@ function pcAnalyze(s,fs){
       _tr.innerHTML='Systolic interval (S1\u2013S2): <b>'+Math.round(_sy.s1s2)+' ms</b> \u00b7 rate-corrected '+Math.round(_corr)+' ms \u00b7 '+(_flag?'<b style="color:var(--warn)">outside healthy range (270\u2013337 ms) \u2014 clinical correlation advised</b>':'<b style="color:var(--ok)">within healthy range</b>');
     } else if(_tr){_tr.style.display='block';if(pcLastResult){pcLastResult.s1s2=null;}_tr.innerHTML='Systolic interval (S1\u2013S2): <b>not measured</b> \u2014 beats unclear, re-record in a quieter room with firmer contact <span style="color:var(--mut)">(needs a clear heart rate first)</span>';}
   }catch(e){}
+  try{cpSetR('cardio',{title:'Heart sound (CardioScope)',lines:[
+    'Heart rate: '+(uncertain?'unclear \u2014 re-record':bpm+' bpm')+' \u00b7 Rhythm: '+reg+' \u00b7 Quality: '+q,
+    (pcLastResult&&pcLastResult.s1s2)?('Systolic interval (S1-S2): '+pcLastResult.s1s2+' ms (rate-corrected '+pcLastResult.s1s2_corr+' ms \u00b7 '+pcLastResult.timing_flag+')'):'Systolic interval (S1-S2): not measured',
+    'AI heart-sound screen: see result on screen']});}catch(e){}
   pcSt('Done. Check the trace looks like clean lub-dub beats before trusting the number.');
   let pcRow=null;
   if(!uncertain){pcRow={pid:$('pid').value,age:$('age').value,sex:$('sex').value,bpm:bpm,reg:bestC>=0.5?'reg':'irreg',conf:bestC.toFixed(2),ai:'',t:new Date().toISOString()};pcRows.push(pcRow);
