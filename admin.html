@@ -100,6 +100,19 @@ audio{height:34px;vertical-align:middle}
 
   <div class="card">
     <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <b>Research validation mode</b>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="valModeChk" onchange="try{localStorage.setItem('cp_valmode',this.checked?'1':'0');document.getElementById('valMsg').textContent=this.checked?'ON — AF validation buttons now appear after VascAge scans in the app.':'OFF';}catch(e){}">
+        Enable AF validation logging
+      </label>
+    </div>
+    <div id="valMsg" class="mut" style="font-size:12px"></div>
+    <div class="mut" style="font-size:11px;margin-top:4px">When ON, each VascAge scan in the app shows ECG: AF / Sinus / Other buttons that log the app's flag vs your ECG-confirmed truth to Supabase (af_validation table). Only you (admin) see this switch; frontline users never do.</div>
+  </div>
+  <script>try{var _v=localStorage.getItem('cp_valmode')==='1',_c=document.getElementById('valModeChk');if(_c){_c.checked=_v;document.getElementById('valMsg').textContent=_v?'ON — AF validation buttons appear after VascAge scans in the app.':'OFF';}}catch(e){}</script>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
       <b>Feedback</b>
       <input id="fbFilter" placeholder="Filter (user / module / text)" style="max-width:260px">
     </div>

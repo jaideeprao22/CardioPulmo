@@ -873,7 +873,7 @@ function pcRenderLog(){let h='<table><tr><th>ID</th><th>BPM</th><th>Rhythm</th><
   pcRows.forEach(r=>h+='<tr><td>'+r.pid+'</td><td>'+r.bpm+'</td><td>'+r.reg+'</td><td>'+r.conf+'</td></tr>');
   $('pcLogTable').innerHTML=h+'</table>';}
 
-/* ===== CardioScope on-device AI: murmur/abnormal heart-sound screen (TF.js) ===== */
+/* ===== CardioScope cloud AI (with offline fallback): murmur/abnormal heart-sound screen (TF.js) ===== */
 const PC_SR2=2000,PC_NFFT=512,PC_HOP=64,PC_NMEL=64,PC_TFR=157,PC_LWAV=10000,PC_NB=PC_NFFT/2+1;let PC_THR=0.25;
 const PC_WIN=new Float32Array(PC_NFFT);for(let n=0;n<PC_NFFT;n++)PC_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/PC_NFFT);
 let pcModel=null,pcMel=null,pcModelLoading=null,pcModelErr='';
@@ -1038,7 +1038,7 @@ async function pcRunMurmur(s,fs){
     if(present2){if(ps2>=0.5)timing2.push('systolic');if(pd2>=0.5)timing2.push('diastolic');}
     if(present2){el.textContent='🫀 Murmur AI: MURMUR PRESENT'+(timing2.length?' — '+timing2.join(' + '):'');el.style.color='var(--bad)';}
     else{el.textContent='🫀 Murmur AI: No murmur detected';el.style.color='var(--ok)';}
-    if(sub){sub.style.display='block';sub.textContent=(present2?('Murmur '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · systolic '+(ps2*100).toFixed(0)+'% · diastolic '+(pd2*100).toFixed(0)+'% · 📱 on-device · screening only'):('Murmur probability '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · 📱 on-device · screening only'))+cpPosNote('murmur','heart murmur',present2);}
+    if(sub){sub.style.display='block';sub.textContent=(present2?('Murmur '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · systolic '+(ps2*100).toFixed(0)+'% · diastolic '+(pd2*100).toFixed(0)+'% · offline estimate · screening only'):('Murmur probability '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%) · offline estimate · screening only'))+cpPosNote('murmur','heart murmur',present2);}
     cpSetR('murmur',{title:'Murmur (CirCor AI)',lines:['Result: '+(present2?'MURMUR PRESENT'+(timing2.length?' ('+timing2.join(', ')+')':''):'No murmur detected'),'Murmur probability: '+(pm2*100).toFixed(0)+'% (threshold '+(MM_THR*100).toFixed(0)+'%)']});
     if(pcLastResult){pcLastResult.murmur=present2?'present':'absent';pcLastResult.murmur_p=pm2.toFixed(3);pcLastResult.systolic_p=ps2.toFixed(3);pcLastResult.diastolic_p=pd2.toFixed(3);}
   }catch(e){console.error(e);el.textContent='🫀 Murmur AI: error';el.style.color='var(--mut)';}
@@ -1065,7 +1065,7 @@ async function pcMLScreen(s,fs,pcRow){
     var pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
-    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  '+(usedCloud?'☁ cloud AI':'📱 on-device')+'  ·  screening only'+cpPosNote('cinc','abnormal heart sound',pos,q.quality==='good');
+    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  '+(usedCloud?'☁ cloud AI':'offline estimate')+'  ·  screening only'+cpPosNote('cinc','abnormal heart sound',pos,q.quality==='good');
     cpSetR('cardio',{title:'Heart sound (CardioScope)',lines:['Result: '+(pos?'SCREEN POSITIVE':'Screen negative'),'Abnormal-sound probability: '+(p*100).toFixed(0)+'% (threshold '+(PC_THR*100).toFixed(0)+'%)','Heart rate: '+((pcLastResult&&pcLastResult.bpm)?pcLastResult.bpm+' bpm':'—')+' · Rhythm: '+((pcLastResult&&pcLastResult.rhythm)||'—')+' · Quality: '+((pcLastResult&&pcLastResult.quality)||'—'),'Systolic interval (S1-S2): '+((pcLastResult&&pcLastResult.s1s2)?pcLastResult.s1s2+' ms (rate-corrected '+pcLastResult.s1s2_corr+' ms · '+pcLastResult.timing_flag+')':'not measured')]});
     if(pcRow)pcRow.ai=p.toFixed(3);
     pcUploadSafe(pos?'screen_positive':'screen_negative',p,q,s,fs,sub);
@@ -1085,7 +1085,7 @@ async function pcUploadSafe(verdict,prob,q,s,fs,subEl){
   }catch(e){console.warn('amplified save failed',e);}
 }
 
-/* ===== PulmoScope on-device AI: lung-sound normal/abnormal screen (TF.js) ===== */
+/* ===== PulmoScope cloud AI (with offline fallback): lung-sound normal/abnormal screen (TF.js) ===== */
 const LG_SR=4000,LG_NFFT=512,LG_HOP=128,LG_NMEL=64,LG_TFR=157,LG_LWAV=20000,LG_NB=LG_NFFT/2+1;let LG_THR=0.5;
 const LG_WIN=new Float32Array(LG_NFFT);for(let n=0;n<LG_NFFT;n++)LG_WIN[n]=0.5-0.5*Math.cos(2*Math.PI*n/LG_NFFT);
 let lgModel=null,lgMel=null,lgModelLoading=null,lgModelErr='';
@@ -1239,7 +1239,7 @@ async function lgScreen(s,fs,zone){
     lgUpdate();lgRenderMap();lgRenderGrid();
     lgUploadSafe(zone,pr>=LG_THR?'abnormal':'normal',pr,s,fs);
     var lpos=pr>=LG_THR;
-    lgSt(zone+' done ('+(pr*100).toFixed(0)+'%, '+((lj&&lj.prob!=null)?'☁ cloud AI':'📱 on-device')+').'+cpPosNote('lung_'+zone,'abnormal lung sound ('+zone+')',lpos));
+    lgSt(zone+' done ('+(pr*100).toFixed(0)+'%, '+((lj&&lj.prob!=null)?'☁ cloud AI':'offline estimate')+').'+cpPosNote('lung_'+zone,'abnormal lung sound ('+zone+')',lpos));
     cpSetR('lung',{title:'Lung sound (PulmoScope)',lines:[zone+': '+(lpos?'ABNORMAL':'normal')+' ('+(pr*100).toFixed(0)+'%, threshold '+(LG_THR*100).toFixed(0)+'%)']});
   }catch(e){console.error(e);lgSt('Error processing '+zone+'.');lgUploadSafe(zone,'processing_error',null,s,fs);}
 }
@@ -1435,7 +1435,7 @@ function cpShowSummary(){
 }
 csTab('c');
 topTab('home');
-try{var _vm=document.getElementById('valModeChk');if(_vm)_vm.checked=(localStorage.getItem('cp_valmode')==='1');}catch(e){}
+try{var _vp=new URLSearchParams(location.search).get('val');if(_vp==='1')localStorage.setItem('cp_valmode','1');else if(_vp==='0')localStorage.setItem('cp_valmode','0');}catch(e){}
 
 
 /* ===== Supabase: login (Google + email), one-time profile, audio upload ===== */
