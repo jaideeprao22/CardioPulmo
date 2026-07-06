@@ -96,15 +96,16 @@ async function tbxAnalyze(){
       sub.textContent='This doesn\u2019t look like a chest X-ray. Photograph a chest (PA) film on a lightbox and try again.';
       return;
     }
-    var tbFlag=(j.tb==='flag'),hasCard=(j.cardio_prob!=null),cardFlag=(j.cardio==='flag');
+    var tbFlag=(j.tb==='flag'),hasCard=(j.cardio_prob!=null),cardFlag=(j.cardio==='flag'),hasEff=(j.effusion_prob!=null),effFlag=(j.effusion==='flag');
     function _ln(f,b,o){return '<span style="color:'+(f?'var(--bad)':'var(--ok)')+'">'+(f?b:o)+'</span>';}
     out.style.color='inherit';
     var _h=_ln(tbFlag,'\u26A0 TB-consistent findings','\u2713 No TB pattern');
     if(hasCard)_h+='<br>'+_ln(cardFlag,'\u26A0 Enlarged heart (cardiomegaly)','\u2713 Heart size normal');
+    if(hasEff)_h+='<br>'+_ln(effFlag,'\u26A0 Pleural effusion (fluid)','\u2713 No effusion');
     out.innerHTML=_h;
     var _tp=(j.tb_prob!=null?j.tb_prob:j.prob);
-    var _adv=(tbFlag?'TB: refer for sputum/NAAT (NTEP). ':'')+((hasCard&&cardFlag)?'Heart: refer for clinical / echo evaluation. ':'');
-    sub.innerHTML=_adv+'TB '+Math.round(_tp*100)+'%'+(hasCard?' \u00b7 Heart '+Math.round(j.cardio_prob*100)+'%':'')+'  \u00b7  \u2601 cloud AI  \u00b7  screening only, not a diagnosis';
+    var _adv=(tbFlag?'TB: refer for sputum/NAAT (NTEP). ':'')+((hasCard&&cardFlag)?'Heart: refer for clinical / echo evaluation. ':'')+((hasEff&&effFlag)?'Effusion: refer for evaluation. ':'');
+    sub.innerHTML=_adv+'TB '+Math.round(_tp*100)+'%'+(hasCard?' \u00b7 Heart '+Math.round(j.cardio_prob*100)+'%':'')+(hasEff?' \u00b7 Effusion '+Math.round(j.effusion_prob*100)+'%':'')+'  \u00b7  \u2601 cloud AI  \u00b7  screening only, not a diagnosis';
   }catch(e){
     out.style.color='var(--acc)'; out.textContent='Could not analyse';
     sub.innerHTML='The AI service may be asleep \u2014 open <a href="https://jaideeprao-cardiopulmo-api.hf.space/" target="_blank" style="color:var(--acc)">this link</a> once to wake it, then try again. Also check the photo is a clear chest X-ray.';
