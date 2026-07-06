@@ -571,6 +571,14 @@
     </div>
 
     <div class="card">
+      <div class="ct" style="color:var(--acc)" data-te='పరిశోధన ధ్రువీకరణ మోడ్'>Research validation mode</div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer">
+        <input type="checkbox" id="valModeChk" onchange="try{localStorage.setItem('cp_valmode',this.checked?'1':'0');}catch(e){}">
+        <span class="note" data-te='AF ధ్రువీకరణ లాగింగ్‌ను ఆన్ చేయండి — ప్రతి VascAge స్కాన్ తర్వాత యాప్ ఫ్లాగ్ vs మీ ECG-నిర్ధారిత లయను రికార్డ్ చేస్తుంది (మీ జనాభాలో సెన్సిటివిటీ/స్పెసిఫిసిటీ లెక్కించడానికి).'>Turn on AF validation logging — after each VascAge scan, records the app flag vs your ECG-confirmed rhythm, so you can compute sensitivity/specificity in your own population.</span>
+      </label>
+    </div>
+
+    <div class="card">
       <div class="ct" style="color:var(--acc)" data-te='ఇతర మాడ్యూల్స్'>Other modules</div>
       <div class="note" style="margin-top:8px">VascAge (fingertip PPG), EchoLat (lung asymmetry), Percussion, Rhythm (seismocardiography) and JVP are signal-processing aids, not machine-learning classifiers. Their sensitivity, specificity, PPV, NPV and odds ratios are being determined in the prospective validation study. They are investigational and must not be used for diagnosis.</div>
     </div>
@@ -681,6 +689,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

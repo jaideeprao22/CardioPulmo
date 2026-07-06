@@ -345,6 +345,15 @@ function vDrawEcg(ecg){
   for(i=0;i<n;i++){var x=i/(n-1)*W,y=H-((ecg[i]-mn)/rng)*H*0.85-H*0.075;i?g.lineTo(x,y):g.moveTo(x,y);}
   g.stroke();
 }
+function cpValOn(){try{return localStorage.getItem('cp_valmode')==='1';}catch(e){return false;}}
+async function cpLogAFval(truth){
+  var A=window.vLastAF||{},st=document.getElementById('vValSt');
+  if(!sb||!sbUser){if(st)st.textContent='Log in first (open Cardio/Pulmo/Vasc) to save validation data.';return;}
+  try{
+    var ins=await sb.from('af_validation').insert({user_id:sbUser.id,subject_code:($('pid')?$('pid').value:null)||null,app_af:!!A.af,rmssd_mean:(A.rmssdN!=null?+Number(A.rmssdN).toFixed(4):null),shannon_entropy:(A.she!=null?+Number(A.she).toFixed(4):null),heart_rate:(A.hr||null),ecg_truth:truth});
+    if(st)st.textContent=ins.error?('Save failed: '+ins.error.message):('Saved \u2713  app='+(A.af?'AF':'no-AF')+'  vs  ECG='+truth);
+  }catch(e){if(st)st.textContent='Save failed \u2014 check connection.';}
+}
 function vAnalyze(){
   const red=vData.slice(),t=vTimes.slice(),N=red.length;
   const durSec=(t[N-1]-t[0])/1000||1,sr=N/durSec;
@@ -382,6 +391,18 @@ function vAnalyze(){
         cpSetR('vasc',{title:'Rhythm screen (VascAge PPG)',lines:['Result: regular rhythm — no AF pattern detected','Heart rate: '+hr+' bpm \u00b7 variability index: '+_af.rmssdN.toFixed(2)+' (flag > 0.115)']});
       }
     } else if(_ar){_ar.style.display='block';_ar.innerHTML='Rhythm screen: <b>not enough clear beats</b> — hold very still through the full recording in good light to check for an irregular pulse.';}
+    window.vLastAF={rmssdN:(_af?_af.rmssdN:null),she:(_af?_af.she:null),af:(_af?_af.af:false),hr:hr,n:(_af?_af.n:0)};
+    if(cpValOn()){
+      var _vv=document.getElementById('vValRow');
+      if(!_vv){_vv=document.createElement('div');_vv.id='vValRow';_vv.style.marginTop='8px';var _vc2=$('vResCard');if(_vc2)_vc2.appendChild(_vv);}
+      _vv.style.display='block';
+      _vv.innerHTML='<div class="note" style="margin-bottom:4px">Research validation — tap the ECG-confirmed rhythm:</div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +'<button onclick="cpLogAFval(\'AF\')" style="flex:1;min-width:80px;padding:8px;border-radius:10px;background:#3a2030;color:#ff8fa3;font-weight:700;border:1px solid #5a2030;cursor:pointer">ECG: AF</button>'
+        +'<button onclick="cpLogAFval(\'Sinus\')" style="flex:1;min-width:80px;padding:8px;border-radius:10px;background:#12352a;color:#7fe3c0;font-weight:700;border:1px solid #1f5a45;cursor:pointer">ECG: Sinus</button>'
+        +'<button onclick="cpLogAFval(\'Other\')" style="flex:1;min-width:80px;padding:8px;border-radius:10px;background:#22304a;color:#9db8e0;font-weight:700;border:1px solid #2a4a6a;cursor:pointer">ECG: Other</button>'
+        +'</div><div id="vValSt" class="note" style="font-size:11px;margin-top:4px;color:var(--mut)"></div>';
+    }
   }catch(e){}
   vDrawFinal(detr,t,peaks);
   vEcgPreview(red,sr);
@@ -701,12 +722,12 @@ function pcStartQuietGate(){
     var ctx=new (window.AudioContext||window.webkitAudioContext)();var src=ctx.createMediaStreamSource(stream);
     var an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.8;src.connect(an);
     var freq=new Uint8Array(an.frequencyBinCount),binHz=ctx.sampleRate/an.fftSize,i0=Math.max(1,Math.floor(500/binHz));
-    var loIdx=Math.max(2,Math.floor(150/binHz));
+    var loIdx=Math.max(2,Math.floor(150/binHz)),hiIdx=Math.max(loIdx+1,Math.floor(1000/binHz));
     var quietSince=0,gateStart=performance.now(),HOLD=1500,MAXWAIT=15000;
     pcGateCancel=function(){try{cancelAnimationFrame(pcGateRAF);}catch(e){}try{stream.getTracks().forEach(function(t){t.stop();});}catch(e){}try{ctx.close();}catch(e){}pcGating=false;if(meter)meter.style.display='none';};
     function loop(){
       an.getByteFrequencyData(freq);var vs=[];for(var i=i0;i<freq.length;i++)vs.push(freq[i]);vs.sort(function(a,b){return b-a;});var kk=Math.min(8,vs.length),ns=0;for(var j=0;j<kk;j++)ns+=vs[j];var noise=kk?ns/kk:0;
-      var sLo=0,sAll=1e-6;for(var b=1;b<freq.length;b++){sAll+=freq[b];if(b<=loIdx)sLo+=freq[b];}var contact=sLo/sAll;
+      var sLo=0,sAll=1e-6;for(var b=1;b<=hiIdx;b++){sAll+=freq[b];if(b<=loIdx)sLo+=freq[b];}var contact=sLo/sAll;
       pcDrawNoise(noise,pcNoiseThresh);
       var now=performance.now(),forced=(now-gateStart)>MAXWAIT;
       var quiet=noise<pcNoiseThresh, touch=contact>=pcContactThresh;
@@ -1040,7 +1061,7 @@ async function pcMLScreen(s,fs,pcRow){
     var pos=p>=PC_THR;
     el.textContent=pos?'🧠 AI heart-sound screen: SCREEN POSITIVE — refer for clinical assessment':'🧠 AI heart-sound screen: Screen negative';
     el.style.color=pos?'var(--bad)':'var(--ok)';
-    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  '+(usedCloud?'☁ cloud AI':'📱 on-device')+'  ·  screening only'+cpPosNote('cinc','abnormal heart sound',pos);
+    sub.textContent='Model probability of abnormal sound: '+(p*100).toFixed(0)+'%  ·  threshold '+(PC_THR*100).toFixed(0)+'%  ·  '+(usedCloud?'☁ cloud AI':'📱 on-device')+'  ·  screening only'+cpPosNote('cinc','abnormal heart sound',pos,q.quality==='good');
     cpSetR('cardio',{title:'Heart sound (CardioScope)',lines:['Result: '+(pos?'SCREEN POSITIVE':'Screen negative'),'Abnormal-sound probability: '+(p*100).toFixed(0)+'% (threshold '+(PC_THR*100).toFixed(0)+'%)','Heart rate: '+((pcLastResult&&pcLastResult.bpm)?pcLastResult.bpm+' bpm':'—')+' · Rhythm: '+((pcLastResult&&pcLastResult.rhythm)||'—')+' · Quality: '+((pcLastResult&&pcLastResult.quality)||'—'),'Systolic interval (S1-S2): '+((pcLastResult&&pcLastResult.s1s2)?pcLastResult.s1s2+' ms (rate-corrected '+pcLastResult.s1s2_corr+' ms · '+pcLastResult.timing_flag+')':'not measured')]});
     if(pcRow)pcRow.ai=p.toFixed(3);
     pcUploadSafe(pos?'screen_positive':'screen_negative',p,q,s,fs,sub);
@@ -1322,14 +1343,16 @@ function cpPositive(cond,isPos){
 function cpShowDoc(label){
   var b=document.getElementById('cpDoc');
   if(!b){b=document.createElement('div');b.id='cpDoc';b.className='cpdoc';document.body.appendChild(b);}
-  b.innerHTML='<div style="font-size:16px;font-weight:800;margin-bottom:6px">⚠ Screened positive 3 times — '+label+'</div><div style="font-size:13px;line-height:1.4">Please visit the nearest doctor or health centre soon. This app is a screening aid, not a diagnosis.</div><button onclick="document.getElementById(\'cpDoc\').style.display=\'none\'" style="margin-top:8px;padding:8px 16px;border-radius:10px;background:#fff;color:#7a0012;font-weight:700;border:none">OK</button>';
+  b.innerHTML='<div style="font-size:16px;font-weight:800;margin-bottom:6px">3 screen-positive results — '+label+'</div><div style="font-size:13px;line-height:1.4">Consider a routine check-up with a doctor when convenient. This is a screening aid, not a diagnosis — recording conditions (posture, room noise, skin contact) can affect the result, so a clean re-test sitting upright in a quiet room is worth trying too.</div><button onclick="document.getElementById(\'cpDoc\').style.display=\'none\'" style="margin-top:8px;padding:8px 16px;border-radius:10px;background:#fff;color:#7a0012;font-weight:700;border:none">OK</button>';
   b.style.display='block';
 }
-function cpPosNote(cond,label,isPos){
+function cpPosNote(cond,label,isPos,count){
+  if(count===undefined)count=true;
+  if(isPos&&!count)return '  ·  possible finding, but recording quality is low — re-take a clean recording (sitting upright, quiet room) before this counts';
   var n=cpPositive(cond,isPos);
   if(!isPos)return '';
-  if(n>=3){cpShowDoc(label);return '  ·  ⚠ POSITIVE 3× — SEE A DOCTOR';}
-  return '  ·  ⚠ positive ('+n+'/3) — re-take in a few minutes to confirm';
+  if(n>=3){cpShowDoc(label);return '  ·  3 screen-positive results — consider a check-up';}
+  return '  ·  positive ('+n+'/3) — re-take in a few minutes, sitting upright, to confirm';
 }
 function cpMakePDF(){
   try{
@@ -1408,6 +1431,7 @@ function cpShowSummary(){
 }
 csTab('c');
 topTab('home');
+try{var _vm=document.getElementById('valModeChk');if(_vm)_vm.checked=(localStorage.getItem('cp_valmode')==='1');}catch(e){}
 
 
 /* ===== Supabase: login (Google + email), one-time profile, audio upload ===== */
