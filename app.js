@@ -77,6 +77,8 @@ async function tbxAnalyze(){
   var img=document.getElementById('tbxImg'),res=document.getElementById('tbxResCard'),out=document.getElementById('tbxResult'),sub=document.getElementById('tbxSub');
   if(!img||!img.src||!img.naturalWidth){return;}
   res.style.display='block'; out.style.color='var(--acc)'; out.textContent='Analysing\u2026'; sub.textContent='';
+  var _hImg=document.getElementById('tbxHeat'),_hCap=document.getElementById('tbxHeatCap');
+  if(_hImg)_hImg.style.display='none'; if(_hCap)_hCap.style.display='none';
   try{
     var W=img.naturalWidth,H=img.naturalHeight,scl=Math.min(1,512/Math.max(W,H));
     var c=document.createElement('canvas'); c.width=Math.max(1,Math.round(W*scl)); c.height=Math.max(1,Math.round(H*scl));
@@ -106,6 +108,7 @@ async function tbxAnalyze(){
     var _tp=(j.tb_prob!=null?j.tb_prob:j.prob);
     var _adv=(tbFlag?'TB: refer for sputum/NAAT (NTEP). ':'')+((hasCard&&cardFlag)?'Heart: refer for clinical / echo evaluation. ':'')+((hasEff&&effFlag)?'Effusion: refer for evaluation. ':'');
     sub.innerHTML=_adv+'TB '+Math.round(_tp*100)+'%'+(hasCard?' \u00b7 Heart '+Math.round(j.cardio_prob*100)+'%':'')+(hasEff?' \u00b7 Effusion '+Math.round(j.effusion_prob*100)+'%':'')+'  \u00b7  \u2601 cloud AI  \u00b7  screening only, not a diagnosis';
+    if(j.heatmap&&_hImg){_hImg.src=j.heatmap;_hImg.style.display='block';if(_hCap)_hCap.style.display='block';}
   }catch(e){
     out.style.color='var(--acc)'; out.textContent='Could not analyse';
     sub.innerHTML='The AI service may be asleep \u2014 open <a href="https://jaideeprao-cardiopulmo-api.hf.space/" target="_blank" style="color:var(--acc)">this link</a> once to wake it, then try again. Also check the photo is a clear chest X-ray.';
