@@ -606,7 +606,7 @@
         <tr><th data-te='కొలత'>Metric</th><th>TB X-ray</th></tr>
         <tr><td data-te='శిక్షణ డేటా'>Training data</td><td>Open TB CXR (Shenzhen + Montgomery + Qatar DB, ~4,200 films)</td></tr>
         <tr><td data-te='పద్ధతి'>Method</td><td>MobileNetV2 transfer learning</td></tr>
-        <tr><td data-te="ఇంటర్నల్ టెస్ట్ AUC">Internal test AUC</td><td>TB <b>~0.99</b> · Cardiomegaly <b>~0.81</b> · Effusion <b>~0.85</b></td></tr>
+        <tr><td data-te="ఇంటర్నల్ టెస్ట్ AUC">Internal test AUC</td><td>TB <b>~0.99</b> · Cardiomegaly <b>0.96</b> · Effusion <b>0.96</b> · Pneumonia <b>~0.77</b> · Consolidation <b>0.93</b> · Nodule/mass <b>0.94</b></td></tr>
       </table>
       <div class="note" style="margin-top:10px;color:var(--mut)" data-te='ఇంటర్నల్ AUC ఎక్కువగా ఉన్నా, మోడల్ విదేశీ ఫిల్మ్‌లపై శిక్షణ పొందింది — భారతీయ ఎక్స్‌రే మెషీన్లు మరియు జనాభాపై స్థానిక ధ్రువీకరణ పెండింగ్‌లో ఉంది. ఫోన్‌తో ఫోటో తీయడం (మెరుపు, కోణం) ఫలితాలను ప్రభావితం చేయవచ్చు. ఇది నిర్ధారణ కాదు.'>Internal AUC is high, but the model was trained on foreign films — local validation on Indian X-ray machines and populations is pending, and photographing a film (glare, angle) can affect results. Not a diagnosis.</div>
     </div>
@@ -722,6 +722,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=18"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>

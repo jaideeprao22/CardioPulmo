@@ -98,16 +98,19 @@ async function tbxAnalyze(){
       sub.textContent='This doesn\u2019t look like a chest X-ray. Photograph a chest (PA) film on a lightbox and try again.';
       return;
     }
-    var tbFlag=(j.tb==='flag'),hasCard=(j.cardio_prob!=null),cardFlag=(j.cardio==='flag'),hasEff=(j.effusion_prob!=null),effFlag=(j.effusion==='flag');
+    var tbFlag=(j.tb==='flag'),hasCard=(j.cardio_prob!=null),cardFlag=(j.cardio==='flag'),hasEff=(j.effusion_prob!=null),effFlag=(j.effusion==='flag'),hasPneu=(j.pneumonia_prob!=null),pneuFlag=(j.pneumonia==='flag'),hasCons=(j.consolidation_prob!=null),consFlag=(j.consolidation==='flag'),hasNod=(j.nodule_prob!=null),nodFlag=(j.nodule==='flag');
     function _ln(f,b,o){return '<span style="color:'+(f?'var(--bad)':'var(--ok)')+'">'+(f?b:o)+'</span>';}
     out.style.color='inherit';
     var _h=_ln(tbFlag,'\u26A0 TB-consistent findings','\u2713 No TB pattern');
     if(hasCard)_h+='<br>'+_ln(cardFlag,'\u26A0 Enlarged heart (cardiomegaly)','\u2713 Heart size normal');
     if(hasEff)_h+='<br>'+_ln(effFlag,'\u26A0 Pleural effusion (fluid)','\u2713 No effusion');
+    if(hasPneu)_h+='<br>'+_ln(pneuFlag,'\u26A0 Possible pneumonia','\u2713 No pneumonia pattern');
+    if(hasCons)_h+='<br>'+_ln(consFlag,'\u26A0 Consolidation','\u2713 No consolidation');
+    if(hasNod)_h+='<br>'+_ln(nodFlag,'\u26A0 Lung nodule / mass','\u2713 No nodule / mass');
     out.innerHTML=_h;
     var _tp=(j.tb_prob!=null?j.tb_prob:j.prob);
-    var _adv=(tbFlag?'TB: refer for sputum/NAAT (NTEP). ':'')+((hasCard&&cardFlag)?'Heart: refer for clinical / echo evaluation. ':'')+((hasEff&&effFlag)?'Effusion: refer for evaluation. ':'');
-    sub.innerHTML=_adv+'TB '+Math.round(_tp*100)+'%'+(hasCard?' \u00b7 Heart '+Math.round(j.cardio_prob*100)+'%':'')+(hasEff?' \u00b7 Effusion '+Math.round(j.effusion_prob*100)+'%':'')+'  \u00b7  \u2601 cloud AI  \u00b7  screening only, not a diagnosis';
+    var _adv=(tbFlag?'TB: refer for sputum/NAAT (NTEP). ':'')+((hasCard&&cardFlag)?'Heart: refer for clinical / echo evaluation. ':'')+((hasEff&&effFlag)?'Effusion: refer for evaluation. ':'')+((hasPneu&&pneuFlag)?'Pneumonia: assess and treat per clinical / IMCI. ':'')+((hasCons&&consFlag)?'Consolidation: assess clinically. ':'')+((hasNod&&nodFlag)?'Nodule/mass: refer for further imaging (CT). ':'');
+    sub.innerHTML=_adv+'TB '+Math.round(_tp*100)+'%'+(hasCard?' \u00b7 Heart '+Math.round(j.cardio_prob*100)+'%':'')+(hasEff?' \u00b7 Effusion '+Math.round(j.effusion_prob*100)+'%':'')+(hasPneu?' \u00b7 Pneumonia '+Math.round(j.pneumonia_prob*100)+'%':'')+(hasCons?' \u00b7 Consol '+Math.round(j.consolidation_prob*100)+'%':'')+(hasNod?' \u00b7 Nodule '+Math.round(j.nodule_prob*100)+'%':'')+'  \u00b7  \u2601 cloud AI  \u00b7  screening only, not a diagnosis';
     if(j.heatmap&&_hImg){_hImg.src=j.heatmap;_hImg.style.display='block';if(_hCap)_hCap.style.display='block';}
   }catch(e){
     out.style.color='var(--acc)'; out.textContent='Could not analyse';
