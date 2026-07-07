@@ -106,6 +106,10 @@
     <div class="tab" id="psEcho" onclick="pulmoSub('echo')">EchoLat</div>
     <div class="tab" id="psXray" onclick="pulmoSub('xray')" data-te='ఎక్స్‌రే'>X-ray</div>
     <div class="tab" id="psLtype" onclick="pulmoSub('ltype')" data-te='శబ్ద రకం'>Lung type</div>
+    <div class="tab" id="psRR" onclick="pulmoSub('rr')" data-te='శ్వాస రేటు'>Breaths/min</div>
+    <div class="tab" id="psFet" onclick="pulmoSub('fet')" data-te='ఊదే పరీక్ష'>Blow test</div>
+    <div class="tab" id="psSbc" onclick="pulmoSub('sbc')" data-te='లెక్కింపు పరీక్ష'>Breath count</div>
+    <div class="tab" id="psMpt" onclick="pulmoSub('mpt')" data-te='ఆహ్ పరీక్ష'>Ahh time</div>
     <div class="tab" id="psCough" onclick="pulmoSub('cough')" data-te='దగ్గు లెక్క'>Cough count</div>
   </div>
 
@@ -317,6 +321,7 @@
         <canvas id="elNoiseCanvas" style="width:100%;height:56px;display:block"></canvas>
       </div>
       <button id="eRec" class="rec" disabled>● Select a side first</button>
+      <button id="eStop" class="stop" disabled data-te='■ ఆపు'>■ Stop</button>
       <div id="eStatus" class="vst">Record both sides to compare.</div>
     </div>
 
@@ -573,11 +578,15 @@
     </div>
 
     <div class="card">
-      <div class="note" style="text-align:center;margin-bottom:8px" data-te='నిశ్శబ్ద గది. ఫోన్ మైక్‌ను ఛాతీపై గట్టిగా ఆనించి, రోగిని లోతుగా ఊపిరి తీసుకోమని చెప్పండి. START నొక్కండి — 15 సెకన్లకు ఆటోమేటిక్‌గా ఆగుతుంది.'>Quiet room. Press the phone mic firmly on the chest, ask the patient to breathe deeply. Press START — it stops automatically at 15 s.</div>
+      <div class="note" style="text-align:center;margin-bottom:8px" data-te='నిశ్శబ్ద గది. ఫోన్ మైక్‌ను ఛాతీపై గట్టిగా ఆనించి, రోగిని లోతుగా ఊపిరి తీసుకోమని చెప్పండి. START నొక్కండి — గది నిశ్శబ్దమైన తర్వాత రికార్డింగ్ ఆటోమేటిక్‌గా మొదలై 15 సెకన్లకు ఆగుతుంది.'>Quiet room. Press the phone mic firmly on the chest, ask the patient to breathe deeply. Press START — recording auto-begins once the room is quiet and stops at 15 s.</div>
+      <div id="ltNoise" style="display:none;margin:0 0 10px">
+        <div id="ltNoiseLbl" style="text-align:center;font-size:13px;font-weight:700;margin-bottom:6px">Listening for a quiet moment…</div>
+        <canvas id="ltNoiseCanvas" style="width:100%;height:56px;display:block"></canvas>
+      </div>
       <button id="ltRec" class="rec" data-te='● START (15 సెకన్లు)'>● START (15 s)</button>
-      <button id="ltStop" class="stop" disabled data-te='■ ఇప్పుడే ఆపండి'>■ Stop now</button>
+      <button id="ltStop" class="stop" disabled data-te='■ ఆపు'>■ Stop</button>
       <div id="ltStatus" class="vst" data-te='ఛాతీపై గట్టిగా ఆనించండి.'>Press firmly on the chest.</div>
-      <canvas id="ltWave"></canvas>
+      <a href="https://jaideeprao-cardiopulmo-api.hf.space/" target="_blank" style="display:block;text-align:center;font-size:12px;color:var(--acc);margin-top:8px;text-decoration:underline" data-te='AI నెమ్మదిగా లేదా నిద్రలో ఉందా? దీన్ని నొక్కి AIని మేల్కొల్పి, మళ్లీ ప్రయత్నించండి'>AI slow or asleep? Tap here to wake it, then retry</a>
     </div>
 
     <div class="card res" id="ltResCard" style="display:none">
@@ -588,6 +597,110 @@
         <div class="kv" data-te='వీజ్<b id="ltWhz">—</b>'>Wheeze<b id="ltWhz">—</b></div>
       </div>
       <div class="note" style="margin-top:10px" data-te='క్రాకిల్స్ → న్యుమోనియా/ఫైబ్రోసిస్/ఎడిమా అనుమానం. వీజ్ → ఆస్తమా/COPD/అడ్డంకి అనుమానం. క్లినికల్‌గా నిర్ధారించండి.'>Crackles suggest pneumonia/fibrosis/edema. Wheeze suggests asthma/COPD/obstruction. Confirm clinically.</div>
+    </div>
+  </section>
+
+  <section class="pane" id="pRR" data-screen-label="PulmoScope · Breaths/min">
+    <div class="mhead">
+      <div class="mkicker">Suite 02 · PulmoScope</div>
+      <h2 class="mtitle" data-te='శ్వాస రేటు (WHO ఫాస్ట్-బ్రీతింగ్)'>Respiratory rate (WHO fast-breathing)</h2>
+      <p class="msub" data-te='ఫోన్‌ను రోగి <b>ముక్కు/నోటి దగ్గర</b> పట్టుకోండి (ఛాతీపై కాదు) మరియు వినిపించేలా ఊపిరి తీసుకోమని చెప్పండి. START నొక్కండి — నిశ్శబ్దమైన తర్వాత 30 సెకన్లు రికార్డ్ చేసి, క్లౌడ్ AI శ్వాస రేటును లెక్కిస్తుంది. (గొడవగా ఉంటే క్రింద ట్యాప్ పద్ధతి వాడండి.)'>Hold the phone near the patient's <b>nose/mouth</b> (not the chest) and ask them to breathe audibly. Press START — after a quiet moment it records 30 s and a cloud AI computes the rate. (In a noisy room, use the tap method below.)</p>
+    </div>
+    <div class="card">
+      <div id="rrNoise" style="display:none;margin:0 0 10px">
+        <div id="rrNoiseLbl" style="text-align:center;font-size:13px;font-weight:700;margin-bottom:6px">Listening for a quiet moment…</div>
+        <canvas id="rrNoiseCanvas" style="width:100%;height:56px;display:block"></canvas>
+      </div>
+      <button id="rrRec" class="rec" data-te='● START (ఆడియో, 30 సెకన్లు)'>● START (audio, 30 s)</button>
+      <button id="rrStop" class="stop" disabled data-te='■ ఆపు'>■ Stop</button>
+      <div id="rrStatus" class="vst" data-te='ఫోన్‌ను ముక్కు/నోటి దగ్గర పట్టుకోండి.'>Hold the phone near the nose/mouth.</div>
+      <a href="https://jaideeprao-cardiopulmo-api.hf.space/" target="_blank" style="display:block;text-align:center;font-size:12px;color:var(--acc);margin-top:8px;text-decoration:underline" data-te='AI నెమ్మదిగా లేదా నిద్రలో ఉందా? దీన్ని నొక్కి AIని మేల్కొల్పి, మళ్లీ ప్రయత్నించండి'>AI slow or asleep? Tap here to wake it, then retry</a>
+    </div>
+    <div class="card">
+      <div class="note" style="text-align:center;margin-bottom:8px" data-te='లేదా మాన్యువల్‌గా: ప్రతి శ్వాసకు ట్యాప్ చేయండి (60 సెకన్లు).'>Or manually: tap for every breath (60 s).</div>
+      <button id="rrTap" class="rec" style="height:90px;font-size:18px" data-te='ప్రతి శ్వాసకు ట్యాప్ చేయండి'>TAP for every breath</button>
+      <div style="text-align:center;font-size:30px;font-weight:800;color:var(--acc)" id="rrCount">0</div>
+      <button id="rrReset" class="stop" data-te='రీసెట్'>Reset</button>
+    </div>
+    <div class="card res" id="rrResCard" style="display:none">
+      <div class="cls" id="rrVerdict">—</div>
+      <div class="grid">
+        <div class="kv" data-te='శ్వాస రేటు<b id="rrRate">—</b>'>Respiratory rate<b id="rrRate">—</b></div>
+        <div class="kv" data-te='WHO థ్రెషోల్డ్<b id="rrThr">—</b>'>WHO threshold<b id="rrThr">—</b></div>
+      </div>
+      <div class="note" style="margin-top:10px" data-te='WHO IMCI ఫాస్ట్-బ్రీతింగ్: &lt;2 నెలలు ≥60 · 2–11 నెలలు ≥50 · 1–5 సం ≥40. ≥5 సం/పెద్దలు: >20/నిమి = టాకిప్నియా. స్క్రీనింగ్ మాత్రమే — క్లినికల్‌గా నిర్ధారించండి.'>WHO IMCI fast-breathing: &lt;2 mo ≥60 · 2–11 mo ≥50 · 1–5 yr ≥40. Age ≥5 yr/adults: &gt;20/min = tachypnea. Screening only — confirm clinically.</div>
+    </div>
+  </section>
+
+  <section class="pane" id="pFet" data-screen-label="PulmoScope · Blow test (FET)">
+    <div class="mhead">
+      <div class="mkicker">Suite 02 · PulmoScope</div>
+      <h2 class="mtitle" data-te='ఊదే పరీక్ష (బలవంతపు ఊపిరి సమయం)'>Blow test (Forced Expiratory Time)</h2>
+      <p class="msub" data-te='రోగి <b>వీలైనంత లోతుగా</b> ఊపిరి తీసుకుని, ఫోన్ మైక్‌లోకి <b>వీలైనంత గట్టిగా మరియు ఎక్కువ సేపు</b> గాలి అయిపోయే వరకు ఊదాలి. యాప్ వినిపించే ఊపిరి సమయాన్ని లెక్కిస్తుంది. <b>≥6 సెకన్లు</b> గాలి ప్రవాహ అడ్డంకిని (COPD/ఆస్తమా) సూచిస్తుంది.'>Patient takes the <b>deepest breath possible</b>, then blows into the phone mic <b>as hard and as long as possible</b> until no more air comes out. The app times the audible breath. <b>≥6 seconds</b> suggests airflow obstruction (COPD/asthma).</p>
+    </div>
+    <div class="card">
+      <div class="note" style="text-align:center;margin-bottom:8px" data-te='నిశ్శబ్ద గది. ఫోన్‌ను నోటికి దగ్గరగా పట్టుకోండి. START నొక్కి, బీప్ తర్వాత వెంటనే గట్టిగా ఊదండి.'>Hold the phone close to the mouth. Press START and blow hard right after the beep, until no air is left.</div>
+      <button id="ftRec" class="rec" data-te='● START (బీప్ తర్వాత ఊదండి)'>● START (blow after the beep)</button>
+      <button id="ftStop" class="stop" disabled data-te='■ ఆపు'>■ Stop</button>
+      <div id="ftStatus" class="vst" data-te='ఫోన్‌ను నోటికి దగ్గరగా పట్టుకోండి.'>Hold the phone close to the mouth.</div>
+      <a href="https://jaideeprao-cardiopulmo-api.hf.space/" target="_blank" style="display:block;text-align:center;font-size:12px;color:var(--acc);margin-top:8px;text-decoration:underline" data-te='AI నెమ్మదిగా లేదా నిద్రలో ఉందా? దీన్ని నొక్కి AIని మేల్కొల్పి, మళ్లీ ప్రయత్నించండి'>AI slow or asleep? Tap here to wake it, then retry</a>
+    </div>
+    <div class="card res" id="ftResCard" style="display:none">
+      <div class="cls" id="ftVerdict">—</div>
+      <div style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='ఆస్కల్టేటెడ్ FET స్క్రీన్. ≥5 సెకన్లు: సెన్స్ 94% · స్పెక్ 81% (అడ్డంకి కోసం).'>Auscultated FET screen. ≥5 s: Sens 94% · Spec 81% (for obstruction).</div>
+      <div class="grid">
+        <div class="kv" data-te='బలవంతపు ఊపిరి సమయం<b id="ftSec">—</b>'>Forced expiratory time<b id="ftSec">—</b></div>
+        <div class="kv" data-te='కటాఫ్<b id="ftCut">—</b>'>Cutoff<b id="ftCut">—</b></div>
+      </div>
+      <div class="note" style="margin-top:10px" data-te='ఎక్కువ FET (≥6 సె) గాలి ప్రవాహ అడ్డంకిని సూచిస్తుంది — COPD/ఆస్తమా అనుమానం. వీజ్ పరీక్షతో కలిపి చూడండి. క్లినికల్‌గా నిర్ధారించండి.'>A longer FET (≥6 s) suggests airflow obstruction — think COPD/asthma. Combine with the wheeze test. Confirm clinically.</div>
+    </div>
+  </section>
+
+  <section class="pane" id="pSbc" data-screen-label="PulmoScope · Breath count (SBCT)">
+    <div class="mhead">
+      <div class="mkicker">Suite 02 · PulmoScope</div>
+      <h2 class="mtitle" data-te='ఒకే శ్వాస లెక్కింపు పరీక్ష'>Single-breath count test</h2>
+      <p class="msub" data-te='రోగి <b>వీలైనంత లోతుగా</b> ఊపిరి తీసుకుని, సాధారణ స్వరంలో <b>సెకనుకు రెండు సార్లు</b> "ఒకటి, రెండు, మూడు…" అని <b>మళ్లీ ఊపిరి అవసరమయ్యే వరకు</b> బిగ్గరగా లెక్కించాలి. యాప్ ఎంత సేపు లెక్కించారో కొలిచి లెక్కను అంచనా వేస్తుంది. <b>25 కంటే తక్కువ</b> శ్వాస నిల్వ తగ్గడాన్ని సూచిస్తుంది.'>Patient takes the <b>deepest breath possible</b>, then counts out loud "one, two, three…" at about <b>two per second</b> in a normal voice, <b>until they must breathe again</b>. The app measures how long they sustain it and estimates the count. <b>Under 25</b> suggests reduced respiratory reserve.</p>
+    </div>
+    <div class="card">
+      <div class="note" style="text-align:center;margin-bottom:8px" data-te='ఫోన్‌ను నోటికి దగ్గరగా పట్టుకోండి. START నొక్కి, బీప్ తర్వాత లోతుగా ఊపిరి తీసుకుని లెక్కించడం మొదలుపెట్టండి.'>Hold the phone close to the mouth. Press START, then after the beep take a deep breath and start counting.</div>
+      <button id="sbRec" class="rec" data-te='● START (బీప్ తర్వాత లెక్కించండి)'>● START (count after the beep)</button>
+      <button id="sbStop" class="stop" disabled data-te='■ ఆపు'>■ Stop</button>
+      <div id="sbStatus" class="vst" data-te='ఫోన్‌ను నోటికి దగ్గరగా పట్టుకోండి.'>Hold the phone close to the mouth.</div>
+      <a href="https://jaideeprao-cardiopulmo-api.hf.space/" target="_blank" style="display:block;text-align:center;font-size:12px;color:var(--acc);margin-top:8px;text-decoration:underline" data-te='AI నెమ్మదిగా లేదా నిద్రలో ఉందా? దీన్ని నొక్కి AIని మేల్కొల్పి, మళ్లీ ప్రయత్నించండి'>AI slow or asleep? Tap here to wake it, then retry</a>
+    </div>
+    <div class="card res" id="sbResCard" style="display:none">
+      <div class="cls" id="sbVerdict">—</div>
+      <div style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='SBCT vs FVC r≈0.55. లెక్క ≥25 = సాధారణ; COVIDలో <30 శ్వాస సహాయ అవసరాన్ని సూచించింది.'>SBCT vs FVC r≈0.55. Count ≥25 = normal; <30 flagged need for respiratory support in COVID.</div>
+      <div class="grid">
+        <div class="kv" data-te='అంచనా లెక్క<b id="sbCount">—</b>'>Estimated count<b id="sbCount">—</b></div>
+        <div class="kv" data-te='ఒకే శ్వాస సమయం<b id="sbDur">—</b>'>Single-breath time<b id="sbDur">—</b></div>
+      </div>
+      <div class="note" style="margin-top:10px" data-te='తక్కువ లెక్క (<25) శ్వాస కండరాల బలహీనత/తగ్గిన నిల్వను సూచిస్తుంది — డిస్ప్నియా, న్యుమోనియా, న్యూరోమస్క్యులర్ కారణాలను పరిగణించండి. క్లినికల్‌గా నిర్ధారించండి.'>A low count (<25) suggests respiratory muscle weakness/reduced reserve — think dyspnea, pneumonia, or neuromuscular causes. Confirm clinically.</div>
+    </div>
+  </section>
+
+  <section class="pane" id="pMpt" data-screen-label="PulmoScope · Ahh time (MPT)">
+    <div class="mhead">
+      <div class="mkicker">Suite 02 · PulmoScope</div>
+      <h2 class="mtitle" data-te='గరిష్ఠ ధ్వని సమయం ("ఆహ్" పరీక్ష)'>Maximum phonation time ("Ahh" test)</h2>
+      <p class="msub" data-te='రోగి <b>వీలైనంత లోతుగా</b> ఊపిరి తీసుకుని, స్థిరమైన స్వరంలో <b>"ఆఽఽఽ"</b> అని <b>వీలైనంత ఎక్కువ సేపు</b> ఒకే శ్వాసలో పలకాలి. యాప్ ఆ వ్యవధిని కొలుస్తుంది. <b>~10 సెకన్ల కంటే తక్కువ</b> శ్వాస/స్వరపేటిక పనితీరు తగ్గడాన్ని సూచిస్తుంది.'>Patient takes the <b>deepest breath possible</b>, then says <b>"ahhhh"</b> in a steady voice <b>for as long as possible</b> on one breath. The app times it. <b>Under ~10 seconds</b> suggests reduced respiratory/laryngeal function.</p>
+    </div>
+    <div class="card">
+      <div class="note" style="text-align:center;margin-bottom:8px" data-te='ఫోన్‌ను నోటికి దగ్గరగా పట్టుకోండి. START నొక్కి, బీప్ తర్వాత లోతుగా ఊపిరి తీసుకుని "ఆఽఽ" మొదలుపెట్టండి.'>Hold the phone close to the mouth. Press START, then after the beep take a deep breath and start "ahhh".</div>
+      <button id="mpRec" class="rec" data-te='● START (బీప్ తర్వాత "ఆఽఽ")'>● START ("ahhh" after the beep)</button>
+      <button id="mpStop" class="stop" disabled data-te='■ ఆపు'>■ Stop</button>
+      <div id="mpStatus" class="vst" data-te='ఫోన్‌ను నోటికి దగ్గరగా పట్టుకోండి.'>Hold the phone close to the mouth.</div>
+      <a href="https://jaideeprao-cardiopulmo-api.hf.space/" target="_blank" style="display:block;text-align:center;font-size:12px;color:var(--acc);margin-top:8px;text-decoration:underline" data-te='AI నెమ్మదిగా లేదా నిద్రలో ఉందా? దీన్ని నొక్కి AIని మేల్కొల్పి, మళ్లీ ప్రయత్నించండి'>AI slow or asleep? Tap here to wake it, then retry</a>
+    </div>
+    <div class="card res" id="mpResCard" style="display:none">
+      <div class="cls" id="mpVerdict">—</div>
+      <div style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='MPT FVC & పీక్ కఫ్ ఫ్లోతో సహసంబంధం. సాధారణం: పురుషులు ~15–25 సె, స్త్రీలు ~12–20 సె.'>MPT correlates with FVC & peak cough flow. Normal: men ~15-25 s, women ~12-20 s.</div>
+      <div class="grid">
+        <div class="kv" data-te='ధ్వని సమయం<b id="mpSec">—</b>'>Phonation time<b id="mpSec">—</b></div>
+        <div class="kv" data-te='కటాఫ్<b id="mpCut">—</b>'>Cutoff<b id="mpCut">—</b></div>
+      </div>
+      <div class="note" style="margin-top:10px" data-te='తక్కువ ధ్వని సమయం (<10 సె) శ్వాస కండరాల బలహీనత, ఊపిరితిత్తుల వ్యాధి, లేదా స్వరపేటిక సమస్యను సూచిస్తుంది. లెక్కింపు/ఊదే పరీక్షలతో కలిపి చూడండి. క్లినికల్‌గా నిర్ధారించండి.'>A short phonation time (<10 s) suggests respiratory muscle weakness, lung disease, or a laryngeal problem. Combine with the count/blow tests. Confirm clinically.</div>
     </div>
   </section>
 
@@ -656,6 +769,10 @@
           <tr><td>Specificity</td><td>61.3%</td><td>70.7%</td><td>—</td></tr>
         </table>
         <div class="note" style="margin-top:8px;color:var(--mut)" data-te='క్రాకిల్ మరియు వీజ్ మోడల్‌లు ICBHI-2017 (6,898 సైకిల్స్, రోగి-స్థాయి విభజన, MobileNetV2 + SpecAugment)పై శిక్షణ పొందాయి — క్రాకిల్స్ (న్యుమోనియా/ఫైబ్రోసిస్/ఎడిమా) vs వీజ్ (ఆస్తమా/COPD/అడ్డంకి) వేరు చేస్తాయి. దగ్గు కౌంటర్ Google YAMNet + ఆన్‌సెట్ గుర్తింపును ఉపయోగిస్తుంది — దగ్గులను లెక్కించి నిమిషానికి రేటు ఇస్తుంది. ఆడియో నిల్వ చేయబడదు.'>Crackle and wheeze models were trained on ICBHI-2017 (6,898 cycles, patient-level split, MobileNetV2 with SpecAugment), distinguishing crackles (pneumonia/fibrosis/edema) from wheeze (asthma/COPD/obstruction). The cough counter uses Google YAMNet plus onset detection to count coughs and report a rate per minute. No audio is stored.</div>
+        <div class="note" style="margin-top:8px;color:var(--mut)" data-te='శ్వాస రేటు (WHO ఫాస్ట్-బ్రీతింగ్) ముక్కు/నోటి దగ్గర రికార్డ్ చేసిన శ్వాస శబ్దం నుండి ఎనర్జీ-ఎన్వలప్ + ఆటోకోరిలేషన్/వెల్చ్ పద్ధతిని ఉపయోగిస్తుంది. ఈ పద్ధతి RIP బెల్ట్‌లతో ప్రచురించబడిన అధ్యయనాలలో ~0.2–0.8 శ్వాసలు/నిమి MAEతో ధృవీకరించబడింది. వయసు ప్రకారం WHO IMCI ఫాస్ట్-బ్రీతింగ్ థ్రెషోల్డ్‌తో పోలుస్తుంది. గొడవగా ఉంటే మాన్యువల్ ట్యాప్ కౌంటర్ ప్రత్యామ్నాయంగా ఉంది.'>Respiratory rate (WHO fast-breathing) uses an energy-envelope + autocorrelation/Welch method on breath sound recorded at the nose/mouth. This method is validated in published studies against RIP belts at ~0.2-0.8 breaths/min MAE, and nasal breath sounds give under 1% median error across 6-90 breaths/min. The rate is compared to age-based WHO IMCI fast-breathing thresholds; a manual tap counter is provided as a fallback for noisy settings.</div>
+        <div class="note" style="margin-top:8px;color:var(--mut)" data-te='ఊదే పరీక్ష (బలవంతపు ఊపిరి సమయం, FET) రోగి ఫోన్ మైక్‌లోకి గట్టిగా ఊదిన వినిపించే ఊపిరి వ్యవధిని ఎనర్జీ-ఎన్వలప్ ద్వారా కొలుస్తుంది. ఆస్కల్టేటెడ్ FET గాలి ప్రవాహ అడ్డంకికి ధృవీకరించబడిన బెడ్‌సైడ్ పరీక్ష — ≥5 సెకన్ల కటాఫ్‌లో సెన్సిటివిటీ 94%, స్పెసిఫిసిటీ 81% (అడ్డంకి ఉన్నవారిలో సగటు FET 7.0 సె vs సాధారణ 4.1 సె). ≥6 సె వ్యాపకంగా అసాధారణంగా పరిగణించబడుతుంది. కటాఫ్ అడ్మిన్ డాష్‌బోర్డ్ నుండి సర్దుబాటు చేయవచ్చు.'>The blow test (Forced Expiratory Time, FET) measures the duration of the audible forced breath as the patient blows hard into the phone mic, via energy-envelope timing. Auscultated FET is a validated bedside test for airflow obstruction — at a ≥5 s cutoff, sensitivity 94% and specificity 81% (median FET 7.0 s in obstruction vs 4.1 s normal); ≥6 s is widely used as abnormal. The cutoff is adjustable from the admin dashboard.</div>
+        <div class="note" style="margin-top:8px;color:var(--mut)" data-te='ఒకే శ్వాస లెక్కింపు పరీక్ష (SBCT) రోగి ఒకే శ్వాసలో బిగ్గరగా లెక్కించే వ్యవధిని ఎనర్జీ-ఎన్వలప్ ద్వారా కొలిచి, సెకనుకు రెండు లెక్కల ప్రామాణిక వేగంతో లెక్కను అంచనా వేస్తుంది. SBCT FVCతో ధృవీకరించబడింది (r≈0.55–0.57); లెక్క ≥25 సాధారణ శ్వాస కండరాల పనితీరును సూచిస్తుంది, COVID న్యుమోనియాలో <30 శ్వాస సహాయ అవసరాన్ని మంచి సెన్సిటివిటీ/స్పెసిఫిసిటీతో గుర్తించింది. కటాఫ్ అడ్మిన్ డాష్‌బోర్డ్ నుండి సర్దుబాటు చేయవచ్చు.'>The single-breath count test (SBCT) times how long the patient counts aloud on one breath (energy-envelope), estimating the count at the standard two-per-second pace. SBCT is validated against FVC (r≈0.55-0.57); a count ≥25 indicates normal respiratory muscle function, and in COVID pneumonia a count under 30 flagged the need for respiratory support with good sensitivity/specificity. The cutoff is adjustable from the admin dashboard.</div>
+        <div class="note" style="margin-top:8px;color:var(--mut)" data-te='గరిష్ఠ ధ్వని సమయం (MPT) రోగి ఒకే శ్వాసలో "ఆహ్" నిలిపి ఉంచగలిగే వ్యవధిని ఎనర్జీ-ఎన్వలప్ ద్వారా కొలుస్తుంది. MPT FVC మరియు పీక్ కఫ్ ఫ్లోతో సహసంబంధం కలిగి ఉంది, అధిక విశ్వసనీయత (ఇంటర్-రేటర్ 0.94–0.95) కలిగి ఉంది, మరియు శ్వాస పనితీరుకు తక్కువ-ఖర్చు టెలిహెల్త్ సరోగేట్‌గా సిఫార్సు చేయబడింది. సాధారణం: పురుషులు ~15–25 సె, స్త్రీలు ~12–20 సె; ~10 సె కంటే తక్కువ స్పష్టంగా తగ్గింది. కటాఫ్ అడ్మిన్ డాష్‌బోర్డ్ నుండి సర్దుబాటు చేయవచ్చు.'>Maximum phonation time (MPT) measures how long the patient sustains "ahh" on one breath (energy-envelope). MPT correlates with FVC and peak cough flow, is highly reliable (inter-rater 0.94-0.95), and is recommended as a low-cost telehealth surrogate for respiratory function. Normal: men ~15-25 s, women ~12-20 s; under ~10 s is clearly reduced. The cutoff is adjustable from the admin dashboard.</div></div>
         <div class="note" style="margin-top:8px;color:var(--mut)" data-te='CardioScope PhysioNet/CinC-2016 (3,153 రికార్డింగ్‌లు, 764 వ్యక్తులు), PulmoScope ICBHI-2017 (920 రికార్డింగ్‌లు, 6,898 సైకిల్స్, రోగి-స్థాయిలో నివేదించబడింది), మరియు Murmur AI CirCor DigiScope (3,003 రికార్డింగ్‌లు)పై శిక్షణ పొందాయి. గణాంకాలు హెల్డ్-అవుట్ టెస్ట్ సెట్‌లపై; నిజ-ప్రపంచ దృఢత్వం కోసం మోడల్‌లు నాయిస్-అగ్మెంటెడ్.'>CardioScope was trained on PhysioNet/CinC-2016 (3,153 recordings, 764 subjects); PulmoScope on ICBHI-2017 (920 recordings, 6,898 cycles), reported at patient level; and Murmur AI on CirCor DigiScope (3,003 recordings, patient-level split), which also reports systolic/diastolic timing. Figures are on held-out test sets, and the models are noise-augmented for real-world robustness.</div>
 
         <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='గుండె టైమింగ్ (S1-S2)'>Cardiac timing (S1-S2 systolic interval)</div>
@@ -804,6 +921,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=32"></script>
+<script src="app.js?v=41"></script>
 </body>
 </html>

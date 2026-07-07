@@ -12,7 +12,7 @@ document.addEventListener('click',function(e){
 },true);
 const st=m=>$('status').textContent=m;
 let pulmoCur='lung';
-function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8','pXray','pCough','pLtype'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
+function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8','pXray','pCough','pLtype','pRR','pFet','pSbc','pMpt'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
 let pendingTab=null;
 function needLogin(name){
   if(sbUser)return false;
@@ -70,6 +70,14 @@ function pulmoSub(which){
   var _pxt=$('psXray'); if(_pxt)_pxt.classList.toggle('on',which==='xray');
   var _plt=$('pLtype'); if(_plt)_plt.classList.toggle('on',which==='ltype');
   var _pltt=$('psLtype'); if(_pltt)_pltt.classList.toggle('on',which==='ltype');
+  var _prr=$('pRR'); if(_prr)_prr.classList.toggle('on',which==='rr');
+  var _prrt=$('psRR'); if(_prrt)_prrt.classList.toggle('on',which==='rr');
+  var _pft=$('pFet'); if(_pft)_pft.classList.toggle('on',which==='fet');
+  var _pftt=$('psFet'); if(_pftt)_pftt.classList.toggle('on',which==='fet');
+  var _psb=$('pSbc'); if(_psb)_psb.classList.toggle('on',which==='sbc');
+  var _psbt=$('psSbc'); if(_psbt)_psbt.classList.toggle('on',which==='sbc');
+  var _pmp=$('pMpt'); if(_pmp)_pmp.classList.toggle('on',which==='mpt');
+  var _pmpt=$('psMpt'); if(_pmpt)_pmpt.classList.toggle('on',which==='mpt');
 }
 function tbxPick(input){
   var f=input.files&&input.files[0]; if(!f)return;
@@ -536,13 +544,14 @@ function elBeginRecording(side,s_,c_,src_,noisy){
   if(!src_)src_=c_.createMediaStreamSource(s_);
   src_.connect(eProc);eProc.connect(eZg);eZg.connect(c_.destination);
   eState[side]='active';eRender();
-  $('eRec').disabled=true;
+  $('eRec').disabled=true;var _es=$('eStop');if(_es)_es.disabled=false;
   var lead=noisy?'⚠ Noisy room — recording anyway ':('● Recording '+side+' lung… slow deep breaths ');
   eLeft=15;est(lead+'('+eLeft+'s)');
   eTimer=setInterval(function(){eLeft--;est('● Recording '+side+' lung… ('+eLeft+'s)');if(eLeft<=0)eStop();},1000);
 }
 function eStop(){setTimeout(cpBeepDone,350);
   clearInterval(eTimer);try{eProc.disconnect();}catch(e){}
+  var _es=$('eStop');if(_es)_es.disabled=true;
   if(eStream)eStream.getTracks().forEach(t=>t.stop());
   $('eRec').style.display='';$('eRec').disabled=false;
   let n=0;eBuf.forEach(b=>n+=b.length);
@@ -1384,15 +1393,21 @@ fbInstall();
 
 /* ===== global model thresholds (set by admin, same on every device) ===== */
 var CG_DELTA=0.15;
+var FET_CUTOFF=6.0;
+var SBCT_CUTOFF=25.0;
+var MPT_CUTOFF=10.0;
 async function loadThresholds(){
   try{
     if(!sb)return;
-    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta').eq('id',1).maybeSingle();
+    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff').eq('id',1).maybeSingle();
     if(r&&r.data){
       if(r.data.cardio_thr!=null)PC_THR=parseFloat(r.data.cardio_thr);
       if(r.data.murmur_thr!=null)MM_THR=parseFloat(r.data.murmur_thr);
       if(r.data.lung_thr!=null)LG_THR=parseFloat(r.data.lung_thr);
       if(r.data.cough_delta!=null)CG_DELTA=parseFloat(r.data.cough_delta);
+      if(r.data.fet_cutoff!=null)FET_CUTOFF=parseFloat(r.data.fet_cutoff);
+      if(r.data.sbct_cutoff!=null)SBCT_CUTOFF=parseFloat(r.data.sbct_cutoff);
+      if(r.data.mpt_cutoff!=null)MPT_CUTOFF=parseFloat(r.data.mpt_cutoff);
     }
   }catch(e){}
 }
@@ -1754,68 +1769,350 @@ async function cgSend(wav){
 })();
 
 /* ===================== LUNG TYPE (crackle/wheeze /lungtype) ===================== */
-var ltStream=null,ltCtx=null,ltSrc=null,ltProc=null,ltAnalyser=null,ltBuf=[],ltSr=16000,ltRunning=false,ltTimer=null,ltRAF=null;
-function ltSetStatus(m){var e=$('ltStatus');if(e)e.textContent=m;}
-function ltDrawLive(){
-  var c=$('ltWave');if(!c||!ltAnalyser)return;
-  c.style.display='block';c.width=c.clientWidth*2;c.height=120;
-  var ctx=c.getContext('2d'),W=c.width,H=c.height,arr=new Uint8Array(ltAnalyser.fftSize);
-  function loop(){
-    if(!ltRunning)return;
-    ltAnalyser.getByteTimeDomainData(arr);
-    ctx.fillStyle='#070B16';ctx.fillRect(0,0,W,H);
-    ctx.strokeStyle='#56d4dd';ctx.lineWidth=1;ctx.beginPath();
-    var step=W/arr.length;
-    for(var i=0;i<arr.length;i++){var v=(arr[i]-128)/128,x=i*step,y=H/2-v*H*0.42;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
-    ctx.stroke();ltRAF=requestAnimationFrame(loop);
-  }
-  loop();
+var ltGating=false,ltCancel=null,ltStream=null,ltCtx=null,ltProc=null,ltZg=null,ltBuf=[],ltSr=16000,ltTimer=null,ltLeft=15;
+function ltSt(m){var e=$('ltStatus');if(e)e.textContent=m;}
+$('ltRec').onclick=function(){
+  if(ltGating)return;
+  $('ltResCard').style.display='none';$('ltRec').style.display='none';$('ltStop').disabled=false;
+  quietGate({noiseId:'ltNoise',lblId:'ltNoiseLbl',canvasId:'ltNoiseCanvas',st:ltSt,startLbl:'Quiet \u2713 \u2014 breathe deep, starting in ',
+    setGating:function(v){ltGating=v;},setCancel:function(f){ltCancel=f;},
+    onReady:function(s_,c_,src_,noisy){ltBegin(s_,c_,src_,noisy);}});
+};
+$('ltStop').onclick=function(){
+  if(ltGating&&ltCancel){ltCancel();$('ltStop').disabled=true;$('ltRec').style.display='';ltSt('Cancelled \u2014 press START again.');return;}
+  ltStopRec();
+};
+function ltBegin(s_,c_,src_,noisy){
+  ltStream=s_;ltCtx=c_;ltSr=c_.sampleRate;ltBuf=[];
+  ltProc=c_.createScriptProcessor(4096,1,1);ltZg=c_.createGain();ltZg.gain.value=0;
+  ltProc.onaudioprocess=function(ev){ltBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+  if(!src_)src_=c_.createMediaStreamSource(s_);
+  src_.connect(ltProc);ltProc.connect(ltZg);ltZg.connect(c_.destination);
+  $('ltStop').disabled=false;
+  var lead=noisy?'\u26A0 Noisy room \u2014 recording anyway ':'\u25CF Recording\u2026 deep breaths ';
+  ltLeft=15;ltSt(lead+'('+ltLeft+'s)');
+  ltTimer=setInterval(function(){ltLeft--;ltSt('\u25CF Recording\u2026 ('+ltLeft+'s)');if(ltLeft<=0)ltStopRec();},1000);
 }
-function ltStart(){
-  if(ltRunning)return;
-  $('ltResCard').style.display='none';
-  ltSetStatus('Requesting microphone\u2026');
-  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
-    ltStream=stream;ltRunning=true;ltBuf=[];
-    ltCtx=new (window.AudioContext||window.webkitAudioContext)();
-    ltSr=ltCtx.sampleRate;
-    ltSrc=ltCtx.createMediaStreamSource(stream);
-    ltAnalyser=ltCtx.createAnalyser();ltAnalyser.fftSize=1024;ltSrc.connect(ltAnalyser);
-    ltProc=ltCtx.createScriptProcessor(4096,1,1);
-    ltProc.onaudioprocess=function(e){if(!ltRunning)return;ltBuf.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
-    ltSrc.connect(ltProc);ltProc.connect(ltCtx.destination);
-    $('ltRec').disabled=true;$('ltStop').disabled=false;
-    var t0=Date.now();
-    ltTimer=setInterval(function(){
-      var left=15-Math.floor((Date.now()-t0)/1000);
-      if(left<=0){ltStop();}else{ltSetStatus('Recording\u2026 '+left+' s left');}
-    },250);
-    ltDrawLive();
-  }).catch(function(){ltSetStatus('Microphone blocked. Allow mic access and try again.');});
-}
-function ltStop(){
-  if(!ltRunning)return;
-  ltRunning=false;
-  if(ltTimer){clearInterval(ltTimer);ltTimer=null;}
-  if(ltRAF){cancelAnimationFrame(ltRAF);ltRAF=null;}
-  try{ltProc.disconnect();ltSrc.disconnect();ltAnalyser.disconnect();}catch(e){}
-  try{ltStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
-  try{ltCtx.close();}catch(e){}
-  $('ltRec').disabled=false;$('ltStop').disabled=true;
-  ltSetStatus('Analysing with cloud AI\u2026');
-  var total=0;ltBuf.forEach(function(b){total+=b.length;});
-  var merged=new Float32Array(total),off=0;
-  ltBuf.forEach(function(b){merged.set(b,off);off+=b.length;});
-  var wav=encodeWAV(merged,ltSr);
-  cpCloud('lungtype',wav).then(function(res){
-    if(!res){ltSetStatus('The AI service may be asleep \u2014 open the wake link on the X-ray tab once, then try again.');return;}
+function ltStopRec(){setTimeout(cpBeepDone,350);
+  clearInterval(ltTimer);try{ltProc.disconnect();}catch(e){}
+  if(ltStream)ltStream.getTracks().forEach(function(t){t.stop();});
+  $('ltStop').disabled=true;$('ltRec').style.display='';ltSt('Analysing with cloud AI\u2026');
+  var n=0;ltBuf.forEach(function(b){n+=b.length;});
+  if(n<ltSr){ltSt('Too short \u2014 record ~15s.');try{ltCtx.close();}catch(e){}return;}
+  var s=new Float32Array(n),o=0;ltBuf.forEach(function(b){s.set(b,o);o+=b.length;});try{ltCtx.close();}catch(e){}
+  var wav=encodeWAV(s,ltSr);
+  (async function(){
+    var res=await cpCloud('lungtype',wav);
+    if(!res){res=await cwOffline(s,ltSr);}
+    if(!res){ltSt('AI service may be asleep \u2014 tap the wake link below, then retry.');return;}
     $('ltResCard').style.display='block';
     var crk=(res.crackle==='flag'),whz=(res.wheeze==='flag');
     var v=[]; if(crk)v.push('Crackles'); if(whz)v.push('Wheeze');
     $('ltVerdict').textContent=v.length?v.join(' + ')+' detected':'No crackle/wheeze';
     $('ltCrk').textContent=(crk?'FLAG':'clear')+' ('+Math.round((res.crackle_prob||0)*100)+'%)';
     $('ltWhz').textContent=(whz?'FLAG':'clear')+' ('+Math.round((res.wheeze_prob||0)*100)+'%)';
-    ltSetStatus('Done. Press START to record again.');
+    ltSt((res.offline?'Offline estimate. ':'Done. ')+'Press START to record again.');
+  })();
+}
+
+/* ===================== RESPIRATORY RATE (audio /resprate + tap fallback, WHO) ===================== */
+function rrWho(ageYr){
+  if(isNaN(ageYr)) return {thr:21,lbl:'>20/min (adult)'};
+  if(ageYr<0.1667) return {thr:60,lbl:'\u226560/min (<2 mo)'};
+  if(ageYr<1)      return {thr:50,lbl:'\u226550/min (2\u201311 mo)'};
+  if(ageYr<5)      return {thr:40,lbl:'\u226540/min (1\u20135 yr)'};
+  return {thr:21,lbl:'>20/min (adult)'};
+}
+function rrShow(rate){
+  var age=parseFloat(($('age')&&$('age').value)||'');
+  var w=rrWho(age);
+  var fast=(w.thr<=21)?(rate>20):(rate>=w.thr);
+  $('rrResCard').style.display='block';
+  $('rrRate').textContent=Math.round(rate)+' /min';
+  $('rrThr').textContent=w.lbl;
+  $('rrVerdict').textContent=fast?'FAST BREATHING':'Normal rate';
+  $('rrVerdict').style.color=fast?'#ff6b6b':'var(--acc)';
+}
+/* --- audio path --- */
+var rrGating=false,rrCancel=null,rrStream=null,rrCtx=null,rrProc=null,rrZg=null,rrBuf=[],rrSr=16000,rrTimerA=null,rrLeftA=30;
+function rrSt(m){var e=$('rrStatus');if(e)e.textContent=m;}
+$('rrRec').onclick=function(){
+  if(rrGating)return;
+  $('rrResCard').style.display='none';$('rrRec').style.display='none';$('rrStop').disabled=false;
+  quietGate({noiseId:'rrNoise',lblId:'rrNoiseLbl',canvasId:'rrNoiseCanvas',st:rrSt,startLbl:'Quiet \u2713 \u2014 breathe audibly, starting in ',
+    setGating:function(v){rrGating=v;},setCancel:function(f){rrCancel=f;},
+    onReady:function(s_,c_,src_,noisy){rrBeginA(s_,c_,src_,noisy);}});
+};
+$('rrStop').onclick=function(){
+  if(rrGating&&rrCancel){rrCancel();$('rrStop').disabled=true;$('rrRec').style.display='';rrSt('Cancelled \u2014 press START again.');return;}
+  rrStopA();
+};
+function rrBeginA(s_,c_,src_,noisy){
+  rrStream=s_;rrCtx=c_;rrSr=c_.sampleRate;rrBuf=[];
+  rrProc=c_.createScriptProcessor(4096,1,1);rrZg=c_.createGain();rrZg.gain.value=0;
+  rrProc.onaudioprocess=function(ev){rrBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+  if(!src_)src_=c_.createMediaStreamSource(s_);
+  src_.connect(rrProc);rrProc.connect(rrZg);rrZg.connect(c_.destination);
+  $('rrStop').disabled=false;
+  rrLeftA=30;rrSt('\u25CF Recording breathing\u2026 ('+rrLeftA+'s)');
+  rrTimerA=setInterval(function(){rrLeftA--;rrSt('\u25CF Recording breathing\u2026 ('+rrLeftA+'s)');if(rrLeftA<=0)rrStopA();},1000);
+}
+function rrStopA(){setTimeout(cpBeepDone,350);
+  clearInterval(rrTimerA);try{rrProc.disconnect();}catch(e){}
+  if(rrStream)rrStream.getTracks().forEach(function(t){t.stop();});
+  $('rrStop').disabled=true;$('rrRec').style.display='';rrSt('Analysing with cloud AI\u2026');
+  var n=0;rrBuf.forEach(function(b){n+=b.length;});
+  if(n<rrSr*5){rrSt('Too short \u2014 record ~30s.');try{rrCtx.close();}catch(e){}return;}
+  var s=new Float32Array(n),o=0;rrBuf.forEach(function(b){s.set(b,o);o+=b.length;});try{rrCtx.close();}catch(e){}
+  var wav=encodeWAV(s,rrSr);
+  cpCloud('resprate',wav).then(function(res){
+    if(!res||res.rr==null){var lr=rrLocal(s,rrSr);if(lr==null){rrSt('Could not read a clear breathing rate \u2014 try again nearer the nose/mouth, or use the tap method.');return;}res={rr:Math.round(lr*10)/10,offline:true};}
+    rrShow(res.rr);
+    rrSt((res.offline?'Offline estimate. ':'Done. ')+'Press START to measure again.');
   });
 }
-(function(){var r=$('ltRec'),s=$('ltStop');if(r)r.onclick=ltStart;if(s)s.onclick=ltStop;})();
+/* --- tap fallback --- */
+var rrRunning=false,rrCount=0,rrT0=0,rrTimer=null;
+function rrTapFn(){
+  if(!rrRunning){
+    rrRunning=true; rrCount=0; rrT0=Date.now(); $('rrResCard').style.display='none';
+    rrTimer=setInterval(function(){
+      var left=60-Math.floor((Date.now()-rrT0)/1000);
+      if(left<=0){ rrRunning=false; clearInterval(rrTimer); rrTimer=null; rrShow(rrCount); }
+    },250);
+  }
+  rrCount++; $('rrCount').textContent=rrCount;
+}
+(function(){
+  var t=$('rrTap'); if(t)t.onclick=rrTapFn;
+  var r=$('rrReset'); if(r)r.onclick=function(){rrRunning=false;if(rrTimer){clearInterval(rrTimer);rrTimer=null;}rrCount=0;$('rrCount').textContent='0';$('rrResCard').style.display='none';};
+})();
+
+$('eStop').onclick=function(){
+  if(elGating&&elCancel){elCancel();$('eStop').disabled=true;$('eRec').style.display='';$('eRec').disabled=false;est('Cancelled — tap a side and record again.');return;}
+  if(eTimer)eStop();
+};
+
+/* ===================== BLOW TEST — FORCED EXPIRATORY TIME (/fet) ===================== */
+var ftRunning=false,ftStream=null,ftCtx=null,ftProc=null,ftZg=null,ftBuf=[],ftSr=16000,ftTimer=null,ftLeft=12;
+function ftSt(m){var e=$('ftStatus');if(e)e.textContent=m;}
+$('ftRec').onclick=function(){
+  if(ftRunning)return;
+  $('ftResCard').style.display='none';$('ftRec').style.display='none';$('ftStop').disabled=false;ftSt('Get ready\u2026');
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
+    ftRunning=true;ftStream=stream;ftCtx=new (window.AudioContext||window.webkitAudioContext)();ftSr=ftCtx.sampleRate;ftBuf=[];
+    var src=ftCtx.createMediaStreamSource(stream);
+    ftProc=ftCtx.createScriptProcessor(4096,1,1);ftZg=ftCtx.createGain();ftZg.gain.value=0;
+    ftProc.onaudioprocess=function(ev){if(!ftRunning)return;ftBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+    src.connect(ftProc);ftProc.connect(ftZg);ftZg.connect(ftCtx.destination);
+    cpBeepStart();
+    ftLeft=12;ftSt('\u25CF BLOW HARD now\u2026 keep going ('+ftLeft+'s)');
+    ftTimer=setInterval(function(){ftLeft--;ftSt('\u25CF Blowing\u2026 ('+ftLeft+'s) \u2014 press Stop when empty');if(ftLeft<=0)ftStopRec();},1000);
+  }).catch(function(){$('ftRec').style.display='';$('ftStop').disabled=true;ftSt('Microphone blocked. Allow mic and reload.');});
+};
+$('ftStop').onclick=function(){ if(ftRunning)ftStopRec(); };
+function ftStopRec(){setTimeout(cpBeepDone,350);
+  ftRunning=false;clearInterval(ftTimer);try{ftProc.disconnect();}catch(e){}
+  if(ftStream)ftStream.getTracks().forEach(function(t){t.stop();});
+  $('ftStop').disabled=true;$('ftRec').style.display='';ftSt('Measuring\u2026');
+  var n=0;ftBuf.forEach(function(b){n+=b.length;});
+  if(n<ftSr){ftSt('Too short \u2014 try again and blow longer.');try{ftCtx.close();}catch(e){}return;}
+  var s=new Float32Array(n),o=0;ftBuf.forEach(function(b){s.set(b,o);o+=b.length;});try{ftCtx.close();}catch(e){}
+  var wav=encodeWAV(s,ftSr);
+  (async function(){
+    try{await loadThresholds();}catch(e){}
+    var fd=new FormData();fd.append('file',wav,'rec.wav');fd.append('cutoff',String(FET_CUTOFF));
+    var ac=new AbortController(),to=setTimeout(function(){ac.abort();},25000);
+    var res=null;
+    try{var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/fet',{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(r.ok)res=await r.json();}catch(e){res=null;}
+    if(!res||res.fet_sec==null){var lc=fetLocal(s,ftSr);if(lc==null){ftSt('Could not read a clear blow \u2014 try again, blow harder into the mic.');return;}res={fet_sec:Math.round(lc*100)/100,obstruction:(lc>=FET_CUTOFF?'flag':'clear'),cutoff:FET_CUTOFF,offline:true};}
+    $('ftResCard').style.display='block';
+    var fast=(res.obstruction==='flag');
+    $('ftVerdict').textContent=fast?'PROLONGED \u2014 possible obstruction':'Normal expiratory time';
+    $('ftVerdict').style.color=fast?'#ff6b6b':'var(--acc)';
+    $('ftSec').textContent=res.fet_sec+' s';
+    $('ftCut').textContent='\u2265'+(res.cutoff||FET_CUTOFF)+' s = flag';
+    ftSt((res.offline?'Offline estimate. ':'Done. ')+'Press START to measure again.');
+  })();
+}
+
+/* ===================== SINGLE-BREATH COUNT TEST (/sbct) ===================== */
+var sbRunning=false,sbStream=null,sbCtx=null,sbProc=null,sbZg=null,sbBuf=[],sbSr=16000,sbTimer=null,sbLeft=30;
+function sbSt(m){var e=$('sbStatus');if(e)e.textContent=m;}
+$('sbRec').onclick=function(){
+  if(sbRunning)return;
+  $('sbResCard').style.display='none';$('sbRec').style.display='none';$('sbStop').disabled=false;sbSt('Get ready\u2026');
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
+    sbRunning=true;sbStream=stream;sbCtx=new (window.AudioContext||window.webkitAudioContext)();sbSr=sbCtx.sampleRate;sbBuf=[];
+    var src=sbCtx.createMediaStreamSource(stream);
+    sbProc=sbCtx.createScriptProcessor(4096,1,1);sbZg=sbCtx.createGain();sbZg.gain.value=0;
+    sbProc.onaudioprocess=function(ev){if(!sbRunning)return;sbBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+    src.connect(sbProc);sbProc.connect(sbZg);sbZg.connect(sbCtx.destination);
+    cpBeepStart();
+    sbLeft=30;sbSt('\u25CF Deep breath, then COUNT out loud\u2026 ('+sbLeft+'s)');
+    sbTimer=setInterval(function(){sbLeft--;sbSt('\u25CF Counting\u2026 ('+sbLeft+'s) \u2014 press Stop when you must breathe');if(sbLeft<=0)sbStopRec();},1000);
+  }).catch(function(){$('sbRec').style.display='';$('sbStop').disabled=true;sbSt('Microphone blocked. Allow mic and reload.');});
+};
+$('sbStop').onclick=function(){ if(sbRunning)sbStopRec(); };
+function sbStopRec(){setTimeout(cpBeepDone,350);
+  sbRunning=false;clearInterval(sbTimer);try{sbProc.disconnect();}catch(e){}
+  if(sbStream)sbStream.getTracks().forEach(function(t){t.stop();});
+  $('sbStop').disabled=true;$('sbRec').style.display='';sbSt('Measuring\u2026');
+  var n=0;sbBuf.forEach(function(b){n+=b.length;});
+  if(n<sbSr){sbSt('Too short \u2014 try again and count longer.');try{sbCtx.close();}catch(e){}return;}
+  var s=new Float32Array(n),o=0;sbBuf.forEach(function(b){s.set(b,o);o+=b.length;});try{sbCtx.close();}catch(e){}
+  var wav=encodeWAV(s,sbSr);
+  (async function(){
+    try{await loadThresholds();}catch(e){}
+    var fd=new FormData();fd.append('file',wav,'rec.wav');fd.append('cutoff',String(SBCT_CUTOFF));
+    var ac=new AbortController(),to=setTimeout(function(){ac.abort();},25000);
+    var res=null;
+    try{var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/sbct',{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(r.ok)res=await r.json();}catch(e){res=null;}
+    if(!res||res.duration_sec==null){var lc=sbctLocal(s,sbSr);if(lc==null){sbSt('Could not read clear counting \u2014 try again, count louder.');return;}res={duration_sec:Math.round(lc.dur*10)/10,est_count:lc.est,weak:(lc.est<SBCT_CUTOFF?'flag':'clear'),cutoff:SBCT_CUTOFF,offline:true};}
+    $('sbResCard').style.display='block';
+    var weak=(res.weak==='flag');
+    $('sbVerdict').textContent=weak?'LOW \u2014 reduced reserve':'Normal reserve';
+    $('sbVerdict').style.color=weak?'#ff6b6b':'var(--acc)';
+    $('sbCount').textContent='~'+(res.est_count!=null?res.est_count:'\u2014');
+    $('sbDur').textContent=res.duration_sec+' s';
+    sbSt((res.offline?'Offline estimate. ':'Done. ')+'Press START to measure again.');
+  })();
+}
+
+/* ===================== MAXIMUM PHONATION TIME (/mpt) ===================== */
+var mpRunning=false,mpStream=null,mpCtx=null,mpProc=null,mpZg=null,mpBuf=[],mpSr=16000,mpTimer=null,mpLeft=40;
+function mpSt(m){var e=$('mpStatus');if(e)e.textContent=m;}
+$('mpRec').onclick=function(){
+  if(mpRunning)return;
+  $('mpResCard').style.display='none';$('mpRec').style.display='none';$('mpStop').disabled=false;mpSt('Get ready\u2026');
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
+    mpRunning=true;mpStream=stream;mpCtx=new (window.AudioContext||window.webkitAudioContext)();mpSr=mpCtx.sampleRate;mpBuf=[];
+    var src=mpCtx.createMediaStreamSource(stream);
+    mpProc=mpCtx.createScriptProcessor(4096,1,1);mpZg=mpCtx.createGain();mpZg.gain.value=0;
+    mpProc.onaudioprocess=function(ev){if(!mpRunning)return;mpBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+    src.connect(mpProc);mpProc.connect(mpZg);mpZg.connect(mpCtx.destination);
+    cpBeepStart();
+    mpLeft=40;mpSt('\u25CF Deep breath, then say "aaahhh"\u2026 ('+mpLeft+'s)');
+    mpTimer=setInterval(function(){mpLeft--;mpSt('\u25CF "aaahhh"\u2026 ('+mpLeft+'s) \u2014 press Stop when you must breathe');if(mpLeft<=0)mpStopRec();},1000);
+  }).catch(function(){$('mpRec').style.display='';$('mpStop').disabled=true;mpSt('Microphone blocked. Allow mic and reload.');});
+};
+$('mpStop').onclick=function(){ if(mpRunning)mpStopRec(); };
+function mpStopRec(){setTimeout(cpBeepDone,350);
+  mpRunning=false;clearInterval(mpTimer);try{mpProc.disconnect();}catch(e){}
+  if(mpStream)mpStream.getTracks().forEach(function(t){t.stop();});
+  $('mpStop').disabled=true;$('mpRec').style.display='';mpSt('Measuring\u2026');
+  var n=0;mpBuf.forEach(function(b){n+=b.length;});
+  if(n<mpSr){mpSt('Too short \u2014 try again and hold "ahhh" longer.');try{mpCtx.close();}catch(e){}return;}
+  var s=new Float32Array(n),o=0;mpBuf.forEach(function(b){s.set(b,o);o+=b.length;});try{mpCtx.close();}catch(e){}
+  var wav=encodeWAV(s,mpSr);
+  (async function(){
+    try{await loadThresholds();}catch(e){}
+    var fd=new FormData();fd.append('file',wav,'rec.wav');fd.append('cutoff',String(MPT_CUTOFF));
+    var ac=new AbortController(),to=setTimeout(function(){ac.abort();},25000);
+    var res=null;
+    try{var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/mpt',{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(r.ok)res=await r.json();}catch(e){res=null;}
+    if(!res||res.mpt_sec==null){var lc=mptLocal(s,mpSr);if(lc==null){mpSt('Could not read a clear "ahhh" \u2014 try again, louder and steadier.');return;}res={mpt_sec:Math.round(lc*10)/10,weak:(lc<MPT_CUTOFF?'flag':'clear'),cutoff:MPT_CUTOFF,offline:true};}
+    $('mpResCard').style.display='block';
+    var weak=(res.weak==='flag');
+    $('mpVerdict').textContent=weak?'SHORT \u2014 reduced function':'Normal phonation time';
+    $('mpVerdict').style.color=weak?'#ff6b6b':'var(--acc)';
+    $('mpSec').textContent=res.mpt_sec+' s';
+    $('mpCut').textContent='<'+(res.cutoff||MPT_CUTOFF)+' s = flag';
+    mpSt((res.offline?'Offline estimate. ':'Done. ')+'Press START to measure again.');
+  })();
+}
+
+/* ===================== OFFLINE DSP FALLBACKS (no cloud needed) ===================== */
+function dspEnv(s,sr){
+  var hop=Math.max(1,Math.round(sr*0.01)),win=Math.max(1,Math.round(sr*0.02)),m=Math.floor(s.length/hop);
+  var env=new Float32Array(m),i,j;
+  for(i=0;i<m;i++){var st=i*hop,en=Math.min(s.length,st+win),acc=0,c=0;for(j=st;j<en;j++){acc+=s[j]*s[j];c++;}env[i]=Math.sqrt(c?acc/c:0);}
+  var k=Math.max(1,Math.round(0.05*(sr/hop))),out=new Float32Array(m);
+  for(i=0;i<m;i++){var a=0,cc=0,j2;for(j2=Math.max(0,i-k);j2<=Math.min(m-1,i+k);j2++){a+=env[j2];cc++;}out[i]=a/cc;}
+  return {env:out,fs:sr/hop};
+}
+function _dspLongest(env,fs,gapSec,frac){
+  var s2=Float32Array.from(env);s2.sort();
+  var lowN=Math.max(1,Math.floor(s2.length/10)),base=s2[Math.floor(lowN/2)],peak=s2[s2.length-1]||0;
+  if(peak<=0)return null;
+  var thr=base+frac*(peak-base),idx=[],i;for(i=0;i<env.length;i++)if(env[i]>thr)idx.push(i);
+  if(!idx.length)return null;
+  var gap=Math.round(gapSec*fs),runs=[],start=idx[0],prev=idx[0],k;
+  for(k=1;k<idx.length;k++){var ii=idx[k];if(ii-prev>gap){runs.push([start,prev]);start=ii;}prev=ii;}
+  runs.push([start,prev]);
+  var best=runs[0],r;for(r=1;r<runs.length;r++)if(runs[r][1]-runs[r][0]>best[1]-best[0])best=runs[r];
+  return (best[1]-best[0])/fs;
+}
+function fetLocal(s,sr){var e=dspEnv(s,sr);return _dspLongest(e.env,e.fs,0.15,0.12);}
+function sbctLocal(s,sr){var e=dspEnv(s,sr);var d=_dspLongest(e.env,e.fs,0.6,0.10);return d==null?null:{dur:d,est:Math.round(d*2)};}
+function mptLocal(s,sr){var e=dspEnv(s,sr);return _dspLongest(e.env,e.fs,0.2,0.12);}
+function rrLocal(s,sr){
+  var e=dspEnv(s,sr),env=e.env,fs=e.fs,mean=0,i;
+  for(i=0;i<env.length;i++)mean+=env[i];mean/=env.length;
+  var d=new Float32Array(env.length);for(i=0;i<env.length;i++)d[i]=env[i]-mean;
+  var lo=Math.floor(fs/1.5),hi=Math.min(env.length-1,Math.floor(fs/0.15));
+  if(hi<=lo+2)return null;
+  var bestLag=-1,bestVal=-Infinity,lag;
+  for(lag=lo;lag<hi;lag++){var acc=0;for(i=0;i+lag<d.length;i++)acc+=d[i]*d[i+lag];if(acc>bestVal){bestVal=acc;bestLag=lag;}}
+  if(bestLag<=0)return null;
+  var rr=60/(bestLag/fs);return (rr>=5&&rr<=90)?rr:null;
+}
+
+/* ===================== OFFLINE CRACKLE/WHEEZE (TF.js, matches training) ===================== */
+var CW_SR=4000,CW_NFFT=1024,CW_HOP=64,CW_NMEL=128,CW_NB=513,CW_TW=256,CW_WINN=16000;
+var CW_HANN=new Float32Array(CW_NFFT);for(var _n=0;_n<CW_NFFT;_n++)CW_HANN[_n]=0.5-0.5*Math.cos(2*Math.PI*_n/CW_NFFT);
+var cwCrk=null,cwWhz=null,cwMel=null,cwLoading=null;
+async function cwLoad(){
+  if(cwCrk&&cwWhz&&cwMel)return true;
+  if(cwLoading)return cwLoading;
+  cwLoading=(async function(){
+    try{
+      if(typeof tf==='undefined')return false;
+      var mr=await fetch('mel_filter_cw.json');if(!mr.ok)return false;
+      var mj=await mr.json();cwMel=Array.isArray(mj)?mj:mj.mel;
+      cwCrk=await tf.loadLayersModel('tfjs_crackle/model.json');
+      cwWhz=await tf.loadLayersModel('tfjs_wheeze/model.json');
+      return true;
+    }catch(e){console.error('cw offline load failed',e);return false;}
+  })();
+  return cwLoading;
+}
+function cwImage(x,start){
+  var w=new Float32Array(CW_WINN),i;
+  for(i=0;i<CW_WINN;i++){var j=start+i;w[i]=(j<x.length)?x[j]:0;}
+  var pad=CW_NFFT/2,xp=new Float32Array(CW_WINN+CW_NFFT);xp.set(w,pad);
+  var nfr=1+Math.floor(CW_WINN/CW_HOP);
+  var P=new Float32Array(CW_NB*nfr),re=new Float64Array(CW_NFFT),im=new Float64Array(CW_NFFT),f,k,b;
+  for(f=0;f<nfr;f++){var off=f*CW_HOP;
+    for(k=0;k<CW_NFFT;k++){re[k]=xp[off+k]*CW_HANN[k];im[k]=0;}
+    fft(re,im);
+    for(b=0;b<CW_NB;b++)P[b*nfr+f]=re[b]*re[b]+im[b]*im[b];}
+  var M=new Float32Array(CW_NMEL*nfr),dbmax=-Infinity,m;
+  for(m=0;m<CW_NMEL;m++){var mrow=cwMel[m];
+    for(f=0;f<nfr;f++){var acc=0;for(b=0;b<CW_NB;b++)acc+=mrow[b]*P[b*nfr+f];
+      var db=10*Math.log10(Math.max(1e-10,acc));M[m*nfr+f]=db;if(db>dbmax)dbmax=db;}}
+  var dbmin=Infinity;
+  for(i=0;i<M.length;i++){var v=M[i]-dbmax;if(v<-80)v=-80;M[i]=v;if(v<dbmin)dbmin=v;}
+  var rng=(0-dbmin)+1e-6;
+  var out=new Float32Array(CW_NMEL*CW_TW*3),t;
+  for(m=0;m<CW_NMEL;m++){
+    for(t=0;t<CW_TW;t++){
+      var ft=(nfr>1)?(t*(nfr-1)/(CW_TW-1)):0,f0=Math.floor(ft),f1=Math.min(nfr-1,f0+1),a=ft-f0;
+      var val=(((1-a)*M[m*nfr+f0]+a*M[m*nfr+f1])-dbmin)/rng*255;
+      var idx=(m*CW_TW+t)*3;out[idx]=val;out[idx+1]=val;out[idx+2]=val;
+    }
+  }
+  return out;
+}
+function cwPredict(model,img){return tf.tidy(function(){var x=tf.tensor4d(img,[1,CW_NMEL,CW_TW,3]);var y=model.predict(x);var t=Array.isArray(y)?y[0]:y;return t.dataSync()[0];});}
+async function cwOffline(s,fs){
+  var ok=await cwLoad();if(!ok)return null;
+  try{
+    var x=pcResample(s,fs,CW_SR);
+    var starts=[];for(var st=0;st+CW_WINN<=x.length;st+=CW_WINN/2)starts.push(st);
+    if(!starts.length)starts=[0];
+    var pc=0,pw=0;
+    for(var q=0;q<starts.length;q++){var img=cwImage(x,starts[q]);pc=Math.max(pc,cwPredict(cwCrk,img));pw=Math.max(pw,cwPredict(cwWhz,img));}
+    return {crackle_prob:pc,wheeze_prob:pw,crackle:(pc>=0.30?'flag':'clear'),wheeze:(pw>=0.50?'flag':'clear'),offline:true};
+  }catch(e){console.error('cwOffline err',e);return null;}
+}
