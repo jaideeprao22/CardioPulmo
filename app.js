@@ -1709,6 +1709,8 @@ function cgStart(){
     cgProc.onaudioprocess=function(e){if(!cgRunning)return;var d=e.inputBuffer.getChannelData(0);cgBuf.push(new Float32Array(d));};
     cgSrc.connect(cgProc);cgProc.connect(cgCtx.destination);
     $('cgRec').disabled=true;$('cgStop').disabled=false;
+    var _cw=$('cgWake');if(_cw)_cw.style.display='none';
+    cpBeepStart();
     var t0=Date.now();
     cgTimer=setInterval(function(){
       var left=60-Math.floor((Date.now()-t0)/1000);
@@ -1725,6 +1727,7 @@ function cgDownsample(samples,inRate,outRate){
 }
 function cgStop(){
   if(!cgRunning)return;
+  setTimeout(cpBeepDone,350);
   cgRunning=false;
   if(cgTimer){clearInterval(cgTimer);cgTimer=null;}
   if(cgRAF){cancelAnimationFrame(cgRAF);cgRAF=null;}
@@ -1750,7 +1753,7 @@ async function cgSend(wav){
     clearTimeout(to);if(r.ok)res=await r.json();
   }catch(e){res=null;}
   (function(){
-    if(!res){cgSetStatus('The AI service may be asleep \u2014 open the wake link on the TB X-ray tab once, then try again.');return;}
+    if(!res){cgSetStatus('The AI service may be asleep \u2014 tap the wake link below, then try again.');var _cw2=$('cgWake');if(_cw2)_cw2.style.display='block';return;}
     var n=(res.coughs!=null)?res.coughs:(res.cough_count!=null?res.cough_count:0);
     var rate=(res.cough_rate_per_min!=null)?res.cough_rate_per_min:(res.rate!=null?res.rate:null);
     var dur=(res.duration_sec!=null)?res.duration_sec:null;
@@ -1773,7 +1776,7 @@ var ltGating=false,ltCancel=null,ltStream=null,ltCtx=null,ltProc=null,ltZg=null,
 function ltSt(m){var e=$('ltStatus');if(e)e.textContent=m;}
 $('ltRec').onclick=function(){
   if(ltGating)return;
-  $('ltResCard').style.display='none';$('ltRec').style.display='none';$('ltStop').disabled=false;
+  $('ltResCard').style.display='none';(function(){var w=$('ltWake');if(w)w.style.display='none';})();$('ltRec').style.display='none';$('ltStop').disabled=false;
   quietGate({noiseId:'ltNoise',lblId:'ltNoiseLbl',canvasId:'ltNoiseCanvas',st:ltSt,startLbl:'Quiet \u2713 \u2014 breathe deep, starting in ',
     setGating:function(v){ltGating=v;},setCancel:function(f){ltCancel=f;},
     onReady:function(s_,c_,src_,noisy){ltBegin(s_,c_,src_,noisy);}});
@@ -1804,7 +1807,7 @@ function ltStopRec(){setTimeout(cpBeepDone,350);
   (async function(){
     var res=await cpCloud('lungtype',wav);
     if(!res){res=await cwOffline(s,ltSr);}
-    if(!res){ltSt('AI service may be asleep \u2014 tap the wake link below, then retry.');return;}
+    if(!res){ltSt('AI service may be asleep \u2014 tap the wake link below, then retry.');var w=$('ltWake');if(w)w.style.display='block';return;}
     $('ltResCard').style.display='block';
     var crk=(res.crackle==='flag'),whz=(res.wheeze==='flag');
     var v=[]; if(crk)v.push('Crackles'); if(whz)v.push('Wheeze');
@@ -1838,7 +1841,7 @@ var rrGating=false,rrCancel=null,rrStream=null,rrCtx=null,rrProc=null,rrZg=null,
 function rrSt(m){var e=$('rrStatus');if(e)e.textContent=m;}
 $('rrRec').onclick=function(){
   if(rrGating)return;
-  $('rrResCard').style.display='none';$('rrRec').style.display='none';$('rrStop').disabled=false;
+  $('rrResCard').style.display='none';(function(){var w=$('rrWake');if(w)w.style.display='none';})();$('rrRec').style.display='none';$('rrStop').disabled=false;
   quietGate({noiseId:'rrNoise',lblId:'rrNoiseLbl',canvasId:'rrNoiseCanvas',st:rrSt,startLbl:'Quiet \u2713 \u2014 breathe audibly, starting in ',
     setGating:function(v){rrGating=v;},setCancel:function(f){rrCancel=f;},
     onReady:function(s_,c_,src_,noisy){rrBeginA(s_,c_,src_,noisy);}});
@@ -1866,7 +1869,7 @@ function rrStopA(){setTimeout(cpBeepDone,350);
   var s=new Float32Array(n),o=0;rrBuf.forEach(function(b){s.set(b,o);o+=b.length;});try{rrCtx.close();}catch(e){}
   var wav=encodeWAV(s,rrSr);
   cpCloud('resprate',wav).then(function(res){
-    if(!res||res.rr==null){var lr=rrLocal(s,rrSr);if(lr==null){rrSt('Could not read a clear breathing rate \u2014 try again nearer the nose/mouth, or use the tap method.');return;}res={rr:Math.round(lr*10)/10,offline:true};}
+    if(!res||res.rr==null){var lr=rrLocal(s,rrSr);if(lr==null){rrSt('Could not read a clear breathing rate \u2014 try again nearer the nose/mouth, or use the tap method.');var w=$('rrWake');if(w)w.style.display='block';return;}res={rr:Math.round(lr*10)/10,offline:true};}
     rrShow(res.rr);
     rrSt((res.offline?'Offline estimate. ':'Done. ')+'Press START to measure again.');
   });
@@ -1898,7 +1901,7 @@ var ftRunning=false,ftStream=null,ftCtx=null,ftProc=null,ftZg=null,ftBuf=[],ftSr
 function ftSt(m){var e=$('ftStatus');if(e)e.textContent=m;}
 $('ftRec').onclick=function(){
   if(ftRunning)return;
-  $('ftResCard').style.display='none';$('ftRec').style.display='none';$('ftStop').disabled=false;ftSt('Get ready\u2026');
+  $('ftResCard').style.display='none';(function(){var w=$('ftWake');if(w)w.style.display='none';})();$('ftRec').style.display='none';$('ftStop').disabled=false;ftSt('Get ready\u2026');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
     ftRunning=true;ftStream=stream;ftCtx=new (window.AudioContext||window.webkitAudioContext)();ftSr=ftCtx.sampleRate;ftBuf=[];
     var src=ftCtx.createMediaStreamSource(stream);
@@ -1925,7 +1928,7 @@ function ftStopRec(){setTimeout(cpBeepDone,350);
     var ac=new AbortController(),to=setTimeout(function(){ac.abort();},25000);
     var res=null;
     try{var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/fet',{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(r.ok)res=await r.json();}catch(e){res=null;}
-    if(!res||res.fet_sec==null){var lc=fetLocal(s,ftSr);if(lc==null){ftSt('Could not read a clear blow \u2014 try again, blow harder into the mic.');return;}res={fet_sec:Math.round(lc*100)/100,obstruction:(lc>=FET_CUTOFF?'flag':'clear'),cutoff:FET_CUTOFF,offline:true};}
+    if(!res||res.fet_sec==null){var lc=fetLocal(s,ftSr);if(lc==null){ftSt('Could not read a clear blow \u2014 try again, blow harder into the mic.');var w=$('ftWake');if(w)w.style.display='block';return;}res={fet_sec:Math.round(lc*100)/100,obstruction:(lc>=FET_CUTOFF?'flag':'clear'),cutoff:FET_CUTOFF,offline:true};}
     $('ftResCard').style.display='block';
     var fast=(res.obstruction==='flag');
     $('ftVerdict').textContent=fast?'PROLONGED \u2014 possible obstruction':'Normal expiratory time';
@@ -1941,7 +1944,7 @@ var sbRunning=false,sbStream=null,sbCtx=null,sbProc=null,sbZg=null,sbBuf=[],sbSr
 function sbSt(m){var e=$('sbStatus');if(e)e.textContent=m;}
 $('sbRec').onclick=function(){
   if(sbRunning)return;
-  $('sbResCard').style.display='none';$('sbRec').style.display='none';$('sbStop').disabled=false;sbSt('Get ready\u2026');
+  $('sbResCard').style.display='none';(function(){var w=$('sbWake');if(w)w.style.display='none';})();$('sbRec').style.display='none';$('sbStop').disabled=false;sbSt('Get ready\u2026');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
     sbRunning=true;sbStream=stream;sbCtx=new (window.AudioContext||window.webkitAudioContext)();sbSr=sbCtx.sampleRate;sbBuf=[];
     var src=sbCtx.createMediaStreamSource(stream);
@@ -1968,7 +1971,7 @@ function sbStopRec(){setTimeout(cpBeepDone,350);
     var ac=new AbortController(),to=setTimeout(function(){ac.abort();},25000);
     var res=null;
     try{var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/sbct',{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(r.ok)res=await r.json();}catch(e){res=null;}
-    if(!res||res.duration_sec==null){var lc=sbctLocal(s,sbSr);if(lc==null){sbSt('Could not read clear counting \u2014 try again, count louder.');return;}res={duration_sec:Math.round(lc.dur*10)/10,est_count:lc.est,weak:(lc.est<SBCT_CUTOFF?'flag':'clear'),cutoff:SBCT_CUTOFF,offline:true};}
+    if(!res||res.duration_sec==null){var lc=sbctLocal(s,sbSr);if(lc==null){sbSt('Could not read clear counting \u2014 try again, count louder.');var w=$('sbWake');if(w)w.style.display='block';return;}res={duration_sec:Math.round(lc.dur*10)/10,est_count:lc.est,weak:(lc.est<SBCT_CUTOFF?'flag':'clear'),cutoff:SBCT_CUTOFF,offline:true};}
     $('sbResCard').style.display='block';
     var weak=(res.weak==='flag');
     $('sbVerdict').textContent=weak?'LOW \u2014 reduced reserve':'Normal reserve';
@@ -1984,7 +1987,7 @@ var mpRunning=false,mpStream=null,mpCtx=null,mpProc=null,mpZg=null,mpBuf=[],mpSr
 function mpSt(m){var e=$('mpStatus');if(e)e.textContent=m;}
 $('mpRec').onclick=function(){
   if(mpRunning)return;
-  $('mpResCard').style.display='none';$('mpRec').style.display='none';$('mpStop').disabled=false;mpSt('Get ready\u2026');
+  $('mpResCard').style.display='none';(function(){var w=$('mpWake');if(w)w.style.display='none';})();$('mpRec').style.display='none';$('mpStop').disabled=false;mpSt('Get ready\u2026');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
     mpRunning=true;mpStream=stream;mpCtx=new (window.AudioContext||window.webkitAudioContext)();mpSr=mpCtx.sampleRate;mpBuf=[];
     var src=mpCtx.createMediaStreamSource(stream);
@@ -2011,7 +2014,7 @@ function mpStopRec(){setTimeout(cpBeepDone,350);
     var ac=new AbortController(),to=setTimeout(function(){ac.abort();},25000);
     var res=null;
     try{var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/mpt',{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(r.ok)res=await r.json();}catch(e){res=null;}
-    if(!res||res.mpt_sec==null){var lc=mptLocal(s,mpSr);if(lc==null){mpSt('Could not read a clear "ahhh" \u2014 try again, louder and steadier.');return;}res={mpt_sec:Math.round(lc*10)/10,weak:(lc<MPT_CUTOFF?'flag':'clear'),cutoff:MPT_CUTOFF,offline:true};}
+    if(!res||res.mpt_sec==null){var lc=mptLocal(s,mpSr);if(lc==null){mpSt('Could not read a clear "ahhh" \u2014 try again, louder and steadier.');var w=$('mpWake');if(w)w.style.display='block';return;}res={mpt_sec:Math.round(lc*10)/10,weak:(lc<MPT_CUTOFF?'flag':'clear'),cutoff:MPT_CUTOFF,offline:true};}
     $('mpResCard').style.display='block';
     var weak=(res.weak==='flag');
     $('mpVerdict').textContent=weak?'SHORT \u2014 reduced function':'Normal phonation time';
