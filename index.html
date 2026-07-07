@@ -89,9 +89,9 @@
 
   <!-- patient chart (hidden on Home / About) -->
   <div class="card" id="patientCard">
-    <div class="seclabel" style="margin-top:0" data-te='రోగి వివరాలు'>Patient details</div>
+    <div class="seclabel" style="margin-top:0" data-te='యూజర్'>User</div>
     <div class="row">
-      <div><label data-te='రోగి ఐడి (ఆటో)'>Patient ID (auto)</label><input id="pid" placeholder="P001" readonly></div>
+      <div><label data-te='యూజర్ ఐడి (ఆటో)'>User ID (auto)</label><input id="pid" placeholder="P001" readonly></div>
       <div><label data-te='వయసు'>Age</label><input id="age" type="number" placeholder="yrs"></div>
       <div><label data-te='లింగం'>Sex</label><select id="sex"><option value="">—</option><option>M</option><option>F</option></select></div>
     </div>
@@ -187,13 +187,13 @@
     <div class="card">
       <details class="tech">
         <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
-        <div class="howto" data-te='<h3>ఫోన్‌తో పెర్కషన్ ఎలా చేయాలి</h3>పెర్కషన్‌కు రెండు చేతులూ ఖాళీగా ఉంటాయి — ఫోన్ సెన్సింగ్ వేలి స్థానంలో పనిచేస్తుంది, దాన్ని గాలిలో పట్టుకోవాల్సిన అవసరం లేదు. మీ ఫోన్‌లో ఏది స్పష్టమైన టాప్ ఇస్తే అది వాడండి:<div class="m"><span class="tag">METHOD A</span><b>ఫోన్‌ను ప్లెక్సిమీటర్‌గా (సిఫార్సు).</b> ఫోన్‌ను <b>చదునుగా, గట్టిగా, స్క్రీన్ పైకి, మైక్-అంచు చర్మంపై</b> ఆ జోన్ మీద — నాన్-డామినెంట్ చేతితో నొక్కండి. డామినెంట్ మధ్య వేలితో <b>ఫోన్ పక్కనే</b> (1–2 cm దూరం) ఛాతీని గట్టిగా, ~1 సె వ్యవధిలో 5–6 సార్లు కొట్టండి. మీ ప్లెక్సిమీటర్ వేలు అనుభవించే ధ్వనిని ఫోన్ గ్రహిస్తుంది.</div><div class="m"><span class="tag">METHOD B</span><b>ఆస్కల్టేటరీ పెర్కషన్ (చేతులు ఖాళీ).</b> ఫోన్‌ను <b>ఒక స్థిర స్థానంలో</b> చదునుగా ఉంచండి (వెల్లకిలా పడుకున్న రోగి — గురుత్వాకర్షణ పట్టి ఉంచుతుంది). మిగతా చోట్ల <b>సాధారణ రెండు-చేతుల పద్ధతిలో</b> పెర్కస్ చేయండి; ప్రసారమైన ధ్వనిని ఫోన్ గ్రహిస్తుంది. కొట్టే స్థానం మార్చండి, ఫోన్ స్థిరంగా ఉంచండి, జోన్‌లను పోల్చండి.</div><div class="m"><span class="tag">FIELD</span>మీరు రెండు చేతులతో పెర్కస్ చేస్తుండగా రోగి లేదా సహాయకుడు ఫోన్‌ను ఆ స్థానంలో చదునుగా పట్టుకుంటారు.</div><div class="m" style="color:var(--mut)">నిశ్శబ్ద గది. ప్రతి టాప్‌కు ఒకే ఒత్తిడి. ముందు రోగి యొక్క స్పష్టమైన/రెసొనెంట్ జోన్‌ను <b>రిఫరెన్స్‌గా</b> రికార్డ్ చేయండి, తర్వాత అనుమానిత జోన్‌లను.'>
-          <h3>How to percuss with the phone</h3>
-          Both hands stay free for percussion — the phone replaces the sensing finger, it doesn't need to be held in the air. Pick whichever gives a cleaner tap on your device:
-          <div class="m"><span class="tag">METHOD A</span><b>Phone as pleximeter (preferred).</b> Press the phone <b>flat and firm, screen up, mic-edge on bare skin</b>, over the zone — using your non-dominant hand. With your dominant middle finger, strike the chest <b>right beside the phone</b> (1–2 cm away), firmly, 5–6 times ~1 s apart. The phone senses the note your pleximeter finger used to feel.</div>
-          <div class="m"><span class="tag">METHOD B</span><b>Auscultatory percussion (hands-free).</b> Lay the phone flat on <b>one fixed spot</b> (supine patient — gravity holds it). Percuss elsewhere with your <b>normal two-handed technique</b>; the phone picks up the transmitted note. Move the percussing point, keep the phone still, compare zones.</div>
-          <div class="m"><span class="tag">FIELD</span>Patient or an assistant holds the phone flat on the spot while you percuss with both hands.</div>
-          <div class="m" style="color:var(--mut)">Quiet room. Same pressure every tap. Record the patient's clear/resonant zone <b>first</b> as the reference, then the suspicious zones.</div>
+        <div class="howto" data-te='<h3>ఫోన్‌తో ఛాతీని ఎలా తట్టాలి</h3>తట్టే శబ్దాన్ని ఫోన్ మీ కోసం వింటుంది — దాన్ని గాలిలో పట్టుకోవాల్సిన అవసరం లేదు.<div class="m"><span class="tag">STEP 1</span>మీరు పరీక్షించాలనుకున్న చోట ఫోన్‌ను <b>చర్మంపై చదునుగా, గట్టిగా</b>, స్క్రీన్ పైకి, ఒక చేతితో ఆనించండి.</div><div class="m"><span class="tag">STEP 2</span>మరో చేతి మధ్య వేలితో <b>ఫోన్ పక్కనే ఛాతీని గట్టిగా తట్టండి</b> (సుమారు ఒక వేలు దూరం), సెకనుకు ఒకసారి చొప్పున 5–6 సార్లు.</div><div class="m"><span class="tag">STEP 3</span>ముందు <b>ఆరోగ్యకరమైన చోటును</b> తట్టండి — ఇది రిఫరెన్స్ — తర్వాత అనుమానం ఉన్న చోట్లను తట్టండి. యాప్ వాటిని పోలుస్తుంది.</div><div class="m" style="color:var(--mut)">నిశ్శబ్ద గది. ప్రతిసారీ ఒకే బలంతో తట్టండి. తట్టేటప్పుడు ఫోన్‌ను కదపవద్దు.'>
+          <h3>How to tap the chest with the phone</h3>
+          The phone listens to the tapping sound for you — you don't hold it in the air.
+          <div class="m"><span class="tag">STEP 1</span>Press the phone <b>flat and firm on the skin</b>, screen up, over the spot you want to check — hold it there with one hand.</div>
+          <div class="m"><span class="tag">STEP 2</span>With the middle finger of your other hand, <b>tap the chest firmly right next to the phone</b> (about a finger-width away), 5–6 times, roughly one tap a second.</div>
+          <div class="m"><span class="tag">STEP 3</span>Tap a <b>normal, healthy spot first</b> — this is the reference — then tap the spots you are worried about. The app compares them for you.</div>
+          <div class="m" style="color:var(--mut)">Quiet room. Tap with the same strength each time. Keep the phone still while you tap.</div>
         </div>
       </details>
       <div class="vtog"><button id="pvF" class="on" onclick="setPView('F')" data-te='ముందు (యాంటీరియర్ + లేటరల్)'>Front (anterior + lateral)</button><button id="pvB" onclick="setPView('B')" data-te='వెనుక (పోస్టీరియర్)'>Back (posterior)</button></div>
@@ -249,7 +249,7 @@
     <div class="mhead">
       <div class="mkicker">Suite 03 · VascAge</div>
       <h2 class="mtitle" data-te='వేలికొన PPG + హృద్రోగ ప్రమాదం'>Fingertip PPG + CVD risk</h2>
-      <p class="msub" data-te='<b>ఇంకా</b> "సంవత్సరాలలో వాస్కులర్ వయసు" కాదు — పల్స్-వేవ్ వెలాసిటీ / కరోటిడ్ IMT‌తో వేలిడేషన్ అవసరం. కల్పిత సంఖ్యలు లేవు.'><b>Not</b> a "vascular age in years" yet — needs validation vs pulse-wave velocity / carotid IMT. No fabricated numbers.</p>
+      <p class="msub" data-te='ఫింగర్‌టిప్ PPG నుండి పల్స్, హృదయ లయ మరియు హృదయనాళ ప్రమాద సూచికలను అంచనా వేస్తుంది.'>Estimates pulse, heart rhythm and cardiovascular-risk indicators from fingertip PPG.</p>
     </div>
 
     <div class="card">
@@ -293,7 +293,7 @@
     <div class="mhead">
       <div class="mkicker">PulmoScope · EchoLat</div>
       <h2 class="mtitle" data-te='పక్క-పక్క శ్వాస శబ్ద పోలిక'>Side-to-side breath comparison</h2>
-      <p class="msub" data-te='ప్రతి పక్కను <b>వరుసగా</b> (ఒక మైక్) రికార్డ్ చేసి హై-ఫ్రీక్వెన్సీ / అడ్వెంటీషియస్ ఎనర్జీని పోలుస్తుంది. <b>ఇది</b> రియల్-టైమ్ 3-మైక్ బీమ్‌ఫార్మింగ్ కాదు. హ్యూరిస్టిక్ / అన్‌క్యాలిబ్రేటెడ్.'>Records each side <b>sequentially</b> (one mic) and compares high-frequency / adventitious energy. <b>Not</b> real-time 3-mic beamforming. Heuristic / uncalibrated.</p>
+      <p class="msub" data-te='ప్రతి పక్కను <b>వరుసగా</b> రికార్డ్ చేసి రెండు వైపుల శ్వాస శబ్దాలను పోలుస్తుంది.'>Records each side <b>sequentially</b> and compares the breath sounds between the two sides.</p>
     </div>
 
     <div class="card">
@@ -301,7 +301,7 @@
         <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
         <div class="howto" data-te='<h3>శ్వాస శబ్దాలు ఎలా రికార్డ్ చేయాలి</h3>రోగి <b>కూర్చొని, వీపు ఖాళీగా, కొద్దిగా ముందుకు వంగి.</b> ఫోన్ యొక్క <b>కింది (మైక్) అంచును చదునుగా, గట్టిగా</b> వీపుపై ఊపిరితిత్తి కింది భాగానికి ఆనించండి.<div class="m"><span class="tag">SAME SPOT</span><b>ముందు కుడి, తర్వాత ఎడమ</b> ను <b>అద్దం-ప్రతిబింబ స్థానంలో</b> రికార్డ్ చేయండి — యాప్ రెండు పక్కలను పోలుస్తుంది.</div><div class="m"><span class="tag">BREATHE</span>ప్రతి 15-సెకన్ల రికార్డింగ్‌లో రోగి <b>నోరు తెరిచి నెమ్మదిగా, లోతుగా శ్వాస</b> తీసుకుంటారు.</div><div class="m" style="color:var(--mut)">నిశ్శబ్ద గది. రికార్డింగ్ సమయంలో ఫోన్‌ను జరపవద్దు.'>
           <h3>How to record breath sounds</h3>
-          Patient <b>sitting, bare back, leaning slightly forward.</b> Press the phone's <b>bottom (mic) edge flat and firm</b> against the lung base on the back.
+          <b>Seated in thin clothing, leaning slightly forward.</b> Press the phone's <b>bottom (mic) edge flat and firm</b> against the lung base on the back.
           <div class="m"><span class="tag">SAME SPOT</span>Record <b>Right first, then Left</b> at the <b>mirror-image spot</b> — the app compares the two sides.</div>
           <div class="m"><span class="tag">BREATHE</span>Patient takes <b>slow, deep breaths through an open mouth</b> through each 15-second recording.</div>
           <div class="m" style="color:var(--mut)">Quiet room. Don't slide the phone during a recording.</div>
@@ -337,7 +337,7 @@
     <div class="mhead">
       <div class="mkicker">Suite 01 · CardioScope</div>
       <h2 class="mtitle" data-te='హృదయ-రక్తనాళ పరీక్ష'>Cardiovascular exam</h2>
-      <p class="msub" data-te='<b>ఆన్-డిమాండ్</b> గుండె లయ (ఛాతీపై ఫోన్ యాక్సిలరోమీటర్) + <b>మెడ / JVP స్పందన</b> (కెమెరా). కేవలం ఫ్లాగ్‌లు — <b>ఇది</b> నిర్ధారణ కాదు, <b>స్టెతస్కోప్</b> కాదు. రాత్రంతా పాసివ్ మానిటరింగ్‌కు నేటివ్ యాప్ అవసరం (స్క్రీన్ ఆఫ్ అయితే బ్రౌజర్‌లు సెన్సర్‌లను నిలిపివేస్తాయి).'><b>On-demand</b> heart-rhythm (phone accelerometer on the chest) + <b>neck / JVP pulsation</b> (camera). Flags only — <b>not</b> a diagnosis, <b>not</b> a stethoscope. Passive all-night monitoring needs the native app (browsers suspend sensors when the screen is off).</p>
+      <p class="msub" data-te='<b>ఆన్-డిమాండ్</b> గుండె లయ (ఛాతీపై ఫోన్ యాక్సిలరోమీటర్) + <b>మెడ / JVP స్పందన</b> (కెమెరా). కేవలం ఫ్లాగ్‌లు — <b>ఇది</b> నిర్ధారణ కాదు.'><b>On-demand</b> heart-rhythm (phone accelerometer on the chest) + <b>neck / JVP pulsation</b> (camera). Flags only — <b>not</b> a diagnosis.</p>
     </div>
 
     <div class="card">
@@ -478,7 +478,7 @@
     <div class="mhead">
       <div class="mkicker">Suite 02 · PulmoScope</div>
       <h2 class="mtitle" data-te='ఊపిరితిత్తుల శబ్ద స్క్రీన్'>Lung-sound screen</h2>
-      <p class="msub" data-te='ఫోన్ మైక్‌తో <b>ఊపిరితిత్తుల శబ్దాలను</b> రికార్డ్ చేసి, క్లౌడ్ AI నమూనా <b>సాధారణ vs అసాధారణ (క్రాకిల్స్/వీజెస్)</b> కోసం స్క్రీన్ చేస్తుంది. వీపుపై <b>6 పాయింట్‌లను</b> టాప్ చేసి రికార్డ్ చేయండి — యాప్ వాటిని సగటు చేసి ఒక ఫలితం ఇస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్ కాదు.'><b>Records lung sounds</b> with the phone mic and an cloud AI model screens for <b>normal vs abnormal (crackles/wheezes)</b>. Tap and record <b>6 points on the back</b> — the app averages them into one result. Screening only — not a diagnosis, not a stethoscope.</p>
+      <p class="msub" data-te='ఫోన్ మైక్‌తో <b>ఊపిరితిత్తుల శబ్దాలను</b> రికార్డ్ చేసి, క్లౌడ్ AI నమూనా <b>సాధారణ vs అసాధారణ (క్రాకిల్స్/వీజెస్)</b> కోసం స్క్రీన్ చేస్తుంది. వీపుపై <b>6 పాయింట్‌లను</b> టాప్ చేసి రికార్డ్ చేయండి — యాప్ వాటిని సగటు చేసి ఒక ఫలితం ఇస్తుంది. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'><b>Records lung sounds</b> with the phone mic and a cloud AI model screens for <b>normal vs abnormal (crackles/wheezes)</b>. Tap and record <b>6 points on the back</b> — the app averages them into one result. Screening only — not a diagnosis.</p>
     </div>
 
     <div class="card">
@@ -486,7 +486,7 @@
         <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
         <div class="howto" data-te='<h3>ఊపిరితిత్తుల శబ్దాలను ఎలా రికార్డ్ చేయాలి</h3>రోగి <b>కూర్చొని, వీపు ఖాళీగా, కొద్దిగా ముందుకు వంగి</b>, నిశ్శబ్ద గది. దిగువ శరీర చిత్రంపై ఒక పాయింట్‌ను టాప్ చేయండి, ఫోన్ యొక్క <b>కింది (మైక్) అంచును ఆ స్థానంలో చర్మంపై గట్టిగా</b> ఆనించి, రోగిని <b>నోటి ద్వారా లోతుగా శ్వాస</b> తీసుకోమనండి, ఆపై రికార్డ్ నొక్కండి. 6 పాయింట్‌లన్నీ చేయండి.<div class="m"><span class="tag">LISTEN</span>ప్రతి పాయింట్‌ను <b>.wav</b> కు రికార్డ్ చేసి క్లౌడ్ AI నమూనాను నడుపుతుంది. 6 పాయింట్‌ల సగటు అత్యంత నమ్మదగిన స్క్రీన్ ఇస్తుంది.</div><div class="m" style="color:var(--mut)">సన్నని దుస్తులు లేదా ఖాళీ చర్మం. రికార్డింగ్ సమయంలో మాట్లాడవద్దు.'>
           <h3>How to record lung sounds</h3>
-          Patient <b>seated, back bared, leaning slightly forward</b>, quiet room. Tap a point on the body image below, press the phone's <b>bottom (mic) edge firmly on the skin</b> at that spot, ask the patient to <b>breathe deeply through the mouth</b>, then press record. Do all 6 points.
+          <b>Seated in thin clothing, leaning slightly forward</b>, quiet room. Tap a point on the body image below, press the phone's <b>bottom (mic) edge firmly on the skin</b> at that spot, ask the patient to <b>breathe deeply through the mouth</b>, then press record. Do all 6 points.
           <div class="m"><span class="tag">LISTEN</span>Records each point to a <b>.wav</b> and runs the cloud AI model. Averaging 6 points gives the most reliable normal/abnormal screen.</div>
           <div class="m" style="color:var(--mut)">Thin clothing or bare skin. No talking during capture.</div>
         </div>
@@ -722,6 +722,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=23"></script>
+<script src="app.js?v=24"></script>
 </body>
 </html>

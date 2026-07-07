@@ -12,7 +12,7 @@ document.addEventListener('click',function(e){
 },true);
 const st=m=>$('status').textContent=m;
 let pulmoCur='lung';
-function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
+function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8','pXray'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
 let pendingTab=null;
 function needLogin(name){
   if(sbUser)return false;
@@ -164,6 +164,7 @@ function selectZone(id){
   $('recBtn').disabled=false;
   $('recBtn').textContent = refFeat===null ? '● Record REFERENCE on '+id : '● Record '+id;
   renderBody();
+  try{$('recBtn').onclick();}catch(e){}
 }
 resetState();
 
@@ -511,6 +512,7 @@ function eSelect(side){
   eSel=side;eState[side]='active';eRender();
   $('eSelName').innerHTML='Selected: <b>'+side+' lung</b>';
   $('eRec').disabled=false;$('eRec').textContent='● Record '+side+' lung (15s)';
+  try{$('eRec').onclick();}catch(e){}
 }
 eRender();
 let elGating=false,elCancel=null;
@@ -1210,7 +1212,7 @@ function lgResetAll(){lgState={};LGZ.forEach(z=>lgState[z.id]={status:'pending',
 function lgColor(st){if(st.status==='active')return '#FFB454';if(st.status==='done')return '#2FBF8F';return '#5A6B94';}
 function lgRenderMap(){const g=$('lgzones');g.innerHTML='';LGZ.forEach(z=>{const stt=lgState[z.id];const d=document.createElement('div');d.className='dot2';d.style.left=z.px+'%';d.style.top=z.py+'%';d.style.width='7%';d.style.background=lgColor(stt);if(z.id===lgSel){d.style.borderColor='#fff';d.style.borderWidth='3px';d.style.boxShadow='0 0 0 4px rgba(255,255,255,.3)';}d.onclick=()=>lgSelect(z.id);g.appendChild(d);});}
 function lgRenderGrid(){const g=$('lgGrid');if(!g)return;g.innerHTML='';LGZ.forEach(z=>{const stt=lgState[z.id];const d=document.createElement('div');d.className='kv';d.innerHTML=z.id+'<b>'+(stt.p!=null?(stt.p*100).toFixed(0)+'%':'\u2014')+'</b>';g.appendChild(d);});}
-function lgSelect(id){LGZ.forEach(z=>{const zs=lgState[z.id];if(z.id!==id&&zs.status==='active')zs.status=zs.p!=null?'done':'pending';});lgSel=id;lgState[id].status='active';$('lgSelName').innerHTML='Selected: <b>'+id+'</b>';$('lgRec').disabled=false;$('lgRec').textContent='\u25CF Record '+id+' (15s)';lgRenderMap();}
+function lgSelect(id){LGZ.forEach(z=>{const zs=lgState[z.id];if(z.id!==id&&zs.status==='active')zs.status=zs.p!=null?'done':'pending';});lgSel=id;lgState[id].status='active';$('lgSelName').innerHTML='Selected: <b>'+id+'</b>';$('lgRec').disabled=false;$('lgRec').textContent='\u25CF Record '+id+' (15s)';lgRenderMap();lgStartQuietGate();}
 lgResetAll();
 
 let lgStream,lgCtx,lgProc,lgZg,lgBuf=[],lgSr=48000,lgTimer,lgLeft;
