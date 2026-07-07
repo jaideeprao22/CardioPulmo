@@ -278,7 +278,7 @@ function setZoneResult(id,feat){
     st('Recorded '+id+'. lh drop '+lhDrop.toFixed(0)+'% · decay drop '+dcDrop.toFixed(0)+'%.');
   }
   $('resCard').style.display='block';
-  rows.push({pid:$('pid').value,age:$('age').value,sex:$('sex').value,ref:$('ref').value,pos:$('pos').value,
+  rows.push({pid:$('pid').value,age:$('age').value,sex:$('sex').value,ref:($('ref')?$('ref').value:''),pos:$('pos').value,
     zone:id,isRef:z.isRef?'YES':'',nt:feat.nt,pk:Math.round(feat.pk),ce:Math.round(feat.ce),lh:feat.lh.toFixed(2),dc:Math.round(feat.dc),
     rlh:refFeat?refFeat.lh.toFixed(2):'',rdc:refFeat?Math.round(refFeat.dc):'',
     lhd:lhDrop===''?'':lhDrop.toFixed(0),dcd:dcDrop===''?'':dcDrop.toFixed(0),flag:z.flag?'FLAG':'',t:new Date().toISOString()});

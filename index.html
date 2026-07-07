@@ -104,13 +104,13 @@
     <div class="tab on" id="psLung" onclick="pulmoSub('lung')" data-te='శబ్దం'>Lung sound</div>
     <div class="tab" id="psPerc" onclick="pulmoSub('perc')" data-te='పెర్కషన్'>Percussion</div>
     <div class="tab" id="psEcho" onclick="pulmoSub('echo')">EchoLat</div>
-    <div class="tab" id="psXray" onclick="pulmoSub('xray')" data-te='TB ఎక్స్‌రే'>TB X-ray</div>
+    <div class="tab" id="psXray" onclick="pulmoSub('xray')" data-te='ఎక్స్‌రే'>X-ray</div>
     <div class="tab" id="psCough" onclick="pulmoSub('cough')" data-te='దగ్గు లెక్క'>Cough count</div>
   </div>
 
-  <section class="pane" id="pXray" data-screen-label="PulmoScope · TB X-ray">
+  <section class="pane" id="pXray" data-screen-label="PulmoScope · X-ray">
     <div class="wrap">
-      <div class="mkicker">Suite 02 · TB Chest X-ray screen</div>
+      <div class="mkicker">Suite 02 · Chest X-ray screen</div>
       <div style="background:linear-gradient(135deg,rgba(111,211,255,.10),rgba(124,92,255,.08));border:1px solid rgba(111,211,255,.28);border-radius:12px;padding:10px 12px;margin:0 0 12px">
         <div style="font-weight:800;color:var(--acc);font-size:13px;margin-bottom:5px" data-te='📸 స్పష్టమైన ఫోటో కోసం'>📸 For a clear photo</div>
         <div class="note" style="font-size:12.5px;line-height:1.6" data-te='• <b>ఛాతీ (PA) ఎక్స్‌రే</b> మాత్రమే — వేరే శరీర భాగాలు కాదు<br>• ఫిల్మ్‌ను <b>లైట్‌బాక్స్ / ప్రకాశవంతమైన స్క్రీన్</b>పై పెట్టండి<br>• ఫిల్మ్ <b>ఫ్రేమ్‌ను నింపేలా</b>, నేరుగా, మెరుపు (glare) లేకుండా<br>• ఇది స్క్రీనింగ్ సహాయం మాత్రమే — నిర్ధారణ కాదు'>• <b>Chest (PA) X-ray only</b> — not other body parts<br>• Place the film on a <b>lightbox / bright screen</b><br>• <b>Fill the frame</b>, keep it straight, avoid glare/reflections<br>• Screening aid only — not a diagnosis</div>
@@ -181,8 +181,7 @@
     </div>
 
     <div class="card">
-      <div class="row"><div><label data-te='స్థానం'>Position</label><select id="pos"><option>Supine</option><option>Rolled (lateral)</option><option>Sitting</option></select></div>
-      <div><label data-te='రిఫరెన్స్ నిర్ధారణ (గోల్డ్ స్టాండర్డ్)'>Reference Dx (gold standard)</label><input id="ref" placeholder="e.g. USG: R pleural effusion"></div></div>
+      <div class="row"><div><label data-te='స్థానం'>Position</label><select id="pos"><option data-te='పడుకుని'>Lying down</option><option data-te='పక్కకి తిరిగి'>On the side</option><option data-te='కూర్చుని'>Sitting up</option></select></div></div>
     </div>
 
     <div class="card">
@@ -768,6 +767,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=30"></script>
+<script src="app.js?v=31"></script>
 </body>
 </html>
