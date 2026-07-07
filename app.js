@@ -1632,7 +1632,7 @@ initGoogleBtn();
 sbInit();
 
 /* auto patient numbering + persistent age/sex */
-function cpPad(n){return 'P'+String(n).padStart(3,'0');}
+function cpPad(n){return 'U'+String(n).padStart(3,'0');}
 function cpSyncProfile(){
   try{
     if(!sb||!sbUser)return;

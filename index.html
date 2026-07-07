@@ -91,11 +91,11 @@
   <div class="card" id="patientCard">
     <div class="seclabel" style="margin-top:0" data-te='యూజర్'>User</div>
     <div class="row">
-      <div><label data-te='యూజర్ ఐడి (ఆటో)'>User ID (auto)</label><input id="pid" placeholder="P001" readonly></div>
+      <div><label data-te='యూజర్ ఐడి (ఆటో)'>User ID (auto)</label><input id="pid" placeholder="U001" readonly></div>
       <div><label data-te='వయసు'>Age</label><input id="age" type="number" placeholder="yrs"></div>
       <div><label data-te='లింగం'>Sex</label><select id="sex"><option value="">—</option><option>M</option><option>F</option></select></div>
     </div>
-    <button id="newPatientBtn" class="dl" style="margin-top:8px" data-te='+ కొత్త రోగి'>+ New patient</button>
+    <button id="newPatientBtn" class="dl" style="margin-top:8px" data-te='+ కొత్త యూజర్'>+ New user</button>
   </div>
 
 
@@ -235,7 +235,7 @@
       <button id="dlAudio" class="dl" data-te='⬇ ఈ రికార్డింగ్ డౌన్‌లోడ్ (.wav)'>⬇ Download this recording (.wav)</button>
     </div>
 
-    <div class="card"><button id="newPt" class="dl" style="margin-top:0" data-te='↺ కొత్త రోగి (మ్యాప్ క్లియర్, లాగ్ ఉంచుతుంది)'>↺ New patient (clears map, keeps log)</button></div>
+    <div class="card"><button id="newPt" class="dl" style="margin-top:0" data-te='↺ కొత్త యూజర్ (మ్యాప్ క్లియర్, లాగ్ ఉంచుతుంది)'>↺ New user (clears map, keeps log)</button></div>
 
     <div class="card" id="logCard" style="display:none">
       <div class="ct" data-te='సెషన్ లాగ్'>Session log</div>
@@ -552,75 +552,83 @@
       </details>
     </div>
 
+    <!-- warm intro -->
     <div class="card">
-      <div class="note" data-te='CardioPulmo అనేది గుండె &amp; ఊపిరితిత్తుల శబ్దాల కోసం ఒక స్మార్ట్‌ఫోన్ స్క్రీనింగ్ సాధనం — ఆసుపత్రిలోనే కాదు, ఎక్కడైనా సాధారణ ప్రజల కోసం. AI విశ్లేషణ క్లౌడ్‌లో సురక్షితంగా జరుగుతుంది, కనెక్షన్ పోతే ఆఫ్‌లైన్ ఫాల్‌బ్యాక్ ఉంటుంది; మీ అనుమతితో మాత్రమే రికార్డింగ్‌లు పరిశోధన కోసం సేవ్ చేయబడతాయి — ప్రైవసీ నోటీసులో వివరించినట్లు. ఇది స్క్రీనింగ్ సాధనం మాత్రమే — నిర్ధారణ కాదు, స్టెతస్కోప్‌కు ప్రత్యామ్నాయం కాదు.'>CardioPulmo is a smartphone screening tool for heart and lung sounds, made for everyday people — anywhere, not just at a hospital bedside. AI analysis runs securely in the cloud, with an offline fallback if you lose connection; recordings are saved for research only with your consent, as described in the Privacy notice. It is a screening aid only — not a diagnosis, and not a replacement for a stethoscope or clinical judgement.</div>
+      <div class="note" data-te='మీ జేబులోని ఫోన్‌నే CardioPulmo మీ గుండె, ఊపిరితిత్తుల కోసం ఒక సున్నితమైన మొదటి పరీక్షగా మారుస్తుంది — గుండె శబ్దాలు, ఊపిరితిత్తుల శబ్దాలు, లయ, పల్స్, మరియు ఛాతీ ఎక్స్‌రే రీడింగ్ — మీరు ఎక్కడ ఉన్నా. సమస్యలను ముందుగానే గుర్తించి, డాక్టర్‌ను ఎప్పుడు కలవాలో తెలుసుకోవడంలో ఇది సహాయపడుతుంది. ఇది ఒక శ్రద్ధగల స్క్రీనింగ్ తోడు — నిర్ధారణ కాదు.'>CardioPulmo turns the phone already in your pocket into a gentle first check for your heart and lungs — heart sounds, lung sounds, rhythm, pulse, and a chest X-ray read — wherever you are, not just at a hospital. It is here to help you notice things early and know when to see a doctor. A caring screening companion — not a diagnosis.</div>
     </div>
 
+    <!-- why we built this -->
     <div class="card">
-      <div class="ct" style="color:var(--acc)" data-te='పరీక్షల పనితీరు'>Test performance</div>
-      <div class="note" style="margin-top:8px" data-te='AI నమూనాలకు నిపుణులు లేబుల్ చేసిన ఓపెన్ డేటాసెట్‌లపై విశ్లేషణాత్మక ధ్రువీకరణ చూపబడింది. క్లినికల్ PPV/NPV/ఆడ్స్ రేషియో వ్యాధి వ్యాప్తిపై ఆధారపడతాయి మరియు ప్రాస్పెక్టివ్ అధ్యయనం ద్వారా నిర్ధారించబడతాయి.'>Analytical validation on expert-labelled open datasets. AUC and dataset predictive values are shown; clinical PPV/NPV and odds ratios depend on disease prevalence and are being confirmed in a prospective study.</div>
-      <table>
-        <tr><th>Metric</th><th>CardioScope (heart)</th><th>PulmoScope (lung)</th><th>Murmur AI (CirCor)</th></tr>
-        <tr><td>Dataset</td><td>PhysioNet/CinC-2016</td><td>ICBHI-2017</td><td>CirCor DigiScope</td></tr>
-        <tr><td>Training set (n)</td><td>3,153 recordings</td><td>920 rec · 6,898 cycles</td><td>3,003 (patient-split)</td></tr>
-        <tr><td>Test set (n)</td><td>1,357</td><td>26 patients (held-out)</td><td>602 (held-out)</td></tr>
-        <tr><td>AUC</td><td><b>0.996</b></td><td><b>0.87</b> (patient-level)</td><td><b>0.875</b></td></tr>
-        <tr><td>Sensitivity</td><td>98.3% (96.1–99.3)</td><td>63.2% (41.0–80.9)</td><td>72.8%</td></tr>
-        <tr><td>Specificity</td><td>95.6% (94.2–96.7)</td><td>100% (64.6–100)</td><td>93.3%</td></tr>
-        <tr><td>PPV</td><td>86.1% (82.0–89.4)</td><td>100%</td><td>66.3%</td></tr>
-        <tr><td>NPV</td><td>99.5% (98.9–99.8)</td><td>50%</td><td>95.0%</td></tr>
-        <tr><td>LR+ / LR−</td><td>22.2 / 0.02</td><td>high / 0.37</td><td>6.4 / 0.27</td></tr>
-        <tr><td>Operating threshold</td><td>0.25</td><td>0.022 (Youden)</td><td>0.62 (Youden)</td></tr>
-      </table>
-      <div class="note" style="margin-top:10px;color:var(--mut)">CardioScope was trained on the PhysioNet/CinC-2016 heart-sound corpus (3,153 recordings, 764 subjects) and figures are analytical performance on a held-out test set (clean audio); real-world smartphone performance in noisy settings is lower, so the model is noise-augmented for robustness. PulmoScope was trained on ICBHI-2017 (920 recordings, 6,898 cycles) and reported at patient level on a held-out patient set. Murmur AI was trained on the CirCor DigiScope dataset (3,003 recordings, patient-level split) and also outputs systolic/diastolic timing. Clinical sensitivity/specificity/PPV/NPV in the target population are being established prospectively.</div>
+      <div class="ct" style="color:var(--acc)" data-te='మేము దీన్ని ఎందుకు నిర్మించాం'>Why we built this</div>
+      <div class="note" style="margin-top:8px" data-te='కమ్యూనిటీ మెడిసిన్‌లో మేము ఆసుపత్రికి చేరుకునే వారి కోసమే కాదు, మొత్తం సమాజం కోసం శ్రద్ధ వహిస్తాం. శిక్షణ పొందిన చెవి లేదా ఎక్స్‌రే చదివేవారు దగ్గర లేకపోవడం వల్ల గుండె మర్మర్, నిశ్శబ్ద వీజ్, లేదా ప్రారంభ TB చాలాసార్లు ఆలస్యంగా కనిపెట్టబడతాయి. CardioPulmo ఒక ఉపయోగకరమైన మొదటి పరిశీలనను అందరి చేతుల్లో ఉంచుతుంది, తద్వారా వీటిలో ఎక్కువ సమయానికి గుర్తించబడతాయి.'>In community medicine we care for whole communities, not only the people who reach a hospital. Too often a heart murmur, a quiet wheeze or an early TB shadow is found late — simply because a trained ear or an X-ray reader wasn't nearby. CardioPulmo puts a helpful first look into anyone's hands, so more of these are noticed in time.</div>
     </div>
 
+    <!-- built on real evidence -->
     <div class="card">
-      <div class="ct" style="color:var(--acc)" data-te='గుండె టైమింగ్ (S1-S2 సిస్టోలిక్ విరామం)'>Cardiac timing (S1-S2 systolic interval)</div>
-      <div class="note" style="margin-top:8px" data-te='CardioScope ఇప్పుడు ఫోన్ రికార్డింగ్ నుండే సిస్టోలిక్ విరామాన్ని — మొదటి (S1) మరియు రెండవ (S2) గుండె శబ్దాల మధ్య వ్యవధిని — కొలిచి, గుండె వేగానికి సరిదిద్ది చూపుతుంది. ఆరోగ్యకర రిఫరెన్స్ పరిధిని EPHNOGRAM (PhysioNet) డేటాబేస్ నుండి — 24 ఆరోగ్యవంతులైన వ్యక్తుల నుండి తీసుకున్న 69 ఏకకాల ECG–ఫోనోకార్డియోగ్రామ్ రికార్డింగ్‌ల నుండి రూపొందించాం.'>CardioScope now measures the systolic interval — the gap between the first (S1) and second (S2) heart sounds — directly from the phone recording and reports it corrected for heart rate. The healthy reference range was derived from the EPHNOGRAM (PhysioNet) database: 69 simultaneous ECG-phonocardiogram recordings from 24 healthy adults.</div>
-      <table>
-        <tr><th data-te='కొలత'>Metric</th><th data-te='గుండె టైమింగ్'>Cardiac timing</th></tr>
-        <tr><td data-te='రిఫరెన్స్ డేటాసెట్'>Reference dataset</td><td>EPHNOGRAM (PhysioNet v1.0.0)</td></tr>
-        <tr><td data-te='రికార్డింగ్‌లు / వ్యక్తులు'>Recordings / subjects</td><td>69 rec · 24 healthy adults</td></tr>
-        <tr><td data-te='వేగంతో సంబంధం'>Rate relationship</td><td>S1-S2 = 396 − 1.57 × HR ms (r = −0.88)</td></tr>
-        <tr><td data-te='ఆరోగ్యకర పరిధి (@60 bpm)'>Healthy band (@60 bpm)</td><td><b>270–337 ms</b></td></tr>
-        <tr><td data-te='ఆధారం'>Basis</td><td>Weissler systolic time intervals</td></tr>
-      </table>
-      <div class="note" style="margin-top:10px;color:var(--mut)" data-te='వేగానికి సరిదిద్దిన S1-S2 విలువ 270–337 ms పరిధి దాటితే క్లినికల్ కోరిలేషన్ కోసం ఫ్లాగ్ చేయబడుతుంది. ఈ రిఫరెన్స్ స్టెతస్కోప్ రికార్డింగ్‌ల నుండి తీసుకోబడింది; కాబట్టి స్మార్ట్‌ఫోన్‌తో కొలిచిన విలువలు పరికర-నిర్దిష్ట ధ్రువీకరణ పెండింగ్‌లో ఉండగా చూపబడతాయి. ఇది స్క్రీనింగ్ సహాయం మాత్రమే — నిర్ధారణ కాదు.'>Rate-corrected S1-S2 values outside 270–337 ms are flagged for clinical correlation. This reference was derived from stethoscope recordings, so smartphone-measured values are shown pending device-specific validation. Screening aid only — not a diagnosis.</div>
+      <div class="ct" style="color:var(--acc)" data-te='నిజమైన ఆధారంపై నిర్మించబడింది'>Built on real evidence</div>
+      <div class="note" style="margin-top:8px" data-te='ఇక్కడి ప్రతి నమూనా పెద్ద, నిపుణులు లేబుల్ చేసిన డేటాసెట్‌లపై శిక్షణ పొంది పరీక్షించబడింది; ప్రతి ఫలితం దాని పనితీరుతో నిజాయితీగా చూపబడుతుంది. AI విశ్లేషణ క్లౌడ్‌లో సురక్షితంగా జరుగుతుంది, అవసరమైనప్పుడు ఆఫ్‌లైన్‌లో పనిచేస్తుంది; మీ రికార్డింగ్‌లు మీ అనుమతితో మాత్రమే భద్రపరచబడతాయి.'>Every model here was trained and tested on large, expert-labelled datasets, and each result is shown honestly with its performance. AI analysis runs securely in the cloud, works offline when needed, and your recordings are kept — only with your consent — to keep making these tools better for everyone who comes after you.</div>
     </div>
 
+    <!-- performance + methods: collapsible -->
     <div class="card">
-      <div class="ct" style="color:var(--acc)" data-te='లయ / AF స్క్రీన్ (VascAge)'>Rhythm / AF screen (VascAge)</div>
-      <div class="note" style="margin-top:8px" data-te='VascAge కెమెరా-ఆధారిత పల్స్ (PPG) నుండి అస్థిర పల్స్‌ను (అట్రియల్ ఫిబ్రిలేషన్ నమూనా) స్క్రీన్ చేస్తుంది. ఇది ధ్రువీకరించబడిన McManus/Chon స్మార్ట్‌ఫోన్ పద్ధతిని ఉపయోగిస్తుంది — పల్స్ విరామాల RMSSD/mean మరియు షానన్ ఎంట్రోపీ — ఇది 76-రోగుల అధ్యయనంలో AF కోసం 96.2% సెన్సిటివిటీ మరియు 97.5% స్పెసిఫిసిటీ చూపింది. ఇది స్క్రీనింగ్ మాత్రమే — ఏ పాజిటివ్ ఫలితాన్ని అయినా ECGతో నిర్ధారించండి.'>VascAge screens for an irregular pulse (atrial fibrillation pattern) from the camera-based pulse (PPG). It uses the validated McManus/Chon smartphone method — RMSSD/mean and Shannon entropy of the pulse intervals — which showed 96.2% sensitivity and 97.5% specificity for AF in a 76-patient study. Screening only — confirm any positive with an ECG.</div>
-      <table>
-        <tr><th data-te='కొలత'>Metric</th><th data-te='లయ స్క్రీన్'>Rhythm screen</th></tr>
-        <tr><td data-te='పద్ధతి'>Method</td><td>RMSSD/mean + Shannon entropy</td></tr>
-        <tr><td data-te='ఫ్లాగ్ థ్రెష్‌హోల్డ్'>Flag threshold</td><td>RMSSD/mean &gt; 0.115 &amp; ShE &gt; 0.55</td></tr>
-        <tr><td>Sensitivity / Specificity</td><td><b>96.2% / 97.5%</b> (source study)</td></tr>
-      </table>
-      <div class="note" style="margin-top:10px;color:var(--mut)" data-te='పనితీరు గణాంకాలు మూల ప్రచురిత అధ్యయనం నుండి; మీ జనాభాలో ధ్రువీకరణ పెండింగ్‌లో ఉంది. కదలిక లేదా పేలవమైన సిగ్నల్ తప్పుడు ఫలితాలను ఇవ్వవచ్చు — నిశ్చలంగా, మంచి వెలుతురులో రికార్డ్ చేయండి. ఇది నిర్ధారణ కాదు.'>Performance figures are from the source study; validation in your own population is pending. Motion or poor signal can cause false results — record still, in good light. Not a diagnosis.</div>
+      <details class="tech">
+        <summary style="font-weight:700;color:var(--acc)" data-te='పరీక్షల పనితీరు &amp; పద్ధతులు'>Test performance &amp; methods</summary>
+
+        <div style="margin-top:10px;font-weight:700;color:var(--acc)" data-te='పరీక్షల పనితీరు'>Test performance</div>
+        <table>
+          <tr><th>Metric</th><th>CardioScope (heart)</th><th>PulmoScope (lung)</th><th>Murmur AI (CirCor)</th></tr>
+          <tr><td>Dataset</td><td>PhysioNet/CinC-2016</td><td>ICBHI-2017</td><td>CirCor DigiScope</td></tr>
+          <tr><td>Training set (n)</td><td>3,153 recordings</td><td>920 rec · 6,898 cycles</td><td>3,003 (patient-split)</td></tr>
+          <tr><td>Test set (n)</td><td>1,357</td><td>26 patients (held-out)</td><td>602 (held-out)</td></tr>
+          <tr><td>AUC</td><td><b>0.996</b></td><td><b>0.87</b> (patient-level)</td><td><b>0.875</b></td></tr>
+          <tr><td>Sensitivity</td><td>98.3%</td><td>63.2%</td><td>72.8%</td></tr>
+          <tr><td>Specificity</td><td>95.6%</td><td>100%</td><td>93.3%</td></tr>
+        </table>
+        <div class="note" style="margin-top:8px;color:var(--mut)" data-te='CardioScope PhysioNet/CinC-2016 (3,153 రికార్డింగ్‌లు, 764 వ్యక్తులు), PulmoScope ICBHI-2017 (920 రికార్డింగ్‌లు, 6,898 సైకిల్స్, రోగి-స్థాయిలో నివేదించబడింది), మరియు Murmur AI CirCor DigiScope (3,003 రికార్డింగ్‌లు)పై శిక్షణ పొందాయి. గణాంకాలు హెల్డ్-అవుట్ టెస్ట్ సెట్‌లపై; నిజ-ప్రపంచ దృఢత్వం కోసం మోడల్‌లు నాయిస్-అగ్మెంటెడ్.'>CardioScope was trained on PhysioNet/CinC-2016 (3,153 recordings, 764 subjects); PulmoScope on ICBHI-2017 (920 recordings, 6,898 cycles), reported at patient level; and Murmur AI on CirCor DigiScope (3,003 recordings, patient-level split), which also reports systolic/diastolic timing. Figures are on held-out test sets, and the models are noise-augmented for real-world robustness.</div>
+
+        <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='గుండె టైమింగ్ (S1-S2)'>Cardiac timing (S1-S2 systolic interval)</div>
+        <div class="note" style="margin-top:6px" data-te='CardioScope ఫోన్ రికార్డింగ్ నుండే S1–S2 సిస్టోలిక్ విరామాన్ని కొలిచి, గుండె వేగానికి సరిదిద్ది చూపుతుంది. ఆరోగ్యకర పరిధి EPHNOGRAM (PhysioNet) — 24 ఆరోగ్యవంతుల నుండి 69 ఏకకాల ECG–PCG రికార్డింగ్‌ల నుండి రూపొందించబడింది.'>CardioScope measures the S1-S2 systolic interval from the phone recording and reports it corrected for heart rate. The healthy reference was derived from EPHNOGRAM (PhysioNet): 69 simultaneous ECG-phonocardiogram recordings from 24 healthy adults.</div>
+        <table>
+          <tr><th data-te='కొలత'>Metric</th><th data-te='గుండె టైమింగ్'>Cardiac timing</th></tr>
+          <tr><td data-te='రిఫరెన్స్ డేటాసెట్'>Reference dataset</td><td>EPHNOGRAM (PhysioNet v1.0.0)</td></tr>
+          <tr><td data-te='రికార్డింగ్‌లు / వ్యక్తులు'>Recordings / subjects</td><td>69 rec · 24 healthy adults</td></tr>
+          <tr><td data-te='ఆరోగ్యకర పరిధి (@60 bpm)'>Healthy band (@60 bpm)</td><td><b>270–337 ms</b></td></tr>
+        </table>
+        <div class="note" style="margin-top:6px;color:var(--mut)" data-te='270–337 ms పరిధి దాటిన విలువలు క్లినికల్ కోరిలేషన్ కోసం ఫ్లాగ్ చేయబడతాయి. స్క్రీనింగ్ సహాయం — నిర్ధారణ కాదు.'>Rate-corrected S1-S2 values outside 270–337 ms are flagged for clinical correlation. Screening aid — not a diagnosis.</div>
+
+        <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='లయ / AF స్క్రీన్ (VascAge)'>Rhythm / AF screen (VascAge)</div>
+        <div class="note" style="margin-top:6px" data-te='VascAge కెమెరా పల్స్ (PPG) నుండి అస్థిర పల్స్‌ను (AF నమూనా) స్క్రీన్ చేస్తుంది. ధ్రువీకరించబడిన McManus/Chon పద్ధతి (RMSSD/mean + షానన్ ఎంట్రోపీ) 76-రోగుల అధ్యయనంలో AF కోసం 96.2% సెన్సిటివిటీ, 97.5% స్పెసిఫిసిటీ చూపింది. స్క్రీనింగ్ మాత్రమే — పాజిటివ్‌ను ECGతో నిర్ధారించండి.'>VascAge screens for an irregular pulse (AF pattern) from the camera pulse (PPG). The validated McManus/Chon method (RMSSD/mean + Shannon entropy) showed 96.2% sensitivity and 97.5% specificity for AF in a 76-patient study. Screening only — confirm any positive with an ECG.</div>
+        <table>
+          <tr><th data-te='కొలత'>Metric</th><th data-te='లయ స్క్రీన్'>Rhythm screen</th></tr>
+          <tr><td data-te='పద్ధతి'>Method</td><td>RMSSD/mean + Shannon entropy</td></tr>
+          <tr><td>Sensitivity / Specificity</td><td><b>96.2% / 97.5%</b></td></tr>
+        </table>
+        <div class="note" style="margin-top:6px;color:var(--mut)" data-te='కదలిక లేదా పేలవమైన సిగ్నల్ తప్పుడు ఫలితాలు ఇవ్వవచ్చు — నిశ్చలంగా, మంచి వెలుతురులో రికార్డ్ చేయండి. స్క్రీనింగ్ సహాయం — నిర్ధారణ కాదు.'>Motion or poor signal can cause false results — record still, in good light. Screening aid — not a diagnosis.</div>
+
+        <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='ఛాతీ ఎక్స్‌రే స్క్రీన్'>Chest X-ray screen (TB + heart + lung)</div>
+        <div class="note" style="margin-top:6px" data-te='ఛాతీ ఎక్స్‌రే ఫోటో నుండి TB మరియు ఇతర గుండె/ఊపిరితిత్తుల మార్పులను స్క్రీన్ చేస్తుంది. పెద్ద, నిపుణులు లేబుల్ చేసిన TB ఎక్స్‌రే డేటాసెట్‌లపై (షెన్‌జెన్ + మోంట్‌గోమెరీ + ఖతార్ DB) ట్రాన్స్‌ఫర్-లెర్నింగ్ (MobileNetV2)తో శిక్షణ పొందింది. WHO వనరుల-పరిమిత సెట్టింగ్‌లలో TB స్క్రీనింగ్ కోసం కంప్యూటర్-సహాయ గుర్తింపును సిఫార్సు చేస్తుంది. స్క్రీనింగ్ మాత్రమే — పాజిటివ్‌ను NTEP ప్రకారం కఫం/NAATతో నిర్ధారించండి.'>Screens a chest X-ray photo for tuberculosis and other heart/lung changes. Trained with transfer learning (MobileNetV2) on large, expert-labelled TB X-ray datasets (Shenzhen + Montgomery + Qatar DB). WHO recommends computer-aided detection for TB screening where radiologists are scarce. Screening only — confirm any positive with sputum/NAAT per NTEP.</div>
+        <table>
+          <tr><th data-te='కొలత'>Metric</th><th>Chest X-ray</th></tr>
+          <tr><td data-te='శిక్షణ డేటా'>Training data</td><td>TB CXR (Shenzhen + Montgomery + Qatar DB) + VinDr-CXR</td></tr>
+          <tr><td data-te='పద్ధతి'>Method</td><td>MobileNetV2 transfer learning</td></tr>
+          <tr><td data-te="ఇంటర్నల్ టెస్ట్ AUC">Internal test AUC</td><td>TB <b>~0.99</b> · Cardiomegaly <b>0.96</b> · Effusion <b>0.96</b> · Pneumonia <b>0.84</b> · Consolidation <b>0.93</b> · Nodule/mass <b>0.94</b> · Pneumothorax <b>0.83</b> · Fibrosis <b>0.92</b> · Pleural thickening <b>0.95</b></td></tr>
+        </table>
+        <div class="note" style="margin-top:6px;color:var(--mut)" data-te='స్పష్టమైన రీడింగ్ కోసం ఫిల్మ్‌ను నేరుగా, మెరుపు లేకుండా ఫోటో తీయండి. స్క్రీనింగ్ సహాయం — నిర్ధారణ కాదు.'>For the clearest read, photograph the film straight and without glare. Screening aid — not a diagnosis.</div>
+
+        <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='ఇతర మాడ్యూల్స్'>Other modules</div>
+        <div class="note" style="margin-top:6px" data-te='VascAge (ఫింగర్‌టిప్ PPG), EchoLat (ఊపిరితిత్తుల అసమానత), పెర్కషన్, రిథమ్ (సైస్మోకార్డియోగ్రఫీ) మరియు JVP ప్రధాన పరీక్షలతో పాటు అదనపు సందర్భాన్ని అందిస్తాయి. వాటిని ఇతర ఫలితాలతో కలిపి ఉపయోగించండి, ముఖ్యమైనవి క్లినీషియన్‌తో నిర్ధారించండి.'>VascAge (fingertip PPG), EchoLat (lung asymmetry), Percussion, Rhythm (seismocardiography) and JVP add extra context alongside the main checks. Use them together with the other results, and confirm anything important with a clinician.</div>
+      </details>
     </div>
 
+    <!-- before you act -->
     <div class="card">
-      <div class="ct" style="color:var(--acc)" data-te='ఛాతీ ఎక్స్‌రే స్క్రీన్ (TB + గుండె)'>Chest X-ray screen (TB + heart)</div>
-      <div class="note" style="margin-top:8px" data-te='ఛాతీ ఎక్స్‌రే ఫోటో నుండి క్షయ (TB)-సంబంధిత మార్పులను స్క్రీన్ చేస్తుంది. ప్రజాపరంగా అందుబాటులో ఉన్న TB ఎక్స్‌రే డేటాసెట్‌లపై (NLM షెన్‌జెన్ + మోంట్‌గోమెరీ + ఖతార్ DB) ట్రాన్స్‌ఫర్-లెర్నింగ్ (MobileNetV2)తో శిక్షణ పొందింది. WHO వనరుల-పరిమిత సెట్టింగ్‌లలో TB స్క్రీనింగ్ కోసం కంప్యూటర్-సహాయ గుర్తింపును సిఫార్సు చేస్తుంది. ఇది స్క్రీనింగ్ మాత్రమే — పాజిటివ్‌ను NTEP ప్రకారం కఫం/NAATతో నిర్ధారించండి.'>Screens a chest X-ray photo for tuberculosis-consistent changes. Trained with transfer learning (MobileNetV2) on publicly available TB X-ray datasets (NLM Shenzhen + Montgomery + Qatar DB). WHO recommends computer-aided detection for TB screening where radiologists are scarce. Screening only — confirm any positive with sputum/NAAT per NTEP.</div>
-      <table>
-        <tr><th data-te='కొలత'>Metric</th><th>TB X-ray</th></tr>
-        <tr><td data-te='శిక్షణ డేటా'>Training data</td><td>Open TB CXR (Shenzhen + Montgomery + Qatar DB, ~4,200 films)</td></tr>
-        <tr><td data-te='పద్ధతి'>Method</td><td>MobileNetV2 transfer learning</td></tr>
-        <tr><td data-te="ఇంటర్నల్ టెస్ట్ AUC">Internal test AUC</td><td>TB <b>~0.99</b> · Cardiomegaly <b>0.96</b> · Effusion <b>0.96</b> · Pneumonia <b>0.84</b> · Consolidation <b>0.93</b> · Nodule/mass <b>0.94</b> · Pneumothorax <b>0.83</b> · Fibrosis <b>0.92</b> · Pleural thickening <b>0.95</b></td></tr>
-      </table>
-      <div class="note" style="margin-top:10px;color:var(--mut)" data-te='ఇంటర్నల్ AUC ఎక్కువగా ఉన్నా, మోడల్ విదేశీ ఫిల్మ్‌లపై శిక్షణ పొందింది — భారతీయ ఎక్స్‌రే మెషీన్లు మరియు జనాభాపై స్థానిక ధ్రువీకరణ పెండింగ్‌లో ఉంది. ఫోన్‌తో ఫోటో తీయడం (మెరుపు, కోణం) ఫలితాలను ప్రభావితం చేయవచ్చు. ఇది నిర్ధారణ కాదు.'>Internal AUC is high, but the model was trained on foreign films — local validation on Indian X-ray machines and populations is pending, and photographing a film (glare, angle) can affect results. Not a diagnosis.</div>
-    </div>
-
-    <div class="card">
-      <div class="ct" style="color:var(--acc)" data-te='ఇతర మాడ్యూల్స్'>Other modules</div>
-      <div class="note" style="margin-top:8px">VascAge (fingertip PPG), EchoLat (lung asymmetry), Percussion, Rhythm (seismocardiography) and JVP are signal-processing aids, not machine-learning classifiers. Their sensitivity, specificity, PPV, NPV and odds ratios are being determined in the prospective validation study. They are investigational and must not be used for diagnosis.</div>
+      <div class="ct" style="color:var(--acc)" data-te='మీ ఫలితంపై చర్య తీసుకునే ముందు'>Before you act on a result</div>
+      <div class="note" style="margin-top:8px" data-te='CardioPulmo మీకు స్పష్టంగా చూడటానికి సహాయపడుతుంది — మీ డాక్టర్ చర్య తీసుకోవడానికి సహాయపడతారు. ఏదైనా ఫ్లాగ్ అయితే, దాన్ని పరీక్ష చేయించుకోవడానికి ఒక దయగల సూచనగా భావించండి, నిర్ధారణగా కాదు; ఫలితాన్ని మీకు మార్గనిర్దేశం చేయగల ఆరోగ్య నిపుణుడితో పంచుకోండి.'>CardioPulmo helps you see clearly — your doctor helps you act. If something is flagged, treat it as a kind nudge to get checked, not a diagnosis, and share the result with a healthcare professional who can guide you.</div>
     </div>
 
     <div class="card">
       <div class="ct" style="color:var(--acc)" data-te='పరిశోధకుడు'>Investigator</div>
-      <div class="note" style="margin-top:8px">Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana. Research use only.</div>
+      <div class="note" style="margin-top:8px">Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana.</div>
     </div>
 
     <div class="card">
@@ -724,6 +732,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=25"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>
