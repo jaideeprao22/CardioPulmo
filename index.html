@@ -105,6 +105,7 @@
     <div class="tab" id="psPerc" onclick="pulmoSub('perc')" data-te='పెర్కషన్'>Percussion</div>
     <div class="tab" id="psEcho" onclick="pulmoSub('echo')">EchoLat</div>
     <div class="tab" id="psXray" onclick="pulmoSub('xray')" data-te='TB ఎక్స్‌రే'>TB X-ray</div>
+    <div class="tab" id="psCough" onclick="pulmoSub('cough')" data-te='దగ్గు లెక్క'>Cough count</div>
   </div>
 
   <section class="pane" id="pXray" data-screen-label="PulmoScope · TB X-ray">
@@ -529,6 +530,41 @@
     </div>
   </section>
 
+  <section class="pane" id="pCough" data-screen-label="PulmoScope · Cough count">
+    <div class="mhead">
+      <div class="mkicker">Suite 02 · PulmoScope</div>
+      <h2 class="mtitle" data-te='దగ్గు లెక్కింపు'>Cough counter</h2>
+      <p class="msub" data-te='ఫోన్ మైక్‌తో <b>60 సెకన్లు</b> రికార్డ్ చేస్తుంది. క్లౌడ్ AI (YAMNet) దగ్గులను గుర్తించి <b>మొత్తం లెక్క మరియు నిమిషానికి రేటు</b> ఇస్తుంది. ఆడియో నిల్వ చేయబడదు — కేవలం సంఖ్య మాత్రమే. స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>Records <b>60 seconds</b> with the phone mic. A cloud AI model (YAMNet) detects coughs and returns a <b>total count and rate per minute</b>. No audio is stored — only the number. Screening only — not a diagnosis.</p>
+    </div>
+
+    <div class="card">
+      <details class="tech">
+        <summary data-te='పద్ధతి · దశలవారీగా'>Technique · step-by-step</summary>
+        <div class="howto" data-te='<h3>దగ్గు ఎలా లెక్కించాలి</h3>నిశ్శబ్ద గది. రోగి ఫోన్ నుండి <b>ఒక చేయి దూరంలో</b> కూర్చుంటారు. START నొక్కి రోగిని <b>60 సెకన్లు సహజంగా</b> ఉండమని చెప్పండి — బలవంతంగా దగ్గించమని చెప్పవద్దు. యాప్ ఆటోమేటిక్‌గా ఆపి క్లౌడ్ AI నడుపుతుంది.<div class="m"><span class="tag">COUNT</span>YAMNet నమూనా దగ్గు శబ్దాలను గుర్తించి లెక్కిస్తుంది. ఆడియో పంపబడి సంఖ్య మాత్రమే తిరిగి వస్తుంది — నిల్వ చేయబడదు.</div>'>
+          <h3>How to count coughs</h3>
+          Quiet room. Patient sits <b>an arm's length</b> from the phone. Press START and let the patient sit <b>naturally for 60 seconds</b> — do not ask them to force-cough. The app stops automatically and runs the cloud AI.
+          <div class="m"><span class="tag">COUNT</span>The YAMNet model detects and counts cough sounds. Audio is sent and only the number returns — nothing is stored.</div>
+        </div>
+      </details>
+      <div class="note" style="text-align:center;margin-bottom:8px" data-te='START నొక్కి 60 సెకన్లు వేచి ఉండండి. ఆటోమేటిక్‌గా ఆగి ఫలితం చూపుతుంది.'>Press START and wait 60 s. It stops automatically and shows the result.</div>
+      <button id="cgRec" class="rec" data-te='● START (60 సెకన్లు)'>● START (60 s)</button>
+      <button id="cgStop" class="stop" disabled data-te='■ ఇప్పుడే ఆపండి'>■ Stop now</button>
+      <div id="cgStatus" class="vst" data-te='నిశ్శబ్ద గది. ఫోన్ రోగికి ఒక చేయి దూరంలో.'>Quiet room. Phone an arm's length from the patient.</div>
+      <canvas id="cgWave"></canvas>
+    </div>
+
+    <div class="card res" id="cgResCard" style="display:none">
+      <div class="cls" id="cgVerdict">—</div>
+      <div style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='AI నమూనా (YAMNet). స్క్రీనింగ్ మాత్రమే — నిర్ధారణ కాదు.'>AI model (YAMNet). Screening only — not a diagnosis.</div>
+      <div class="grid">
+        <div class="kv" data-te='మొత్తం దగ్గులు<b id="cgCount">—</b>'>Total coughs<b id="cgCount">—</b></div>
+        <div class="kv" data-te='నిమిషానికి రేటు<b id="cgRate">—</b>'>Rate per minute<b id="cgRate">—</b></div>
+        <div class="kv" data-te='వ్యవధి<b id="cgDur">—</b>'>Duration<b id="cgDur">—</b></div>
+      </div>
+      <div class="note" style="margin-top:10px" data-te='దగ్గు రేటు ఒక <b>ఆబ్జెక్టివ్ ట్రెండ్ మార్కర్</b> — కాలక్రమేణా పోల్చడానికి ఉపయోగపడుతుంది. ఒక్క రీడింగ్ నిర్ధారణ కాదు. క్లినికల్‌గా అంచనా వేయండి.'>Cough rate is an <b>objective trend marker</b> — useful to compare over time. A single reading is not a diagnosis. Assess clinically.</div>
+    </div>
+  </section>
+
   <!-- ================= ABOUT (p6) ================= -->
   <section class="pane" id="p6" data-screen-label="About">
     <div class="mhead">
@@ -732,6 +768,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=26"></script>
+<script src="app.js?v=27"></script>
 </body>
 </html>

@@ -12,7 +12,7 @@ document.addEventListener('click',function(e){
 },true);
 const st=m=>$('status').textContent=m;
 let pulmoCur='lung';
-function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8','pXray'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
+function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8','pXray','pCough'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
 let pendingTab=null;
 function needLogin(name){
   if(sbUser)return false;
@@ -62,6 +62,8 @@ function pulmoSub(which){
   $('p1').classList.toggle('on',which==='perc');
   $('p3').classList.toggle('on',which==='echo');
   var _px=$('pXray'); if(_px)_px.classList.toggle('on',which==='xray');
+  var _pc=$('pCough'); if(_pc)_pc.classList.toggle('on',which==='cough');
+  var _pct=$('psCough'); if(_pct)_pct.classList.toggle('on',which==='cough');
   $('psLung').classList.toggle('on',which==='lung');
   $('psPerc').classList.toggle('on',which==='perc');
   $('psEcho').classList.toggle('on',which==='echo');
@@ -1654,4 +1656,87 @@ function cpSyncProfile(){
       localStorage.setItem('cp_pid_counter',c2);$('pid').value=cpPad(c2);
     };
   }catch(e){}
+})();
+
+/* ===================== COUGH COUNTER (YAMNet /coughcount) ===================== */
+var cgStream=null,cgCtx=null,cgSrc=null,cgProc=null,cgBuf=[],cgSr=16000,cgRunning=false,cgTimer=null,cgRAF=null,cgAnalyser=null;
+function cgSetStatus(m){var e=$('cgStatus');if(e)e.textContent=m;}
+function cgDrawLive(){
+  var c=$('cgWave');if(!c||!cgAnalyser)return;
+  c.style.display='block';c.width=c.clientWidth*2;c.height=120;
+  var ctx=c.getContext('2d'),W=c.width,H=c.height,arr=new Uint8Array(cgAnalyser.fftSize);
+  function loop(){
+    if(!cgRunning){return;}
+    cgAnalyser.getByteTimeDomainData(arr);
+    ctx.fillStyle='#070B16';ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#56d4dd';ctx.lineWidth=1;ctx.beginPath();
+    var step=W/arr.length;
+    for(var i=0;i<arr.length;i++){var v=(arr[i]-128)/128,x=i*step,y=H/2-v*H*0.42;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    ctx.stroke();cgRAF=requestAnimationFrame(loop);
+  }
+  loop();
+}
+function cgStart(){
+  if(cgRunning)return;
+  $('cgResCard').style.display='none';
+  cgSetStatus('Requesting microphone\u2026');
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
+    cgStream=stream;cgRunning=true;cgBuf=[];
+    cgCtx=new (window.AudioContext||window.webkitAudioContext)();
+    cgSr=cgCtx.sampleRate;
+    cgSrc=cgCtx.createMediaStreamSource(stream);
+    cgAnalyser=cgCtx.createAnalyser();cgAnalyser.fftSize=1024;cgSrc.connect(cgAnalyser);
+    cgProc=cgCtx.createScriptProcessor(4096,1,1);
+    cgProc.onaudioprocess=function(e){if(!cgRunning)return;var d=e.inputBuffer.getChannelData(0);cgBuf.push(new Float32Array(d));};
+    cgSrc.connect(cgProc);cgProc.connect(cgCtx.destination);
+    $('cgRec').disabled=true;$('cgStop').disabled=false;
+    var t0=Date.now();
+    cgTimer=setInterval(function(){
+      var left=60-Math.floor((Date.now()-t0)/1000);
+      if(left<=0){cgStop();}else{cgSetStatus('Recording\u2026 '+left+' s left');}
+    },250);
+    cgDrawLive();
+  }).catch(function(){cgSetStatus('Microphone blocked. Allow mic access and try again.');});
+}
+function cgDownsample(samples,inRate,outRate){
+  if(outRate>=inRate)return samples;
+  var ratio=inRate/outRate,newLen=Math.round(samples.length/ratio),out=new Float32Array(newLen);
+  for(var i=0;i<newLen;i++){out[i]=samples[Math.floor(i*ratio)];}
+  return out;
+}
+function cgStop(){
+  if(!cgRunning)return;
+  cgRunning=false;
+  if(cgTimer){clearInterval(cgTimer);cgTimer=null;}
+  if(cgRAF){cancelAnimationFrame(cgRAF);cgRAF=null;}
+  try{cgProc.disconnect();cgSrc.disconnect();cgAnalyser.disconnect();}catch(e){}
+  try{cgStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
+  try{cgCtx.close();}catch(e){}
+  $('cgRec').disabled=false;$('cgStop').disabled=true;
+  cgSetStatus('Analysing with cloud AI\u2026');
+  var total=0;cgBuf.forEach(function(b){total+=b.length;});
+  var merged=new Float32Array(total),off=0;
+  cgBuf.forEach(function(b){merged.set(b,off);off+=b.length;});
+  var ds=cgDownsample(merged,cgSr,16000);
+  var wav=encodeWAV(ds,16000);
+  cgSend(wav);
+}
+function cgSend(wav){
+  cpCloud('coughcount',wav).then(function(res){
+    if(!res){cgSetStatus('The AI service may be asleep \u2014 open the wake link on the TB X-ray tab once, then try again.');return;}
+    var n=(res.coughs!=null)?res.coughs:(res.cough_count!=null?res.cough_count:0);
+    var rate=(res.cough_rate_per_min!=null)?res.cough_rate_per_min:(res.rate!=null?res.rate:null);
+    var dur=(res.duration_sec!=null)?res.duration_sec:null;
+    $('cgResCard').style.display='block';
+    $('cgVerdict').textContent=n+' cough'+(n===1?'':'s');
+    $('cgCount').textContent=n;
+    $('cgRate').textContent=(rate!=null)?(Math.round(rate*10)/10+' /min'):'\u2014';
+    $('cgDur').textContent=(dur!=null)?(Math.round(dur)+' s'):'\u2014';
+    cgSetStatus('Done. Press START to record again.');
+  });
+}
+(function(){
+  var r=$('cgRec'),s=$('cgStop');
+  if(r)r.onclick=cgStart;
+  if(s)s.onclick=cgStop;
 })();
