@@ -1729,7 +1729,7 @@ async function cgSend(wav){
   var ac=new AbortController(),to=setTimeout(function(){ac.abort();},25000);
   var res=null;
   try{
-    var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/coughcount3',{method:'POST',body:fd,signal:ac.signal});
+    var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/coughcount',{method:'POST',body:fd,signal:ac.signal});
     clearTimeout(to);if(r.ok)res=await r.json();
   }catch(e){res=null;}
   (function(){
