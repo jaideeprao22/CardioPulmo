@@ -1396,10 +1396,12 @@ var CG_DELTA=0.15;
 var FET_CUTOFF=6.0;
 var SBCT_CUTOFF=25.0;
 var MPT_CUTOFF=10.0;
+var CRK_THR=0.30;
+var WHZ_THR=0.50;
 async function loadThresholds(){
   try{
     if(!sb)return;
-    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff').eq('id',1).maybeSingle();
+    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff,crackle_thr,wheeze_thr').eq('id',1).maybeSingle();
     if(r&&r.data){
       if(r.data.cardio_thr!=null)PC_THR=parseFloat(r.data.cardio_thr);
       if(r.data.murmur_thr!=null)MM_THR=parseFloat(r.data.murmur_thr);
@@ -1408,6 +1410,8 @@ async function loadThresholds(){
       if(r.data.fet_cutoff!=null)FET_CUTOFF=parseFloat(r.data.fet_cutoff);
       if(r.data.sbct_cutoff!=null)SBCT_CUTOFF=parseFloat(r.data.sbct_cutoff);
       if(r.data.mpt_cutoff!=null)MPT_CUTOFF=parseFloat(r.data.mpt_cutoff);
+      if(r.data.crackle_thr!=null)CRK_THR=parseFloat(r.data.crackle_thr);
+      if(r.data.wheeze_thr!=null)WHZ_THR=parseFloat(r.data.wheeze_thr);
     }
   }catch(e){}
 }
@@ -1805,11 +1809,12 @@ function ltStopRec(){setTimeout(cpBeepDone,350);
   var s=new Float32Array(n),o=0;ltBuf.forEach(function(b){s.set(b,o);o+=b.length;});try{ltCtx.close();}catch(e){}
   var wav=encodeWAV(s,ltSr);
   (async function(){
+    try{await loadThresholds();}catch(e){}
     var res=await cpCloud('lungtype',wav);
     if(!res){res=await cwOffline(s,ltSr);}
     if(!res){ltSt('AI service may be asleep \u2014 tap the wake link below, then retry.');var w=$('ltWake');if(w)w.style.display='block';return;}
     $('ltResCard').style.display='block';
-    var crk=(res.crackle==='flag'),whz=(res.wheeze==='flag');
+    var crk=((res.crackle_prob||0)>=CRK_THR),whz=((res.wheeze_prob||0)>=WHZ_THR);
     var v=[]; if(crk)v.push('Crackles'); if(whz)v.push('Wheeze');
     $('ltVerdict').textContent=v.length?v.join(' + ')+' detected':'No crackle/wheeze';
     $('ltCrk').textContent=(crk?'FLAG':'clear')+' ('+Math.round((res.crackle_prob||0)*100)+'%)';
