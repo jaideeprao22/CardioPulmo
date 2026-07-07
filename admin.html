@@ -89,10 +89,35 @@ audio{height:34px;vertical-align:middle}
       <b>Model thresholds (global — every device)</b>
       <button id="saveThrBtn">Save</button>
     </div>
+    <div style="font-size:11px;color:#56d4dd;font-weight:700;margin:8px 0 3px">Heart &amp; murmur (probability ≥)</div>
     <div class="row" style="gap:14px;flex-wrap:wrap">
-      <label style="font-size:12px">Cardio (CinC) positive ≥ <input id="setCardio" type="number" step="0.01" min="0" max="1" style="width:90px"></label>
-      <label style="font-size:12px">Murmur (CirCor) present ≥ <input id="setMurmur" type="number" step="0.01" min="0" max="1" style="width:90px"></label>
-      <label style="font-size:12px">Lung abnormal ≥ <input id="setLung" type="number" step="0.01" min="0" max="1" style="width:90px"></label>
+      <label style="font-size:12px">Cardio (CinC) ≥ <input id="setCardio" type="number" step="0.01" min="0" max="1" style="width:80px"></label>
+      <label style="font-size:12px">Murmur (CirCor) ≥ <input id="setMurmur" type="number" step="0.01" min="0" max="1" style="width:80px"></label>
+    </div>
+    <div style="font-size:11px;color:#56d4dd;font-weight:700;margin:10px 0 3px">Lung sounds (probability ≥)</div>
+    <div class="row" style="gap:14px;flex-wrap:wrap">
+      <label style="font-size:12px">Lung abnormal ≥ <input id="setLung" type="number" step="0.01" min="0" max="1" style="width:80px"></label>
+      <label style="font-size:12px">Crackle ≥ <input id="setCrackle" type="number" step="0.01" min="0" max="1" style="width:80px"></label>
+      <label style="font-size:12px">Wheeze ≥ <input id="setWheeze" type="number" step="0.01" min="0" max="1" style="width:80px"></label>
+    </div>
+    <div style="font-size:11px;color:#56d4dd;font-weight:700;margin:10px 0 3px">Acoustic tests</div>
+    <div class="row" style="gap:14px;flex-wrap:wrap">
+      <label style="font-size:12px">Cough sensitivity (delta, lower=more) <input id="setCoughDelta" type="number" step="0.01" min="0.05" max="1" style="width:80px"></label>
+      <label style="font-size:12px">Blow test / FET flag ≥ (s) <input id="setFet" type="number" step="0.5" min="1" max="20" style="width:80px"></label>
+      <label style="font-size:12px">Breath count / SBCT low &lt; <input id="setSbct" type="number" step="1" min="1" max="100" style="width:80px"></label>
+      <label style="font-size:12px">Ahh time / MPT low &lt; (s) <input id="setMpt" type="number" step="0.5" min="1" max="40" style="width:80px"></label>
+    </div>
+    <div style="font-size:11px;color:#56d4dd;font-weight:700;margin:10px 0 3px">Chest X-ray findings (probability ≥)</div>
+    <div class="row" style="gap:14px;flex-wrap:wrap">
+      <label style="font-size:12px">TB ≥ <input id="setTb" type="number" step="0.01" min="0" max="1" style="width:70px"></label>
+      <label style="font-size:12px">Cardiomegaly ≥ <input id="setCard" type="number" step="0.01" min="0" max="1" style="width:70px"></label>
+      <label style="font-size:12px">Effusion ≥ <input id="setEff" type="number" step="0.01" min="0" max="1" style="width:70px"></label>
+      <label style="font-size:12px">Pneumonia ≥ <input id="setPneu" type="number" step="0.01" min="0" max="1" style="width:70px"></label>
+      <label style="font-size:12px">Consolidation ≥ <input id="setCons" type="number" step="0.01" min="0" max="1" style="width:70px"></label>
+      <label style="font-size:12px">Nodule ≥ <input id="setNod" type="number" step="0.01" min="0" max="1" style="width:70px"></label>
+      <label style="font-size:12px">Pneumothorax ≥ <input id="setPtx" type="number" step="0.01" min="0" max="1" style="width:70px"></label>
+      <label style="font-size:12px">Fibrosis ≥ <input id="setFib" type="number" step="0.01" min="0" max="1" style="width:70px"></label>
+      <label style="font-size:12px">Pleural thick. ≥ <input id="setPth" type="number" step="0.01" min="0" max="1" style="width:70px"></label>
     </div>
     <div id="setMsg" class="mut" style="font-size:12px;margin-top:6px"></div>
     <div class="mut" style="font-size:11px;margin-top:4px">Higher = fewer positives (fewer false alarms). Change applies to all phones on their next recording. Suggested: raise Cardio to 0.35 to cut borderline positives.</div>
@@ -173,14 +198,27 @@ async function loadAll(){
   recs=rc||[];
   try{const {data:fb}=await sb.from('feedback').select('*').order('created_at',{ascending:false});fbs=fb||[];}catch(e){fbs=[];}
   try{const {data:st}=await sb.from('app_settings').select('*').eq('id',1).maybeSingle();
-    if(st){if($('setCardio'))$('setCardio').value=st.cardio_thr;if($('setMurmur'))$('setMurmur').value=st.murmur_thr;if($('setLung'))$('setLung').value=st.lung_thr;}
+    if(st){
+      var setv=function(id,v,d){if($(id))$(id).value=(v!=null?v:d);};
+      setv('setCardio',st.cardio_thr,0.30);setv('setMurmur',st.murmur_thr,0.62);setv('setLung',st.lung_thr,0.50);
+      setv('setCrackle',st.crackle_thr,0.30);setv('setWheeze',st.wheeze_thr,0.50);
+      setv('setCoughDelta',st.cough_delta,0.15);setv('setFet',st.fet_cutoff,6);setv('setSbct',st.sbct_cutoff,25);setv('setMpt',st.mpt_cutoff,10);
+      setv('setTb',st.tb_thr,0.50);setv('setCard',st.card_thr,0.35);setv('setEff',st.eff_thr,0.50);setv('setPneu',st.pneu_thr,0.50);setv('setCons',st.cons_thr,0.50);setv('setNod',st.nod_thr,0.50);setv('setPtx',st.ptx_thr,0.35);setv('setFib',st.fib_thr,0.50);setv('setPth',st.pth_thr,0.50);
+    }
   }catch(e){}
   renderStats();renderRecs();renderUsers();renderFb();
 }
 async function saveThr(){
-  var c=parseFloat($('setCardio').value),m=parseFloat($('setMurmur').value),l=parseFloat($('setLung').value);
+  var num=function(id){var v=parseFloat(($(id)||{}).value);return isNaN(v)?null:v;};
   $('setMsg').style.color='';$('setMsg').textContent='Saving…';
-  var {error}=await sb.from('app_settings').upsert({id:1,cardio_thr:c,murmur_thr:m,lung_thr:l,updated_at:new Date().toISOString()});
+  var payload={id:1,
+    cardio_thr:num('setCardio'),murmur_thr:num('setMurmur'),lung_thr:num('setLung'),
+    crackle_thr:num('setCrackle'),wheeze_thr:num('setWheeze'),
+    cough_delta:num('setCoughDelta'),fet_cutoff:num('setFet'),sbct_cutoff:num('setSbct'),mpt_cutoff:num('setMpt'),
+    tb_thr:num('setTb'),card_thr:num('setCard'),eff_thr:num('setEff'),pneu_thr:num('setPneu'),cons_thr:num('setCons'),nod_thr:num('setNod'),ptx_thr:num('setPtx'),fib_thr:num('setFib'),pth_thr:num('setPth'),
+    updated_at:new Date().toISOString()};
+  Object.keys(payload).forEach(function(k){if(payload[k]===null)delete payload[k];});
+  var {error}=await sb.from('app_settings').upsert(payload);
   $('setMsg').textContent=error?('Error: '+error.message):'✓ Saved — every device uses these on next recording.';
 }
 function renderFb(){
