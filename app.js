@@ -89,6 +89,7 @@ async function tbxAnalyze(){
   var img=document.getElementById('tbxImg'),res=document.getElementById('tbxResCard'),out=document.getElementById('tbxResult'),sub=document.getElementById('tbxSub');
   if(!img||!img.src||!img.naturalWidth){return;}
   res.style.display='block'; out.style.color='var(--acc)'; out.textContent='Analysing\u2026'; sub.textContent='';
+  try{await loadThresholds();}catch(e){}
   var _hImg=document.getElementById('tbxHeat'),_hCap=document.getElementById('tbxHeatCap');
   if(_hImg)_hImg.style.display='none'; if(_hCap)_hCap.style.display='none';
   try{
@@ -110,7 +111,8 @@ async function tbxAnalyze(){
       sub.textContent='This doesn\u2019t look like a chest X-ray. Photograph a chest (PA) film on a lightbox and try again.';
       return;
     }
-    var tbFlag=(j.tb==='flag'),hasCard=(j.cardio_prob!=null),cardFlag=(j.cardio==='flag'),hasEff=(j.effusion_prob!=null),effFlag=(j.effusion==='flag'),hasPneu=(j.pneumonia_prob!=null),pneuFlag=(j.pneumonia==='flag'),hasCons=(j.consolidation_prob!=null),consFlag=(j.consolidation==='flag'),hasNod=(j.nodule_prob!=null),nodFlag=(j.nodule==='flag'),hasPtx=(j.pneumothorax_prob!=null),ptxFlag=(j.pneumothorax==='flag'),hasFib=(j.fibrosis_prob!=null),fibFlag=(j.fibrosis==='flag'),hasPth=(j.pleural_thickening_prob!=null),pthFlag=(j.pleural_thickening==='flag');
+    var _tpv=(j.tb_prob!=null?j.tb_prob:j.prob);
+    var tbFlag=(_tpv!=null&&_tpv>=XTB_THR),hasCard=(j.cardio_prob!=null),cardFlag=(hasCard&&j.cardio_prob>=XCARD_THR),hasEff=(j.effusion_prob!=null),effFlag=(hasEff&&j.effusion_prob>=XEFF_THR),hasPneu=(j.pneumonia_prob!=null),pneuFlag=(hasPneu&&j.pneumonia_prob>=XPNEU_THR),hasCons=(j.consolidation_prob!=null),consFlag=(hasCons&&j.consolidation_prob>=XCONS_THR),hasNod=(j.nodule_prob!=null),nodFlag=(hasNod&&j.nodule_prob>=XNOD_THR),hasPtx=(j.pneumothorax_prob!=null),ptxFlag=(hasPtx&&j.pneumothorax_prob>=XPTX_THR),hasFib=(j.fibrosis_prob!=null),fibFlag=(hasFib&&j.fibrosis_prob>=XFIB_THR),hasPth=(j.pleural_thickening_prob!=null),pthFlag=(hasPth&&j.pleural_thickening_prob>=XPTH_THR);
     function _ln(f,b,o){return '<span style="color:'+(f?'var(--bad)':'var(--ok)')+'">'+(f?b:o)+'</span>';}
     out.style.color='inherit';
     var _h=_ln(tbFlag,'\u26A0 TB-consistent findings','\u2713 No TB pattern');
@@ -1398,10 +1400,11 @@ var SBCT_CUTOFF=25.0;
 var MPT_CUTOFF=10.0;
 var CRK_THR=0.30;
 var WHZ_THR=0.50;
+var XTB_THR=0.50,XCARD_THR=0.35,XEFF_THR=0.50,XPNEU_THR=0.50,XCONS_THR=0.50,XNOD_THR=0.50,XPTX_THR=0.35,XFIB_THR=0.50,XPTH_THR=0.50;
 async function loadThresholds(){
   try{
     if(!sb)return;
-    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff,crackle_thr,wheeze_thr').eq('id',1).maybeSingle();
+    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff,crackle_thr,wheeze_thr,tb_thr,card_thr,eff_thr,pneu_thr,cons_thr,nod_thr,ptx_thr,fib_thr,pth_thr').eq('id',1).maybeSingle();
     if(r&&r.data){
       if(r.data.cardio_thr!=null)PC_THR=parseFloat(r.data.cardio_thr);
       if(r.data.murmur_thr!=null)MM_THR=parseFloat(r.data.murmur_thr);
@@ -1412,6 +1415,15 @@ async function loadThresholds(){
       if(r.data.mpt_cutoff!=null)MPT_CUTOFF=parseFloat(r.data.mpt_cutoff);
       if(r.data.crackle_thr!=null)CRK_THR=parseFloat(r.data.crackle_thr);
       if(r.data.wheeze_thr!=null)WHZ_THR=parseFloat(r.data.wheeze_thr);
+      if(r.data.tb_thr!=null)XTB_THR=parseFloat(r.data.tb_thr);
+      if(r.data.card_thr!=null)XCARD_THR=parseFloat(r.data.card_thr);
+      if(r.data.eff_thr!=null)XEFF_THR=parseFloat(r.data.eff_thr);
+      if(r.data.pneu_thr!=null)XPNEU_THR=parseFloat(r.data.pneu_thr);
+      if(r.data.cons_thr!=null)XCONS_THR=parseFloat(r.data.cons_thr);
+      if(r.data.nod_thr!=null)XNOD_THR=parseFloat(r.data.nod_thr);
+      if(r.data.ptx_thr!=null)XPTX_THR=parseFloat(r.data.ptx_thr);
+      if(r.data.fib_thr!=null)XFIB_THR=parseFloat(r.data.fib_thr);
+      if(r.data.pth_thr!=null)XPTH_THR=parseFloat(r.data.pth_thr);
     }
   }catch(e){}
 }
