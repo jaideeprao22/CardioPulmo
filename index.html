@@ -105,6 +105,7 @@
     <div class="tab" id="psPerc" onclick="pulmoSub('perc')" data-te='పెర్కషన్'>Percussion</div>
     <div class="tab" id="psEcho" onclick="pulmoSub('echo')">EchoLat</div>
     <div class="tab" id="psXray" onclick="pulmoSub('xray')" data-te='ఎక్స్‌రే'>X-ray</div>
+    <div class="tab" id="psLtype" onclick="pulmoSub('ltype')" data-te='శబ్ద రకం'>Lung type</div>
     <div class="tab" id="psCough" onclick="pulmoSub('cough')" data-te='దగ్గు లెక్క'>Cough count</div>
   </div>
 
@@ -564,6 +565,32 @@
     </div>
   </section>
 
+  <section class="pane" id="pLtype" data-screen-label="PulmoScope · Lung type">
+    <div class="mhead">
+      <div class="mkicker">Suite 02 · PulmoScope</div>
+      <h2 class="mtitle" data-te='ఊపిరితిత్తుల శబ్ద రకం'>Lung sound type</h2>
+      <p class="msub" data-te='ఛాతీపై ఒక పాయింట్ వద్ద <b>15 సెకన్లు</b> రికార్డ్ చేస్తుంది. క్లౌడ్ AI శబ్దాన్ని <b>క్రాకిల్స్</b> (న్యుమోనియా/ఫైబ్రోసిస్/ఎడిమా) మరియు <b>వీజ్</b> (ఆస్తమా/COPD/అడ్డంకి) కోసం విశ్లేషిస్తుంది. ఆడియో నిల్వ చేయబడదు.'>Records <b>15 seconds</b> at one chest point. A cloud AI analyses the sound for <b>crackles</b> (pneumonia/fibrosis/edema) and <b>wheeze</b> (asthma/COPD/obstruction). No audio is stored.</p>
+    </div>
+
+    <div class="card">
+      <div class="note" style="text-align:center;margin-bottom:8px" data-te='నిశ్శబ్ద గది. ఫోన్ మైక్‌ను ఛాతీపై గట్టిగా ఆనించి, రోగిని లోతుగా ఊపిరి తీసుకోమని చెప్పండి. START నొక్కండి — 15 సెకన్లకు ఆటోమేటిక్‌గా ఆగుతుంది.'>Quiet room. Press the phone mic firmly on the chest, ask the patient to breathe deeply. Press START — it stops automatically at 15 s.</div>
+      <button id="ltRec" class="rec" data-te='● START (15 సెకన్లు)'>● START (15 s)</button>
+      <button id="ltStop" class="stop" disabled data-te='■ ఇప్పుడే ఆపండి'>■ Stop now</button>
+      <div id="ltStatus" class="vst" data-te='ఛాతీపై గట్టిగా ఆనించండి.'>Press firmly on the chest.</div>
+      <canvas id="ltWave"></canvas>
+    </div>
+
+    <div class="card res" id="ltResCard" style="display:none">
+      <div class="cls" id="ltVerdict">—</div>
+      <div style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='AI నమూనా (ICBHI). క్రాకిల్ AUC 0.67 · వీజ్ AUC 0.73.'>AI model (ICBHI). Crackle AUC 0.67 · Wheeze AUC 0.73.</div>
+      <div class="grid">
+        <div class="kv" data-te='క్రాకిల్స్<b id="ltCrk">—</b>'>Crackles<b id="ltCrk">—</b></div>
+        <div class="kv" data-te='వీజ్<b id="ltWhz">—</b>'>Wheeze<b id="ltWhz">—</b></div>
+      </div>
+      <div class="note" style="margin-top:10px" data-te='క్రాకిల్స్ → న్యుమోనియా/ఫైబ్రోసిస్/ఎడిమా అనుమానం. వీజ్ → ఆస్తమా/COPD/అడ్డంకి అనుమానం. క్లినికల్‌గా నిర్ధారించండి.'>Crackles suggest pneumonia/fibrosis/edema. Wheeze suggests asthma/COPD/obstruction. Confirm clinically.</div>
+    </div>
+  </section>
+
   <!-- ================= ABOUT (p6) ================= -->
   <section class="pane" id="p6" data-screen-label="About">
     <div class="mhead">
@@ -619,6 +646,16 @@
           <tr><td>Sensitivity</td><td>98.3%</td><td>63.2%</td><td>72.8%</td></tr>
           <tr><td>Specificity</td><td>95.6%</td><td>100%</td><td>93.3%</td></tr>
         </table>
+
+        <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='కొత్త PulmoScope మాడ్యూల్స్'>Newer PulmoScope modules</div>
+        <table>
+          <tr><th>Module</th><th>Crackle</th><th>Wheeze</th><th>Cough counter</th></tr>
+          <tr><td>Dataset</td><td>ICBHI-2017</td><td>ICBHI-2017</td><td>YAMNet (AudioSet)</td></tr>
+          <tr><td>AUC</td><td><b>0.671</b></td><td><b>0.734</b></td><td>—</td></tr>
+          <tr><td>Sensitivity</td><td>64.1%</td><td>63.7%</td><td>—</td></tr>
+          <tr><td>Specificity</td><td>61.3%</td><td>70.7%</td><td>—</td></tr>
+        </table>
+        <div class="note" style="margin-top:8px;color:var(--mut)" data-te='క్రాకిల్ మరియు వీజ్ మోడల్‌లు ICBHI-2017 (6,898 సైకిల్స్, రోగి-స్థాయి విభజన, MobileNetV2 + SpecAugment)పై శిక్షణ పొందాయి — క్రాకిల్స్ (న్యుమోనియా/ఫైబ్రోసిస్/ఎడిమా) vs వీజ్ (ఆస్తమా/COPD/అడ్డంకి) వేరు చేస్తాయి. దగ్గు కౌంటర్ Google YAMNet + ఆన్‌సెట్ గుర్తింపును ఉపయోగిస్తుంది — దగ్గులను లెక్కించి నిమిషానికి రేటు ఇస్తుంది. ఆడియో నిల్వ చేయబడదు.'>Crackle and wheeze models were trained on ICBHI-2017 (6,898 cycles, patient-level split, MobileNetV2 with SpecAugment), distinguishing crackles (pneumonia/fibrosis/edema) from wheeze (asthma/COPD/obstruction). The cough counter uses Google YAMNet plus onset detection to count coughs and report a rate per minute. No audio is stored.</div>
         <div class="note" style="margin-top:8px;color:var(--mut)" data-te='CardioScope PhysioNet/CinC-2016 (3,153 రికార్డింగ్‌లు, 764 వ్యక్తులు), PulmoScope ICBHI-2017 (920 రికార్డింగ్‌లు, 6,898 సైకిల్స్, రోగి-స్థాయిలో నివేదించబడింది), మరియు Murmur AI CirCor DigiScope (3,003 రికార్డింగ్‌లు)పై శిక్షణ పొందాయి. గణాంకాలు హెల్డ్-అవుట్ టెస్ట్ సెట్‌లపై; నిజ-ప్రపంచ దృఢత్వం కోసం మోడల్‌లు నాయిస్-అగ్మెంటెడ్.'>CardioScope was trained on PhysioNet/CinC-2016 (3,153 recordings, 764 subjects); PulmoScope on ICBHI-2017 (920 recordings, 6,898 cycles), reported at patient level; and Murmur AI on CirCor DigiScope (3,003 recordings, patient-level split), which also reports systolic/diastolic timing. Figures are on held-out test sets, and the models are noise-augmented for real-world robustness.</div>
 
         <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='గుండె టైమింగ్ (S1-S2)'>Cardiac timing (S1-S2 systolic interval)</div>
@@ -767,6 +804,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=31"></script>
+<script src="app.js?v=32"></script>
 </body>
 </html>

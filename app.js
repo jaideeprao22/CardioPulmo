@@ -12,7 +12,7 @@ document.addEventListener('click',function(e){
 },true);
 const st=m=>$('status').textContent=m;
 let pulmoCur='lung';
-function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8','pXray','pCough'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
+function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8','pXray','pCough','pLtype'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
 let pendingTab=null;
 function needLogin(name){
   if(sbUser)return false;
@@ -68,6 +68,8 @@ function pulmoSub(which){
   $('psPerc').classList.toggle('on',which==='perc');
   $('psEcho').classList.toggle('on',which==='echo');
   var _pxt=$('psXray'); if(_pxt)_pxt.classList.toggle('on',which==='xray');
+  var _plt=$('pLtype'); if(_plt)_plt.classList.toggle('on',which==='ltype');
+  var _pltt=$('psLtype'); if(_pltt)_pltt.classList.toggle('on',which==='ltype');
 }
 function tbxPick(input){
   var f=input.files&&input.files[0]; if(!f)return;
@@ -1750,3 +1752,70 @@ async function cgSend(wav){
   if(r)r.onclick=cgStart;
   if(s)s.onclick=cgStop;
 })();
+
+/* ===================== LUNG TYPE (crackle/wheeze /lungtype) ===================== */
+var ltStream=null,ltCtx=null,ltSrc=null,ltProc=null,ltAnalyser=null,ltBuf=[],ltSr=16000,ltRunning=false,ltTimer=null,ltRAF=null;
+function ltSetStatus(m){var e=$('ltStatus');if(e)e.textContent=m;}
+function ltDrawLive(){
+  var c=$('ltWave');if(!c||!ltAnalyser)return;
+  c.style.display='block';c.width=c.clientWidth*2;c.height=120;
+  var ctx=c.getContext('2d'),W=c.width,H=c.height,arr=new Uint8Array(ltAnalyser.fftSize);
+  function loop(){
+    if(!ltRunning)return;
+    ltAnalyser.getByteTimeDomainData(arr);
+    ctx.fillStyle='#070B16';ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#56d4dd';ctx.lineWidth=1;ctx.beginPath();
+    var step=W/arr.length;
+    for(var i=0;i<arr.length;i++){var v=(arr[i]-128)/128,x=i*step,y=H/2-v*H*0.42;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    ctx.stroke();ltRAF=requestAnimationFrame(loop);
+  }
+  loop();
+}
+function ltStart(){
+  if(ltRunning)return;
+  $('ltResCard').style.display='none';
+  ltSetStatus('Requesting microphone\u2026');
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
+    ltStream=stream;ltRunning=true;ltBuf=[];
+    ltCtx=new (window.AudioContext||window.webkitAudioContext)();
+    ltSr=ltCtx.sampleRate;
+    ltSrc=ltCtx.createMediaStreamSource(stream);
+    ltAnalyser=ltCtx.createAnalyser();ltAnalyser.fftSize=1024;ltSrc.connect(ltAnalyser);
+    ltProc=ltCtx.createScriptProcessor(4096,1,1);
+    ltProc.onaudioprocess=function(e){if(!ltRunning)return;ltBuf.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
+    ltSrc.connect(ltProc);ltProc.connect(ltCtx.destination);
+    $('ltRec').disabled=true;$('ltStop').disabled=false;
+    var t0=Date.now();
+    ltTimer=setInterval(function(){
+      var left=15-Math.floor((Date.now()-t0)/1000);
+      if(left<=0){ltStop();}else{ltSetStatus('Recording\u2026 '+left+' s left');}
+    },250);
+    ltDrawLive();
+  }).catch(function(){ltSetStatus('Microphone blocked. Allow mic access and try again.');});
+}
+function ltStop(){
+  if(!ltRunning)return;
+  ltRunning=false;
+  if(ltTimer){clearInterval(ltTimer);ltTimer=null;}
+  if(ltRAF){cancelAnimationFrame(ltRAF);ltRAF=null;}
+  try{ltProc.disconnect();ltSrc.disconnect();ltAnalyser.disconnect();}catch(e){}
+  try{ltStream.getTracks().forEach(function(t){t.stop();});}catch(e){}
+  try{ltCtx.close();}catch(e){}
+  $('ltRec').disabled=false;$('ltStop').disabled=true;
+  ltSetStatus('Analysing with cloud AI\u2026');
+  var total=0;ltBuf.forEach(function(b){total+=b.length;});
+  var merged=new Float32Array(total),off=0;
+  ltBuf.forEach(function(b){merged.set(b,off);off+=b.length;});
+  var wav=encodeWAV(merged,ltSr);
+  cpCloud('lungtype',wav).then(function(res){
+    if(!res){ltSetStatus('The AI service may be asleep \u2014 open the wake link on the X-ray tab once, then try again.');return;}
+    $('ltResCard').style.display='block';
+    var crk=(res.crackle==='flag'),whz=(res.wheeze==='flag');
+    var v=[]; if(crk)v.push('Crackles'); if(whz)v.push('Wheeze');
+    $('ltVerdict').textContent=v.length?v.join(' + ')+' detected':'No crackle/wheeze';
+    $('ltCrk').textContent=(crk?'FLAG':'clear')+' ('+Math.round((res.crackle_prob||0)*100)+'%)';
+    $('ltWhz').textContent=(whz?'FLAG':'clear')+' ('+Math.round((res.wheeze_prob||0)*100)+'%)';
+    ltSetStatus('Done. Press START to record again.');
+  });
+}
+(function(){var r=$('ltRec'),s=$('ltStop');if(r)r.onclick=ltStart;if(s)s.onclick=ltStop;})();
