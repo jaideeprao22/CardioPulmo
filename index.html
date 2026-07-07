@@ -126,7 +126,7 @@
         <img id="tbxHeat" style="display:none;width:100%;border-radius:10px;margin-top:10px" alt="AI heatmap">
         <div id="tbxHeatCap" class="note" style="display:none;text-align:center;font-size:11px;margin-top:4px;color:var(--mut)" data-te='🔴 ఎరుపు = AI ఎక్కువగా చూసిన ప్రాంతాలు (వివరణ కోసం మాత్రమే)'>🔴 Red = areas the AI focused on (for explanation only)</div>
       </div>
-      <div class="note" style="margin-top:12px;color:var(--mut);font-size:12px" data-te='ఫోటో సురక్షిత కనెక్షన్ ద్వారా విశ్లేషించబడుతుంది, నిల్వ చేయబడదు. ఈ మోడల్ ప్రజా ఎక్స్‌రే డేటాపై శిక్షణ పొందింది; భారతీయ మెషీన్లపై స్థానిక ధ్రువీకరణ కొనసాగుతోంది. పాజిటివ్ ఫలితాన్ని కఫం/NAAT పరీక్షతో నిర్ధారించండి (NTEP).'>The photo is analysed over a secure connection and not stored. This model was trained on public X-ray data; local validation on Indian machines is ongoing. Confirm any positive with sputum/NAAT testing (NTEP). Screening aid, not a diagnosis.</div>
+      <div class="note" style="margin-top:12px;color:var(--mut);font-size:12px" data-te='ఫోటో క్లౌడ్ AI ద్వారా విశ్లేషించబడుతుంది, నిల్వ చేయబడదు. పాజిటివ్ ఫలితాన్ని కఫం/NAAT పరీక్షతో నిర్ధారించండి (NTEP).'>The photo is analysed over a Cloud AI and not stored. Confirm any positive with sputum/NAAT testing (NTEP). Screening aid, not a diagnosis.</div>
     </div>
   </section>
 
@@ -337,7 +337,7 @@
     <div class="mhead">
       <div class="mkicker">Suite 01 · CardioScope</div>
       <h2 class="mtitle" data-te='హృదయ-రక్తనాళ పరీక్ష'>Cardiovascular exam</h2>
-      <p class="msub" data-te='<b>ఆన్-డిమాండ్</b> గుండె లయ (ఛాతీపై ఫోన్ యాక్సిలరోమీటర్) + <b>మెడ / JVP స్పందన</b> (కెమెరా). కేవలం ఫ్లాగ్‌లు — <b>ఇది</b> నిర్ధారణ కాదు.'><b>On-demand</b> heart-rhythm (phone accelerometer on the chest) + <b>neck / JVP pulsation</b> (camera). Flags only — <b>not</b> a diagnosis.</p>
+      <p class="msub" data-te='<b>ఆన్-డిమాండ్</b> గుండె లయ (ఛాతీపై ఫోన్ యాక్సిలరోమీటర్) + <b>మెడ / JVP స్పందన</b> (కెమెరా).'><b>On-demand</b> heart-rhythm (phone accelerometer on the chest) + <b>neck / JVP pulsation</b> (camera).</p>
     </div>
 
     <div class="card">
@@ -546,8 +546,10 @@
     </div>
 
     <div class="card" id="myRecCard" style="display:none">
-      <div class="ct" style="font-weight:700;margin-bottom:6px" data-te='నా డాష్‌బోర్డ్'>My dashboard</div>
-      <div id="myRecBody" class="note">Loading…</div>
+      <details class="tech">
+        <summary style="font-weight:700" data-te='నా డాష్‌బోర్డ్'>My dashboard</summary>
+        <div id="myRecBody" class="note" style="margin-top:8px">Loading…</div>
+      </details>
     </div>
 
     <div class="card">
@@ -722,6 +724,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=24"></script>
+<script src="app.js?v=25"></script>
 </body>
 </html>
