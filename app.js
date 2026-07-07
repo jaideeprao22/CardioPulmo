@@ -1381,14 +1381,16 @@ async function fbSend(btn){
 fbInstall();
 
 /* ===== global model thresholds (set by admin, same on every device) ===== */
+var CG_DELTA=0.15;
 async function loadThresholds(){
   try{
     if(!sb)return;
-    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr').eq('id',1).maybeSingle();
+    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta').eq('id',1).maybeSingle();
     if(r&&r.data){
       if(r.data.cardio_thr!=null)PC_THR=parseFloat(r.data.cardio_thr);
       if(r.data.murmur_thr!=null)MM_THR=parseFloat(r.data.murmur_thr);
       if(r.data.lung_thr!=null)LG_THR=parseFloat(r.data.lung_thr);
+      if(r.data.cough_delta!=null)CG_DELTA=parseFloat(r.data.cough_delta);
     }
   }catch(e){}
 }
@@ -1721,8 +1723,16 @@ function cgStop(){
   var wav=encodeWAV(ds,16000);
   cgSend(wav);
 }
-function cgSend(wav){
-  cpCloud('coughcount',wav).then(function(res){
+async function cgSend(wav){
+  try{await loadThresholds();}catch(e){}
+  var fd=new FormData();fd.append('file',wav,'rec.wav');fd.append('delta',String(CG_DELTA));
+  var ac=new AbortController(),to=setTimeout(function(){ac.abort();},25000);
+  var res=null;
+  try{
+    var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/coughcount3',{method:'POST',body:fd,signal:ac.signal});
+    clearTimeout(to);if(r.ok)res=await r.json();
+  }catch(e){res=null;}
+  (function(){
     if(!res){cgSetStatus('The AI service may be asleep \u2014 open the wake link on the TB X-ray tab once, then try again.');return;}
     var n=(res.coughs!=null)?res.coughs:(res.cough_count!=null?res.cough_count:0);
     var rate=(res.cough_rate_per_min!=null)?res.cough_rate_per_min:(res.rate!=null?res.rate:null);
@@ -1733,7 +1743,7 @@ function cgSend(wav){
     $('cgRate').textContent=(rate!=null)?(Math.round(rate*10)/10+' /min'):'\u2014';
     $('cgDur').textContent=(dur!=null)?(Math.round(dur)+' s'):'\u2014';
     cgSetStatus('Done. Press START to record again.');
-  });
+  })();
 }
 (function(){
   var r=$('cgRec'),s=$('cgStop');
