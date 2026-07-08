@@ -2091,7 +2091,7 @@ async function cwLoad(){
       var mr=await fetch('mel_filter_cw.json');if(!mr.ok)return false;
       var mj=await mr.json();cwMel=Array.isArray(mj)?mj:mj.mel;
       cwCrk=await tf.loadLayersModel('tfjs_crackle/model.json');
-      cwWhz=await tf.loadLayersModel('tfjs_wheeze/model.json');
+      cwWhz=await tf.loadLayersModel('tfjs_wheeze_new/model.json');
       return true;
     }catch(e){console.error('cw offline load failed',e);return false;}
   })();
@@ -2125,6 +2125,31 @@ function cwImage(x,start){
   return out;
 }
 function cwPredict(model,img){return tf.tidy(function(){var x=tf.tensor4d(img,[1,CW_NMEL,CW_TW,3]);var y=model.predict(x);var t=Array.isArray(y)?y[0]:y;return t.dataSync()[0];});}
+var CW_WTW=251;
+function cwWhzImage(x,start){
+  var w=new Float32Array(CW_WINN),i,src=x.length;
+  if(src>=CW_WINN){ for(i=0;i<CW_WINN;i++) w[i]=x[start+i]; }
+  else { for(i=0;i<CW_WINN;i++) w[i]=x[i%src]; }
+  var pad=CW_NFFT/2,xp=new Float32Array(CW_WINN+CW_NFFT);xp.set(w,pad);
+  var nfr=1+Math.floor(CW_WINN/CW_HOP);
+  var P=new Float32Array(CW_NB*nfr),re=new Float64Array(CW_NFFT),im=new Float64Array(CW_NFFT),f,k,b;
+  for(f=0;f<nfr;f++){var off=f*CW_HOP;
+    for(k=0;k<CW_NFFT;k++){re[k]=xp[off+k]*CW_HANN[k];im[k]=0;}
+    fft(re,im);
+    for(b=0;b<CW_NB;b++)P[b*nfr+f]=re[b]*re[b]+im[b]*im[b];}
+  var M=new Float32Array(CW_NMEL*nfr),dbmax=-Infinity,m;
+  for(m=0;m<CW_NMEL;m++){var mrow=cwMel[m];
+    for(f=0;f<nfr;f++){var acc=0;for(b=0;b<CW_NB;b++)acc+=mrow[b]*P[b*nfr+f];
+      var db=10*Math.log10(Math.max(1e-10,acc));M[m*nfr+f]=db;if(db>dbmax)dbmax=db;}}
+  var i2,sum=0,cnt=CW_NMEL*nfr;
+  for(i2=0;i2<M.length;i2++){var v=M[i2]-dbmax;if(v<-80)v=-80;M[i2]=v;sum+=v;}
+  var mean=sum/cnt,ss=0;for(i2=0;i2<M.length;i2++){var d2=M[i2]-mean;ss+=d2*d2;}
+  var std=Math.sqrt(ss/cnt)+1e-6;
+  var out=new Float32Array(CW_NMEL*CW_WTW),t;
+  for(m=0;m<CW_NMEL;m++){for(t=0;t<CW_WTW;t++){var val=(t<nfr)?((M[m*nfr+t]-mean)/std):((-80-mean)/std);out[m*CW_WTW+t]=val;}}
+  return out;
+}
+function cwPredictWhz(img){return tf.tidy(function(){var x=tf.tensor4d(img,[1,CW_NMEL,CW_WTW,1]);var y=cwWhz.predict(x);var t=Array.isArray(y)?y[0]:y;return t.dataSync()[0];});}
 async function cwOffline(s,fs){
   var ok=await cwLoad();if(!ok)return null;
   try{
@@ -2132,7 +2157,8 @@ async function cwOffline(s,fs){
     var starts=[];for(var st=0;st+CW_WINN<=x.length;st+=CW_WINN/2)starts.push(st);
     if(!starts.length)starts=[0];
     var pc=0,pw=0;
-    for(var q=0;q<starts.length;q++){var img=cwImage(x,starts[q]);pc=Math.max(pc,cwPredict(cwCrk,img));pw=Math.max(pw,cwPredict(cwWhz,img));}
+    for(var q=0;q<starts.length;q++){pc=Math.max(pc,cwPredict(cwCrk,cwImage(x,starts[q])));pw=Math.max(pw,cwPredictWhz(cwWhzImage(x,starts[q])));}
+    if(!starts.length||x.length<CW_WINN){pw=Math.max(pw,cwPredictWhz(cwWhzImage(x,0)));}
     return {crackle_prob:pc,wheeze_prob:pw,crackle:(pc>=0.30?'flag':'clear'),wheeze:(pw>=0.50?'flag':'clear'),offline:true};
   }catch(e){console.error('cwOffline err',e);return null;}
 }
