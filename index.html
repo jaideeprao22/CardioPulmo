@@ -798,6 +798,16 @@
         </table>
         <div class="note" style="margin-top:6px;color:var(--mut)" data-te='స్పష్టమైన రీడింగ్ కోసం ఫిల్మ్‌ను నేరుగా, మెరుపు లేకుండా ఫోటో తీయండి. స్క్రీనింగ్ సహాయం — నిర్ధారణ కాదు.'>For the clearest read, photograph the film straight and without glare.</div>
 
+        <!-- 2b. Cough acoustic analysis (exploratory, neutral) -->
+        <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='దగ్గు శబ్ద విశ్లేషణ (అన్వేషణాత్మక)'>Cough acoustic analysis (exploratory)</div>
+        <div class="note" style="margin-top:6px" data-te='ఒక కాంపాక్ట్ CNN దగ్గు శబ్దంలోని శబ్ద నమూనాలను విశ్లేషిస్తుంది. పెద్ద, లేబుల్ చేసిన దగ్గు-శబ్ద డేటాసెట్‌పై రోగి-స్థాయి 5-ఫోల్డ్ క్రాస్-వాలిడేషన్‌తో శిక్షణ పొందింది. ఇది అన్వేషణాత్మక పరిశోధన సంకేతం మాత్రమే — నిర్ధారణ కాదు. క్లినికల్‌గా నిర్ధారించండి.'>A compact CNN analyses acoustic patterns in the cough sound. Trained with patient-level 5-fold cross-validation on a large labelled cough-sound dataset. This is an exploratory research signal only — not a diagnosis. Confirm clinically.</div>
+        <table>
+          <tr><th data-te='కొలత'>Metric</th><th data-te='దగ్గు శబ్దం'>Cough acoustic</th></tr>
+          <tr><td data-te='రోగి-స్థాయి AUC'>Patient-level AUC</td><td><b>0.7</b></td></tr>
+          <tr><td data-te='సెన్సిటివిటీ / స్పెసిఫిసిటీ'>Sensitivity / Specificity</td><td><b>73.2% / 60.9%</b></td></tr>
+        </table>
+        <div class="note" style="margin-top:6px;color:var(--mut)" data-te='కటాఫ్ అడ్మిన్ డాష్‌బోర్డ్ నుండి సర్దుబాటు చేయవచ్చు. ఇది అన్వేషణాత్మక పరిశోధన సంకేతం మాత్రమే — నిర్ధారణ కాదు.'>The cutoff is adjustable from the admin dashboard. This is an exploratory research signal only — not a diagnosis.</div>
+
         <!-- 3. Signal-analysis tests (deterministic, no ML AUC) -->
         <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='సిగ్నల్ విశ్లేషణ పరీక్షలు (AI కాదు — ధృవీకరించబడిన శబ్ద కొలతలు)'>Signal-analysis tests (validated acoustic measures)</div>
         <table>
@@ -949,6 +959,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=48"></script>
+<script src="app.js?v=49"></script>
 </body>
 </html>
