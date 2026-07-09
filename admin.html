@@ -108,6 +108,7 @@ audio{height:34px;vertical-align:middle}
       <label style="font-size:12px">Blow test / FET flag ≥ (s) <input id="setFet" type="number" step="0.5" min="1" max="20" style="width:80px"></label>
       <label style="font-size:12px">Breath count / SBCT low &lt; <input id="setSbct" type="number" step="1" min="1" max="100" style="width:80px"></label>
       <label style="font-size:12px">Ahh time / MPT low &lt; (s) <input id="setMpt" type="number" step="0.5" min="1" max="40" style="width:80px"></label>
+      <label style="font-size:12px">TB/cough acoustic flag ≥ <input id="setTbc" type="number" step="0.01" min="0" max="1" style="width:80px"></label>
     </div>
     <div class="mut" style="font-size:11px;margin-top:3px"><b>Cough</b>: ↓ delta = counts MORE coughs. <b>Blow test/FET</b> (flags obstruction if the breath lasts ≥ the value): ↑ = FEWER flags. <b>Breath count/SBCT</b> &amp; <b>Ahh time/MPT</b> (flag if the result is BELOW the value): ↑ = flags MORE people.</div>
     <div style="font-size:11px;color:#56d4dd;font-weight:700;margin:10px 0 3px">Chest X-ray findings (probability ≥)</div>
@@ -205,7 +206,7 @@ async function loadAll(){
       var setv=function(id,v,d){if($(id))$(id).value=(v!=null?v:d);};
       setv('setCardio',st.cardio_thr,0.30);setv('setMurmur',st.murmur_thr,0.62);setv('setLung',st.lung_thr,0.50);
       setv('setCrackle',st.crackle_thr,0.30);setv('setWheeze',st.wheeze_thr,0.50);
-      setv('setCoughDelta',st.cough_delta,0.15);setv('setFet',st.fet_cutoff,6);setv('setSbct',st.sbct_cutoff,25);setv('setMpt',st.mpt_cutoff,10);
+      setv('setCoughDelta',st.cough_delta,0.15);setv('setFet',st.fet_cutoff,6);setv('setSbct',st.sbct_cutoff,25);setv('setMpt',st.mpt_cutoff,10);setv('setTbc',st.tbcough_thr,0.40);
       setv('setTb',st.tb_thr,0.50);setv('setCard',st.card_thr,0.35);setv('setEff',st.eff_thr,0.50);setv('setPneu',st.pneu_thr,0.50);setv('setCons',st.cons_thr,0.50);setv('setNod',st.nod_thr,0.50);setv('setPtx',st.ptx_thr,0.35);setv('setFib',st.fib_thr,0.50);setv('setPth',st.pth_thr,0.50);
     }
   }catch(e){}
@@ -217,7 +218,7 @@ async function saveThr(){
   var payload={id:1,
     cardio_thr:num('setCardio'),murmur_thr:num('setMurmur'),lung_thr:num('setLung'),
     crackle_thr:num('setCrackle'),wheeze_thr:num('setWheeze'),
-    cough_delta:num('setCoughDelta'),fet_cutoff:num('setFet'),sbct_cutoff:num('setSbct'),mpt_cutoff:num('setMpt'),
+    cough_delta:num('setCoughDelta'),fet_cutoff:num('setFet'),sbct_cutoff:num('setSbct'),mpt_cutoff:num('setMpt'),tbcough_thr:num('setTbc'),
     tb_thr:num('setTb'),card_thr:num('setCard'),eff_thr:num('setEff'),pneu_thr:num('setPneu'),cons_thr:num('setCons'),nod_thr:num('setNod'),ptx_thr:num('setPtx'),fib_thr:num('setFib'),pth_thr:num('setPth'),
     updated_at:new Date().toISOString()};
   Object.keys(payload).forEach(function(k){if(payload[k]===null)delete payload[k];});

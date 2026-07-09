@@ -111,6 +111,7 @@
     <div class="tab" id="psSbc" onclick="pulmoSub('sbc')" data-te='లెక్కింపు పరీక్ష'>Breath count</div>
     <div class="tab" id="psMpt" onclick="pulmoSub('mpt')" data-te='ఆహ్ పరీక్ష'>Ahh time</div>
     <div class="tab" id="psCough" onclick="pulmoSub('cough')" data-te='దగ్గు లెక్క'>Cough count</div>
+    <div class="tab" id="psTbc" onclick="pulmoSub('tbc')" data-te='దగ్గు శబ్ద విశ్లేషణ'>Cough acoustic</div>
   </div>
 
   <section class="pane" id="pXray" data-screen-label="PulmoScope · X-ray">
@@ -705,6 +706,30 @@
     </div>
   </section>
 
+  <section class="pane" id="pTbc" data-screen-label="PulmoScope · Cough acoustic analysis">
+    <div class="mhead">
+      <div class="mkicker">Suite 02 · PulmoScope</div>
+      <h2 class="mtitle" data-te='దగ్గు శబ్ద విశ్లేషణ (అన్వేషణాత్మక)'>Cough acoustic analysis (exploratory)</h2>
+      <p class="msub" data-te='రోగిని ఫోన్ మైక్ దగ్గర <b>2–3 సార్లు గట్టిగా దగ్గమని</b> చెప్పండి. ఒక AI నమూనా దగ్గు శబ్దంలోని శబ్ద నమూనాలను విశ్లేషిస్తుంది. <b>ఇది అన్వేషణాత్మక పరిశోధన సంకేతం మాత్రమే — నిర్ధారణ కాదు.</b> క్లినికల్‌గా నిర్ధారించండి.'>Ask the patient to <b>cough hard 2–3 times</b> near the phone mic. An AI model analyses acoustic patterns in the cough sound. <b>This is an exploratory research signal only — not a diagnosis.</b> Confirm clinically.</p>
+    </div>
+    <div class="card">
+      <div class="note" style="text-align:center;margin-bottom:8px" data-te='నిశ్శబ్ద గది. ఫోన్‌ను నోటికి దగ్గరగా పట్టుకోండి. START నొక్కి, బీప్ తర్వాత గట్టిగా దగ్గండి.'>Quiet room. Hold the phone near the mouth. Press START, then cough hard after the beep.</div>
+      <button id="tbRec" class="rec" data-te='● START (బీప్ తర్వాత దగ్గండి)'>● START (cough after the beep)</button>
+      <button id="tbStop" class="stop" disabled data-te='■ ఆపు'>■ Stop</button>
+      <div id="tbStatus" class="vst" data-te='ఫోన్‌ను నోటికి దగ్గరగా పట్టుకోండి.'>Hold the phone near the mouth.</div>
+      <a id="tbWake" href="https://jaideeprao-cardiopulmo-api.hf.space/" target="_blank" style="display:none;text-align:center;font-size:12px;color:var(--acc);margin-top:8px;text-decoration:underline" data-te='AI నెమ్మదిగా లేదా నిద్రలో ఉందా? దీన్ని నొక్కి AIని మేల్కొల్పి, మళ్లీ ప్రయత్నించండి'>AI slow or asleep? Tap here to wake it, then retry</a>
+    </div>
+    <div class="card res" id="tbResCard" style="display:none">
+      <div class="cls" id="tbVerdict">—</div>
+      <div style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='అన్వేషణాత్మక దగ్గు-శబ్ద సంకేతం. పరిశోధన మాత్రమే.'>Exploratory cough-acoustic signal. Research use only.</div>
+      <div class="grid">
+        <div class="kv" data-te='దగ్గు సంకేత స్కోరు<b id="tbProb">—</b>'>Cough signal score<b id="tbProb">—</b></div>
+        <div class="kv" data-te='కటాఫ్<b id="tbCut">—</b>'>Cutoff<b id="tbCut">—</b></div>
+      </div>
+      <div class="note" style="margin-top:10px" data-te='ఇది అన్వేషణాత్మక పరిశోధన సంకేతం మాత్రమే. క్లినికల్‌గా నిర్ధారించండి. నిర్ధారణ కాదు.'>This is an exploratory research signal only. Confirm clinically. Not a diagnosis.</div>
+    </div>
+  </section>
+
   <!-- ================= ABOUT (p6) ================= -->
   <section class="pane" id="p6" data-screen-label="About">
     <div class="mhead">
@@ -924,6 +949,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=47"></script>
+<script src="app.js?v=48"></script>
 </body>
 </html>

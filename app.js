@@ -12,7 +12,7 @@ document.addEventListener('click',function(e){
 },true);
 const st=m=>$('status').textContent=m;
 let pulmoCur='lung';
-function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8','pXray','pCough','pLtype','pRR','pFet','pSbc','pMpt'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
+function hideAllPanes(){['p0','p1','p2','p3','p4','p5','p6','p7','p8','pXray','pCough','pLtype','pRR','pFet','pSbc','pMpt','pTbc'].forEach(function(id){var e=$(id);if(e)e.classList.remove('on');});}
 let pendingTab=null;
 function needLogin(name){
   if(sbUser)return false;
@@ -78,6 +78,8 @@ function pulmoSub(which){
   var _psbt=$('psSbc'); if(_psbt)_psbt.classList.toggle('on',which==='sbc');
   var _pmp=$('pMpt'); if(_pmp)_pmp.classList.toggle('on',which==='mpt');
   var _pmpt=$('psMpt'); if(_pmpt)_pmpt.classList.toggle('on',which==='mpt');
+  var _ptbc=$('pTbc'); if(_ptbc)_ptbc.classList.toggle('on',which==='tbc');
+  var _ptbct=$('psTbc'); if(_ptbct)_ptbct.classList.toggle('on',which==='tbc');
 }
 function tbxPick(input){
   var f=input.files&&input.files[0]; if(!f)return;
@@ -1398,13 +1400,14 @@ var CG_DELTA=0.15;
 var FET_CUTOFF=6.0;
 var SBCT_CUTOFF=25.0;
 var MPT_CUTOFF=10.0;
+var TBC_THR=0.40;
 var CRK_THR=0.30;
 var WHZ_THR=0.50;
 var XTB_THR=0.50,XCARD_THR=0.35,XEFF_THR=0.50,XPNEU_THR=0.50,XCONS_THR=0.50,XNOD_THR=0.50,XPTX_THR=0.35,XFIB_THR=0.50,XPTH_THR=0.50;
 async function loadThresholds(){
   try{
     if(!sb)return;
-    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff,crackle_thr,wheeze_thr,tb_thr,card_thr,eff_thr,pneu_thr,cons_thr,nod_thr,ptx_thr,fib_thr,pth_thr').eq('id',1).maybeSingle();
+    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff,tbcough_thr,crackle_thr,wheeze_thr,tb_thr,card_thr,eff_thr,pneu_thr,cons_thr,nod_thr,ptx_thr,fib_thr,pth_thr').eq('id',1).maybeSingle();
     if(r&&r.data){
       if(r.data.cardio_thr!=null)PC_THR=parseFloat(r.data.cardio_thr);
       if(r.data.murmur_thr!=null)MM_THR=parseFloat(r.data.murmur_thr);
@@ -1413,6 +1416,7 @@ async function loadThresholds(){
       if(r.data.fet_cutoff!=null)FET_CUTOFF=parseFloat(r.data.fet_cutoff);
       if(r.data.sbct_cutoff!=null)SBCT_CUTOFF=parseFloat(r.data.sbct_cutoff);
       if(r.data.mpt_cutoff!=null)MPT_CUTOFF=parseFloat(r.data.mpt_cutoff);
+      if(r.data.tbcough_thr!=null)TBC_THR=parseFloat(r.data.tbcough_thr);
       if(r.data.crackle_thr!=null)CRK_THR=parseFloat(r.data.crackle_thr);
       if(r.data.wheeze_thr!=null)WHZ_THR=parseFloat(r.data.wheeze_thr);
       if(r.data.tb_thr!=null)XTB_THR=parseFloat(r.data.tb_thr);
@@ -2161,4 +2165,101 @@ async function cwOffline(s,fs){
     if(!starts.length||x.length<CW_WINN){pw=Math.max(pw,cwPredictWhz(cwWhzImage(x,0)));}
     return {crackle_prob:pc,wheeze_prob:pw,crackle:(pc>=0.30?'flag':'clear'),wheeze:(pw>=0.50?'flag':'clear'),offline:true};
   }catch(e){console.error('cwOffline err',e);return null;}
+}
+
+/* ===================== COUGH ACOUSTIC (/tbcough + offline TF.js) ===================== */
+var tbRunning=false,tbStream=null,tbCtx=null,tbProc=null,tbZg=null,tbBuf=[],tbSr=16000,tbTimer=null,tbLeft=6;
+function tbSt(m){var e=$('tbStatus');if(e)e.textContent=m;}
+var TBC_SR=16000,TBC_NFFT=1024,TBC_HOP=256,TBC_NMEL=128,TBC_NB=513,TBC_TW=128,TBC_WINN=32000;
+var TBC_HANN=new Float32Array(TBC_NFFT);for(var _tn=0;_tn<TBC_NFFT;_tn++)TBC_HANN[_tn]=0.5-0.5*Math.cos(2*Math.PI*_tn/TBC_NFFT);
+var tbcModel=null,tbcMel=null,tbcLoading=null;
+async function tbcLoad(){
+  if(tbcModel&&tbcMel)return true;
+  if(tbcLoading)return tbcLoading;
+  tbcLoading=(async function(){
+    try{
+      if(typeof tf==='undefined')return false;
+      var mr=await fetch('mel_filter_tbc.json');if(!mr.ok)return false;
+      var mj=await mr.json();tbcMel=Array.isArray(mj)?mj:mj.mel;
+      tbcModel=await tf.loadLayersModel('tfjs_tbcough/model.json');
+      return true;
+    }catch(e){console.error('tbc offline load failed',e);return false;}
+  })();
+  return tbcLoading;
+}
+function tbcImage(x,start){
+  var w=new Float32Array(TBC_WINN),i,src=x.length;
+  if(src>=TBC_WINN){ for(i=0;i<TBC_WINN;i++) w[i]=x[start+i]; }
+  else { for(i=0;i<TBC_WINN;i++) w[i]=x[i%src]; }
+  var pad=TBC_NFFT/2,xp=new Float32Array(TBC_WINN+TBC_NFFT);xp.set(w,pad);
+  var nfr=1+Math.floor(TBC_WINN/TBC_HOP);
+  var P=new Float32Array(TBC_NB*nfr),re=new Float64Array(TBC_NFFT),im=new Float64Array(TBC_NFFT),f,k,b;
+  for(f=0;f<nfr;f++){var off=f*TBC_HOP;
+    for(k=0;k<TBC_NFFT;k++){re[k]=xp[off+k]*TBC_HANN[k];im[k]=0;}
+    fft(re,im);
+    for(b=0;b<TBC_NB;b++)P[b*nfr+f]=re[b]*re[b]+im[b]*im[b];}
+  var M=new Float32Array(TBC_NMEL*nfr),dbmax=-Infinity,m;
+  for(m=0;m<TBC_NMEL;m++){var mrow=tbcMel[m];
+    for(f=0;f<nfr;f++){var acc=0;for(b=0;b<TBC_NB;b++)acc+=mrow[b]*P[b*nfr+f];
+      var db=10*Math.log10(Math.max(1e-10,acc));M[m*nfr+f]=db;if(db>dbmax)dbmax=db;}}
+  var i2,sum=0,cnt=TBC_NMEL*nfr;
+  for(i2=0;i2<M.length;i2++){var v=M[i2]-dbmax;if(v<-80)v=-80;M[i2]=v;sum+=v;}
+  var mean=sum/cnt,ss=0;for(i2=0;i2<M.length;i2++){var d2=M[i2]-mean;ss+=d2*d2;}
+  var std=Math.sqrt(ss/cnt)+1e-6;
+  var out=new Float32Array(TBC_NMEL*TBC_TW),t;
+  for(m=0;m<TBC_NMEL;m++){for(t=0;t<TBC_TW;t++){out[m*TBC_TW+t]=(t<nfr)?((M[m*nfr+t]-mean)/std):((-80-mean)/std);}}
+  return out;
+}
+function tbcPredict(img){return tf.tidy(function(){var x=tf.tensor4d(img,[1,TBC_NMEL,TBC_TW,1]);var y=tbcModel.predict(x);var t=Array.isArray(y)?y[0]:y;return t.dataSync()[0];});}
+async function tbcOffline(s,fs){
+  var ok=await tbcLoad();if(!ok)return null;
+  try{
+    var x=pcResample(s,fs,TBC_SR);
+    var starts=[];for(var st=0;st+TBC_WINN<=x.length;st+=TBC_SR)starts.push(st);
+    if(!starts.length)starts=[0];
+    var p=0;
+    for(var q=0;q<starts.length;q++)p=Math.max(p,tbcPredict(tbcImage(x,starts[q])));
+    return {tbcough_prob:p,offline:true};
+  }catch(e){console.error('tbcOffline err',e);return null;}
+}
+$('tbRec').onclick=function(){
+  if(tbRunning)return;
+  $('tbResCard').style.display='none';(function(){var w=$('tbWake');if(w)w.style.display='none';})();
+  $('tbRec').style.display='none';$('tbStop').disabled=false;tbSt('Get ready\u2026');
+  navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
+    tbRunning=true;tbStream=stream;tbCtx=new (window.AudioContext||window.webkitAudioContext)();tbSr=tbCtx.sampleRate;tbBuf=[];
+    var src=tbCtx.createMediaStreamSource(stream);
+    tbProc=tbCtx.createScriptProcessor(4096,1,1);tbZg=tbCtx.createGain();tbZg.gain.value=0;
+    tbProc.onaudioprocess=function(ev){if(!tbRunning)return;tbBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+    src.connect(tbProc);tbProc.connect(tbZg);tbZg.connect(tbCtx.destination);
+    cpBeepStart();
+    tbLeft=6;tbSt('\u25CF COUGH HARD now\u2026 ('+tbLeft+'s)');
+    tbTimer=setInterval(function(){tbLeft--;tbSt('\u25CF Coughing\u2026 ('+tbLeft+'s) \u2014 press Stop when done');if(tbLeft<=0)tbStopRec();},1000);
+  }).catch(function(){$('tbRec').style.display='';$('tbStop').disabled=true;tbSt('Microphone blocked. Allow mic and reload.');});
+};
+$('tbStop').onclick=function(){ if(tbRunning)tbStopRec(); };
+function tbStopRec(){setTimeout(cpBeepDone,350);
+  tbRunning=false;clearInterval(tbTimer);try{tbProc.disconnect();}catch(e){}
+  if(tbStream)tbStream.getTracks().forEach(function(t){t.stop();});
+  $('tbStop').disabled=true;$('tbRec').style.display='';tbSt('Analysing\u2026');
+  var n=0;tbBuf.forEach(function(b){n+=b.length;});
+  if(n<tbSr){tbSt('Too short \u2014 try again, cough clearly.');try{tbCtx.close();}catch(e){}return;}
+  var s=new Float32Array(n),o=0;tbBuf.forEach(function(b){s.set(b,o);o+=b.length;});try{tbCtx.close();}catch(e){}
+  var wav=encodeWAV(s,tbSr);
+  (async function(){
+    try{await loadThresholds();}catch(e){}
+    var res=null;
+    var fd=new FormData();fd.append('file',wav,'rec.wav');fd.append('thr',String(TBC_THR));
+    var ac=new AbortController(),to=setTimeout(function(){ac.abort();},25000);
+    try{var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/tbcough',{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(r.ok)res=await r.json();}catch(e){res=null;}
+    if(!res||res.tbcough_prob==null){res=await tbcOffline(s,tbSr);}
+    if(!res||res.tbcough_prob==null){tbSt('AI service may be asleep \u2014 tap the wake link below, then retry.');var w=$('tbWake');if(w)w.style.display='block';return;}
+    var p=res.tbcough_prob, flag=(p>=TBC_THR);
+    $('tbResCard').style.display='block';
+    $('tbVerdict').textContent=flag?'Higher acoustic signal':'Lower acoustic signal';
+    $('tbVerdict').style.color=flag?'#ff6b6b':'var(--acc)';
+    $('tbProb').textContent=Math.round(p*100)+'%';
+    $('tbCut').textContent='\u2265'+Math.round(TBC_THR*100)+'% = flag';
+    tbSt((res.offline?'Offline estimate. ':'Done. ')+'Press START to screen again.');
+  })();
 }
