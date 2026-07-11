@@ -212,7 +212,9 @@ async function loadAll(){
   const {data:rc}=await sb.from('recordings').select('*').order('created_at',{ascending:false});
   recs=rc||[];
   try{const {data:fb}=await sb.from('feedback').select('*').order('created_at',{ascending:false});fbs=fb||[];}catch(e){fbs=[];}
-  try{const {data:st}=await sb.from('app_settings').select('*').eq('id',1).maybeSingle();
+  try{const {data:st,error:stErr}=await sb.from('app_settings').select('*').eq('id',1).maybeSingle();
+    if(stErr){var _m=$('setMsg');if(_m){_m.style.color='#ff6b6b';_m.textContent='Load error: '+stErr.message;}console.error('app_settings load',stErr);}
+    if(st && st.beep_vol===undefined){var _m2=$('setMsg');if(_m2){_m2.style.color='#ff6b6b';_m2.textContent='Column beep_vol is MISSING — run the ALTER TABLE SQL.';}}
     if(st){
       var setv=function(id,v,d){if($(id))$(id).value=(v!=null?v:d);};
       setv('setCardio',st.cardio_thr,0.30);setv('setMurmur',st.murmur_thr,0.62);setv('setLung',st.lung_thr,0.50);
