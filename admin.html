@@ -115,7 +115,7 @@ audio{height:34px;vertical-align:middle}
       <label style="font-size:12px">Beep volume (0 = silent, 1 = loudest)
         <input id="setBeep" type="range" min="0" max="1" step="0.05" style="width:170px;vertical-align:middle"
                oninput="document.getElementById('beepVal').textContent=(+this.value).toFixed(2)">
-        <b id="beepVal" style="margin-left:6px">0.70</b>
+        <b id="beepVal" style="margin-left:6px">0.40</b>
       </label>
       <button type="button" onclick="(function(){var v=parseFloat(document.getElementById('setBeep').value);try{var C=window.AudioContext||window.webkitAudioContext;var x=new C();var o=x.createOscillator(),g=x.createGain();o.type='square';o.frequency.value=1046;var t=x.currentTime;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.28);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+0.31);}catch(e){}})()" style="font-size:12px;padding:6px 12px">▶ Test</button>
     </div>
@@ -217,7 +217,7 @@ async function loadAll(){
       var setv=function(id,v,d){if($(id))$(id).value=(v!=null?v:d);};
       setv('setCardio',st.cardio_thr,0.30);setv('setMurmur',st.murmur_thr,0.62);setv('setLung',st.lung_thr,0.50);
       setv('setCrackle',st.crackle_thr,0.30);setv('setWheeze',st.wheeze_thr,0.50);
-      setv('setCoughDelta',st.cough_delta,0.15);setv('setFet',st.fet_cutoff,6);setv('setSbct',st.sbct_cutoff,25);setv('setMpt',st.mpt_cutoff,10);setv('setTbc',st.tbcough_thr,0.40);setv('setBeep',st.beep_vol,0.70);var _bv=document.getElementById('beepVal');if(_bv)_bv.textContent=(+((st.beep_vol!=null)?st.beep_vol:0.70)).toFixed(2);
+      setv('setCoughDelta',st.cough_delta,0.15);setv('setFet',st.fet_cutoff,6);setv('setSbct',st.sbct_cutoff,25);setv('setMpt',st.mpt_cutoff,10);setv('setTbc',st.tbcough_thr,0.40);setv('setBeep',st.beep_vol,0.40);var _bv=document.getElementById('beepVal');if(_bv)_bv.textContent=(+((st.beep_vol!=null)?st.beep_vol:0.40)).toFixed(2);
       setv('setTb',st.tb_thr,0.50);setv('setCard',st.card_thr,0.35);setv('setEff',st.eff_thr,0.50);setv('setPneu',st.pneu_thr,0.50);setv('setCons',st.cons_thr,0.50);setv('setNod',st.nod_thr,0.50);setv('setPtx',st.ptx_thr,0.35);setv('setFib',st.fib_thr,0.50);setv('setPth',st.pth_thr,0.50);
     }
   }catch(e){}

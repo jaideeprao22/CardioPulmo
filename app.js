@@ -1082,16 +1082,21 @@ function pcMurmurMel(sig,fs){
   for(let i=0;i<mel.length;i++)mel[i]=(mel[i]-mean)/(sd+1e-9);
   return mel;
 }
-var BEEP_VOL=0.7;                       // global level, set by admin dashboard (app_settings.beep_vol)
+var BEEP_VOL=0.4;                       // global level, set by admin dashboard (app_settings.beep_vol)
 function beepOn(){try{return localStorage.getItem('cpBeepOff')!=='1';}catch(e){return true;}}
 function setBeepOn(v){try{localStorage.setItem('cpBeepOff', v?'0':'1');}catch(e){}}
 function cpBeep(freq,dur,vol){try{if(!beepOn())return;var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();var o=x.createOscillator(),g=x.createGain();o.type='square';o.frequency.value=freq;var t=x.currentTime;var v=Math.max(0,Math.min(1,(vol==null?BEEP_VOL:vol)));if(v<=0)return;g.gain.setValueAtTime(v,t);g.gain.setValueAtTime(v,t+dur*0.7);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}
+function _sbClient(){ try{ return sb; }catch(e){ return null; } }   // sb is a const declared later (TDZ-safe)
 async function refreshBeepVol(){
   try{
-    if(!sb)return;
-    var r=await sb.from('app_settings').select('beep_vol').eq('id',1).maybeSingle();
-    if(r&&r.data&&r.data.beep_vol!=null)BEEP_VOL=Math.max(0,Math.min(1,parseFloat(r.data.beep_vol)));
-  }catch(e){}
+    var c=_sbClient(); if(!c)return;
+    var r=await c.from('app_settings').select('beep_vol').eq('id',1).maybeSingle();
+    if(r&&r.error){console.warn('beep_vol read error',r.error.message);return;}
+    if(r&&r.data&&r.data.beep_vol!=null){
+      BEEP_VOL=Math.max(0,Math.min(1,parseFloat(r.data.beep_vol)));
+      console.log('BEEP_VOL =',BEEP_VOL);
+    }
+  }catch(e){console.warn('refreshBeepVol failed',e);}
 }
 var _beepReady=null;
 function beepVolReady(){            // resolves once we've fetched beep_vol at least once
@@ -1433,8 +1438,8 @@ var WHZ_THR=0.50;
 var XTB_THR=0.50,XCARD_THR=0.35,XEFF_THR=0.50,XPNEU_THR=0.50,XCONS_THR=0.50,XNOD_THR=0.50,XPTX_THR=0.35,XFIB_THR=0.50,XPTH_THR=0.50;
 async function loadThresholds(){
   try{
-    if(!sb)return;
-    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff,tbcough_thr,beep_vol,crackle_thr,wheeze_thr,tb_thr,card_thr,eff_thr,pneu_thr,cons_thr,nod_thr,ptx_thr,fib_thr,pth_thr').eq('id',1).maybeSingle();
+    var sbc=_sbClient(); if(!sbc)return;
+    var r=await sbc.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff,tbcough_thr,beep_vol,crackle_thr,wheeze_thr,tb_thr,card_thr,eff_thr,pneu_thr,cons_thr,nod_thr,ptx_thr,fib_thr,pth_thr').eq('id',1).maybeSingle();
     if(r&&r.data){
       if(r.data.cardio_thr!=null)PC_THR=parseFloat(r.data.cardio_thr);
       if(r.data.murmur_thr!=null)MM_THR=parseFloat(r.data.murmur_thr);
