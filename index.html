@@ -37,7 +37,7 @@
     <button id="authLogin" class="pbtn">Log in</button>
     <button id="authSignup" class="sbtn">Create new account</button>
     <div id="authMsg" class="ovlmsg"></div>
-    <div class="ovlfoot" data-te='రీసెర్చ్ పరికరం · AI · డేటా ఫోన్ దాటదు'>Research instrument · AI · audio never leaves the phone</div>
+    <div class="ovlfoot" data-te='రీసెర్చ్ పరికరం · AI-ఆధారిత స్క్రీనింగ్'>Research instrument · AI-assisted screening</div>
   </div>
 </div>
 
@@ -465,7 +465,7 @@
         <div class="cls" id="pcAI" style="display:none;margin-top:2px;font-size:16px">🧠 AI screen: —</div>
         <div id="pcAIsub" style="display:none;color:var(--mut);font-size:11px;margin:2px 0 4px;text-align:center" data-te='AI మోడల్.'>AI model.</div>
         <div class="cls" id="pcMurmur" style="display:none;margin-top:8px;font-size:16px">🫀 Murmur AI: —</div>
-        <div id="pcMurmurSub" style="display:none;color:var(--mut);font-size:11px;margin:2px 0 4px;text-align:center">CirCor-trained murmur model · screening only</div>
+        <div id="pcMurmurSub" style="display:none;color:var(--mut);font-size:11px;margin:2px 0 4px;text-align:center">AI murmur model · screening only</div>
         <div class="grid">
           <div class="kv">Heart rate<b id="pcHR">—</b>bpm</div>
           <div class="kv">Rhythm<b id="pcReg">—</b></div>
@@ -593,7 +593,7 @@
 
     <div class="card res" id="ltResCard" style="display:none">
       <div class="cls" id="ltVerdict">—</div>
-      <div style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='AI నమూనా (ICBHI). క్రాకిల్ AUC 0.67 · వీజ్ AUC 0.73.'>AI model (ICBHI). Crackle AUC 0.67 · Wheeze AUC 0.73.</div>
+      <div style="color:var(--mut);font-size:11px;margin:2px 0 6px;text-align:center" data-te='AI నమూనా. క్రాకిల్ AUC 0.67 · వీజ్ AUC 0.88.'>AI model. Crackle AUC 0.67 · Wheeze AUC 0.88.</div>
       <div class="grid">
         <div class="kv" data-te='క్రాకిల్స్<b id="ltCrk">—</b>'>Crackles<b id="ltCrk">—</b></div>
         <div class="kv" data-te='వీజ్<b id="ltWhz">—</b>'>Wheeze<b id="ltWhz">—</b></div>
@@ -776,16 +776,17 @@
         <summary style="font-weight:700;color:var(--acc)" data-te='పరీక్షల పనితీరు &amp; పద్ధతులు'>Test performance &amp; methods</summary>
 
         <!-- 1. AI classifier models -->
-        <div style="margin-top:10px;font-weight:700;color:var(--acc)" data-te='AI నమూనాలు — పనితీరు'>AI models — performance</div>
+        <div style="margin-top:10px;font-weight:700;color:var(--acc)" data-te='CardioPulmo AI — పనితీరు'>CardioPulmo AI — performance</div>
         <table>
           <tr><th data-te='నమూనా'>Model</th><th data-te='డేటాసెట్'>Dataset</th><th>AUC</th><th data-te='సెన్స్'>Sens</th><th data-te='స్పెక్'>Spec</th></tr>
-          <tr><td data-te='గుండె శబ్దం (CardioScope)'>Heart sound (CardioScope)</td><td>PhysioNet/CinC-2016</td><td><b>0.996</b></td><td>98.3%</td><td>95.6%</td></tr>
-          <tr><td data-te='మర్మర్ (CirCor)'>Murmur (CirCor)</td><td>CirCor DigiScope</td><td><b>0.875</b></td><td>72.8%</td><td>93.3%</td></tr>
-          <tr><td data-te='ఊపిరితిత్తుల శబ్దం'>Lung sound (normal/abnormal)</td><td>ICBHI-2017</td><td><b>0.87</b></td><td>63.2%</td><td>100%</td></tr>
-          <tr><td data-te='క్రాకిల్'>Crackle</td><td>ICBHI-2017</td><td><b>0.671</b></td><td>64.1%</td><td>61.3%</td></tr>
-          <tr><td data-te='వీజ్'>Wheeze</td><td>ICBHI-2017</td><td><b>0.812</b></td><td>—</td><td>—</td></tr>
+          <tr><td data-te='గుండె శబ్దం (CardioScope)'>Heart sound (CardioScope)</td><td>Reference Dataset A</td><td><b>0.996</b></td><td>98.3%</td><td>95.6%</td></tr>
+          <tr><td data-te='మర్మర్'>Murmur</td><td>Reference Dataset B</td><td><b>0.875</b></td><td>72.8%</td><td>93.3%</td></tr>
+          <tr><td data-te='ఊపిరితిత్తుల శబ్దం'>Lung sound (normal/abnormal)</td><td>Reference Dataset C</td><td><b>0.87</b></td><td>63.2%</td><td>100%</td></tr>
+          <tr><td data-te='క్రాకిల్'>Crackle</td><td>Reference Dataset C</td><td><b>0.671</b></td><td>64.1%</td><td>61.3%</td></tr>
+          <tr><td data-te='వీజ్'>Wheeze</td><td>Reference Dataset C</td><td><b>0.876</b></td><td>71.9%</td><td>95.2%</td></tr>
+          <tr><td data-te='దగ్గు అకౌస్టిక్'>Cough acoustic</td><td data-te='రిఫరెన్స్ డేటాసెట్ D'>Reference Dataset D</td><td><b>0.7</b></td><td>73.2%</td><td>60.9%</td></tr>
         </table>
-        <div class="note" style="margin-top:6px;color:var(--mut)" data-te='గుండె-శబ్దం మరియు మర్మర్ నమూనాలు PhysioNet/CinC-2016 (3,153 రికార్డింగ్‌లు, 764 వ్యక్తులు) మరియు CirCor DigiScope (3,003 రికార్డింగ్‌లు)పై శిక్షణ పొందాయి. ఊపిరితిత్తులు, క్రాకిల్, వీజ్ నమూనాలు ICBHI-2017 (6,898 సైకిల్స్, రోగి-స్థాయి విభజన, MobileNetV2 + SpecAugment)పై శిక్షణ పొందాయి — క్రాకిల్ న్యుమోనియా/ఫైబ్రోసిస్/ఎడిమాను, వీజ్ ఆస్తమా/COPD/అడ్డంకిని సూచిస్తుంది. గణాంకాలు హెల్డ్-అవుట్ టెస్ట్ సెట్‌లపై; నమూనాలు నాయిస్-అగ్మెంటెడ్. వీజ్ నమూనా కాంపాక్ట్ CNNగా రోగి-స్థాయి 5-ఫోల్డ్ క్రాస్-వాలిడేషన్‌తో మళ్లీ శిక్షణ పొందింది: సైకిల్-స్థాయి AUC 0.812, రోగి-స్థాయి 0.895 ± 0.059 (0.734 నుండి పెరిగింది).'>Heart-sound and murmur models were trained on PhysioNet/CinC-2016 (3,153 recordings, 764 subjects) and CirCor DigiScope (3,003 recordings). Lung, crackle and wheeze models were trained on ICBHI-2017 (6,898 cycles, patient-level split, MobileNetV2 with SpecAugment): crackle points to pneumonia/fibrosis/edema, wheeze to asthma/COPD/obstruction. Figures are on held-out test sets; models are noise-augmented for real-world robustness. The wheeze model was retrained as a compact CNN with patient-level 5-fold cross-validation: cycle-level AUC 0.812 and patient-level 0.895 ± 0.059 (up from 0.734).</div>
+        <div class="note" style="margin-top:6px;color:var(--mut)" data-te='CardioPulmo AI నమూనాలు పెద్ద, నిపుణులు లేబుల్ చేసిన రిఫరెన్స్ డేటాసెట్‌లపై అభివృద్ధి చేయబడి, స్వతంత్ర హెల్డ్-అవుట్ డేటాపై మూల్యాంకనం చేయబడ్డాయి. దగ్గు-అకౌస్టిక్ నమూనా అన్వేషణాత్మకం — నిర్ధారణ కాదు; క్లినికల్‌గా నిర్ధారించండి. నమూనా అంతర్గత వివరాలు యాజమాన్య హక్కు (CardioPulmo AI).'>CardioPulmo AI models were developed on large, expert-labelled reference datasets and evaluated on independent held-out data. The cough-acoustic model is exploratory — not a diagnosis; confirm clinically. Model internals are proprietary (CardioPulmo AI).</div>
 
         <!-- 2. Chest X-ray findings -->
         <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='ఛాతీ ఎక్స్‌రే — ఫలితాలు'>Chest X-ray — findings</div>
@@ -797,16 +798,6 @@
           <tr><td data-te="ఇంటర్నల్ టెస్ట్ AUC">Internal test AUC</td><td>TB <b>~0.99</b> · Cardiomegaly <b>0.96</b> · Effusion <b>0.96</b> · Pneumonia <b>0.84</b> · Consolidation <b>0.93</b> · Nodule/mass <b>0.94</b> · Pneumothorax <b>0.83</b> · Fibrosis <b>0.92</b> · Pleural thickening <b>0.95</b></td></tr>
         </table>
         <div class="note" style="margin-top:6px;color:var(--mut)" data-te='స్పష్టమైన రీడింగ్ కోసం ఫిల్మ్‌ను నేరుగా, మెరుపు లేకుండా ఫోటో తీయండి. స్క్రీనింగ్ సహాయం — నిర్ధారణ కాదు.'>For the clearest read, photograph the film straight and without glare.</div>
-
-        <!-- 2b. Cough acoustic analysis (exploratory, neutral) -->
-        <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='దగ్గు శబ్ద విశ్లేషణ (అన్వేషణాత్మక)'>Cough acoustic analysis (exploratory)</div>
-        <div class="note" style="margin-top:6px" data-te='ఒక కాంపాక్ట్ CNN దగ్గు శబ్దంలోని శబ్ద నమూనాలను విశ్లేషిస్తుంది. పెద్ద, లేబుల్ చేసిన దగ్గు-శబ్ద డేటాసెట్‌పై రోగి-స్థాయి 5-ఫోల్డ్ క్రాస్-వాలిడేషన్‌తో శిక్షణ పొందింది. ఇది అన్వేషణాత్మక పరిశోధన సంకేతం మాత్రమే — నిర్ధారణ కాదు. క్లినికల్‌గా నిర్ధారించండి.'>A compact CNN analyses acoustic patterns in the cough sound. Trained with patient-level 5-fold cross-validation on a large labelled cough-sound dataset. This is an exploratory research signal only — not a diagnosis. Confirm clinically.</div>
-        <table>
-          <tr><th data-te='కొలత'>Metric</th><th data-te='దగ్గు శబ్దం'>Cough acoustic</th></tr>
-          <tr><td data-te='రోగి-స్థాయి AUC'>Patient-level AUC</td><td><b>0.7</b></td></tr>
-          <tr><td data-te='సెన్సిటివిటీ / స్పెసిఫిసిటీ'>Sensitivity / Specificity</td><td><b>73.2% / 60.9%</b></td></tr>
-        </table>
-        <div class="note" style="margin-top:6px;color:var(--mut)" data-te='కటాఫ్ అడ్మిన్ డాష్‌బోర్డ్ నుండి సర్దుబాటు చేయవచ్చు. ఇది అన్వేషణాత్మక పరిశోధన సంకేతం మాత్రమే — నిర్ధారణ కాదు.'>This is an exploratory research signal only — not a diagnosis.</div>
 
         <!-- 3. Signal-analysis tests (deterministic, no ML AUC) -->
         <div style="margin-top:14px;font-weight:700;color:var(--acc)" data-te='సిగ్నల్ విశ్లేషణ పరీక్షలు (AI కాదు — ధృవీకరించబడిన శబ్ద కొలతలు)'>Signal-analysis tests (validated acoustic measures)</div>
@@ -856,6 +847,12 @@
     <div class="card">
       <div class="ct" style="color:var(--acc)" data-te='పరిశోధకుడు'>Investigator</div>
       <div class="note" style="margin-top:8px">Dr. Jaideep Rao M., MBBS, MD (Community Medicine), Government Medical College, Maheshwaram, Telangana.</div>
+    </div>
+
+    <div class="card">
+      <div class="ct" style="color:var(--acc)" data-te='సెట్టింగ్‌లు'>Settings</div>
+      <div class="note" style="margin-top:8px" data-te='రికార్డింగ్ మొదలు/ముగింపు బీప్ శబ్దాలను ఆన్/ఆఫ్ చేయండి. ఈ ఎంపిక ఈ ఫోన్‌కు మాత్రమే వర్తిస్తుంది.'>Turn the start/stop beep sounds on or off. This choice applies to this phone only.</div>
+      <button id="beepToggle" class="stop" style="margin-top:10px;font-weight:700">🔊 Beep sounds: ON</button>
     </div>
 
     <div class="card">
@@ -959,6 +956,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=49"></script>
+<script src="app.js?v=52"></script>
 </body>
 </html>

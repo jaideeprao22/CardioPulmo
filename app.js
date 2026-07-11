@@ -39,7 +39,7 @@ function closeDoc(){
   try{window.scrollTo(0,0);}catch(_){}
 }
 function topTab(name){
-  if((name==='cardio'||name==='pulmo'||name==='vasc')&&needLogin(name))return;
+  if((name==='cardio'||name==='pulmo'||name==='vasc'||name==='about')&&needLogin(name))return;
   hideAllPanes();
   $('tCardio').classList.toggle('on',name==='cardio');
   $('tPulmo').classList.toggle('on',name==='pulmo');
@@ -1082,9 +1082,14 @@ function pcMurmurMel(sig,fs){
   for(let i=0;i<mel.length;i++)mel[i]=(mel[i]-mean)/(sd+1e-9);
   return mel;
 }
-function cpBeep(freq,dur,vol){try{var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();var o=x.createOscillator(),g=x.createGain();o.type='square';o.frequency.value=freq;var t=x.currentTime;g.gain.setValueAtTime(vol,t);g.gain.setValueAtTime(vol,t+dur*0.7);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}
-function cpBeepStart(){cpBeep(1046,0.28,0.7);setTimeout(function(){cpBeep(1318,0.28,0.7);},260);}
-function cpBeepDone(){cpBeep(880,0.26,0.7);setTimeout(function(){cpBeep(660,0.36,0.7);},240);}
+var BEEP_VOL=0.7;                       // global level, set by admin dashboard (app_settings.beep_vol)
+function beepOn(){try{return localStorage.getItem('cpBeepOff')!=='1';}catch(e){return true;}}
+function setBeepOn(v){try{localStorage.setItem('cpBeepOff', v?'0':'1');}catch(e){}}
+function cpBeep(freq,dur,vol){try{if(!beepOn())return;var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();var o=x.createOscillator(),g=x.createGain();o.type='square';o.frequency.value=freq;var t=x.currentTime;var v=Math.max(0,Math.min(1,(vol==null?BEEP_VOL:vol)));if(v<=0)return;g.gain.setValueAtTime(v,t);g.gain.setValueAtTime(v,t+dur*0.7);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}
+function cpBeepStart(){cpBeep(1046,0.28,BEEP_VOL);setTimeout(function(){cpBeep(1318,0.28,BEEP_VOL);},260);}
+function cpBeepDone(){cpBeep(880,0.26,BEEP_VOL);setTimeout(function(){cpBeep(660,0.36,BEEP_VOL);},240);}
+function cpBeepToggleRender(){var b=$('beepToggle');if(!b)return;var on=beepOn();b.textContent=on?'🔊 Beep sounds: ON':'🔇 Beep sounds: OFF';b.style.color=on?'var(--acc)':'var(--mut)';}
+function cpBeepToggle(){setBeepOn(!beepOn());cpBeepToggleRender();if(beepOn())cpBeep(1046,0.18,BEEP_VOL);}
 async function cpCloud(ep,wavBlob){try{var fd=new FormData();fd.append('file',wavBlob,'rec.wav');var ac=new AbortController();var to=setTimeout(function(){ac.abort();},20000);var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/'+ep,{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
 async function pcRunMurmur(s,fs){
   var el=$('pcMurmur'),sub=$('pcMurmurSub');if(!el)return;
@@ -1407,7 +1412,7 @@ var XTB_THR=0.50,XCARD_THR=0.35,XEFF_THR=0.50,XPNEU_THR=0.50,XCONS_THR=0.50,XNOD
 async function loadThresholds(){
   try{
     if(!sb)return;
-    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff,tbcough_thr,crackle_thr,wheeze_thr,tb_thr,card_thr,eff_thr,pneu_thr,cons_thr,nod_thr,ptx_thr,fib_thr,pth_thr').eq('id',1).maybeSingle();
+    var r=await sb.from('app_settings').select('cardio_thr,murmur_thr,lung_thr,cough_delta,fet_cutoff,sbct_cutoff,mpt_cutoff,tbcough_thr,beep_vol,crackle_thr,wheeze_thr,tb_thr,card_thr,eff_thr,pneu_thr,cons_thr,nod_thr,ptx_thr,fib_thr,pth_thr').eq('id',1).maybeSingle();
     if(r&&r.data){
       if(r.data.cardio_thr!=null)PC_THR=parseFloat(r.data.cardio_thr);
       if(r.data.murmur_thr!=null)MM_THR=parseFloat(r.data.murmur_thr);
@@ -1417,6 +1422,7 @@ async function loadThresholds(){
       if(r.data.sbct_cutoff!=null)SBCT_CUTOFF=parseFloat(r.data.sbct_cutoff);
       if(r.data.mpt_cutoff!=null)MPT_CUTOFF=parseFloat(r.data.mpt_cutoff);
       if(r.data.tbcough_thr!=null)TBC_THR=parseFloat(r.data.tbcough_thr);
+      if(r.data.beep_vol!=null)BEEP_VOL=Math.max(0,Math.min(1,parseFloat(r.data.beep_vol)));
       if(r.data.crackle_thr!=null)CRK_THR=parseFloat(r.data.crackle_thr);
       if(r.data.wheeze_thr!=null)WHZ_THR=parseFloat(r.data.wheeze_thr);
       if(r.data.tb_thr!=null)XTB_THR=parseFloat(r.data.tb_thr);
@@ -2263,3 +2269,9 @@ function tbStopRec(){setTimeout(cpBeepDone,350);
     tbSt((res.offline?'Offline estimate. ':'Done. ')+'Press START to screen again.');
   })();
 }
+
+/* beep toggle button (About page) */
+(function(){
+  function _init(){var b=$('beepToggle');if(b){b.onclick=cpBeepToggle;cpBeepToggleRender();}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_init);else _init();
+})();
