@@ -1085,7 +1085,26 @@ function pcMurmurMel(sig,fs){
 var BEEP_VOL=0.4;                       // global level, set by admin dashboard (app_settings.beep_vol)
 function beepOn(){try{return localStorage.getItem('cpBeepOff')!=='1';}catch(e){return true;}}
 function setBeepOn(v){try{localStorage.setItem('cpBeepOff', v?'0':'1');}catch(e){}}
-function cpBeep(freq,dur,vol){try{if(!beepOn())return;var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();var o=x.createOscillator(),g=x.createGain();o.type='square';o.frequency.value=freq;var t=x.currentTime;var v=Math.max(0,Math.min(1,(vol==null?BEEP_VOL:vol)));if(v<=0)return;g.gain.setValueAtTime(v,t);g.gain.setValueAtTime(v,t+dur*0.7);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}
+function cpBeep(freq,dur,vol){try{
+  if(!beepOn())return;
+  var C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+  var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();
+  var v=Math.max(0,Math.min(1,(vol==null?BEEP_VOL:vol)));
+  if(v<=0)return;
+  // perceptual scaling: loudness is logarithmic, so map the 0-1 slider with a curve.
+  // v=1 -> 0.35 gain (loud but not painful), v=0.4 -> ~0.056, v=0.1 -> ~0.0035  (audible, clearly quiet)
+  var gainVal=0.35*Math.pow(v,3);
+  var o=x.createOscillator(),g=x.createGain();
+  o.type='sine';                      // sine instead of square: far less harsh/piercing
+  o.frequency.value=freq;
+  var t=x.currentTime;
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(gainVal,t+0.012);   // tiny fade-in, avoids click
+  g.gain.setValueAtTime(gainVal,t+dur*0.7);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(x.destination);
+  o.start(t);o.stop(t+dur+0.03);
+}catch(e){}}
 function _sbClient(){ try{ return sb; }catch(e){ return null; } }   // sb is a const declared later (TDZ-safe)
 async function refreshBeepVol(){
   try{
