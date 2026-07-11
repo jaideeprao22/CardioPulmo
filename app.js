@@ -1086,8 +1086,30 @@ var BEEP_VOL=0.7;                       // global level, set by admin dashboard 
 function beepOn(){try{return localStorage.getItem('cpBeepOff')!=='1';}catch(e){return true;}}
 function setBeepOn(v){try{localStorage.setItem('cpBeepOff', v?'0':'1');}catch(e){}}
 function cpBeep(freq,dur,vol){try{if(!beepOn())return;var C=window.AudioContext||window.webkitAudioContext;if(!C)return;var x=cpBeep._c||(cpBeep._c=new C());if(x.state==='suspended')x.resume();var o=x.createOscillator(),g=x.createGain();o.type='square';o.frequency.value=freq;var t=x.currentTime;var v=Math.max(0,Math.min(1,(vol==null?BEEP_VOL:vol)));if(v<=0)return;g.gain.setValueAtTime(v,t);g.gain.setValueAtTime(v,t+dur*0.7);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(x.destination);o.start(t);o.stop(t+dur+0.03);}catch(e){}}
-function cpBeepStart(){cpBeep(1046,0.28,BEEP_VOL);setTimeout(function(){cpBeep(1318,0.28,BEEP_VOL);},260);}
-function cpBeepDone(){cpBeep(880,0.26,BEEP_VOL);setTimeout(function(){cpBeep(660,0.36,BEEP_VOL);},240);}
+async function refreshBeepVol(){
+  try{
+    if(!sb)return;
+    var r=await sb.from('app_settings').select('beep_vol').eq('id',1).maybeSingle();
+    if(r&&r.data&&r.data.beep_vol!=null)BEEP_VOL=Math.max(0,Math.min(1,parseFloat(r.data.beep_vol)));
+  }catch(e){}
+}
+var _beepReady=null;
+function beepVolReady(){            // resolves once we've fetched beep_vol at least once
+  if(!_beepReady)_beepReady=refreshBeepVol();
+  return _beepReady;
+}
+function cpBeepStart(){
+  beepVolReady().then(function(){
+    cpBeep(1046,0.28,BEEP_VOL);
+    setTimeout(function(){cpBeep(1318,0.28,BEEP_VOL);},260);
+  });
+}
+function cpBeepDone(){
+  beepVolReady().then(function(){
+    cpBeep(880,0.26,BEEP_VOL);
+    setTimeout(function(){cpBeep(660,0.36,BEEP_VOL);},240);
+  });
+}
 function cpBeepToggleRender(){var b=$('beepToggle');if(!b)return;var on=beepOn();b.textContent=on?'🔊 Beep sounds: ON':'🔇 Beep sounds: OFF';b.style.color=on?'var(--acc)':'var(--mut)';}
 function cpBeepToggle(){setBeepOn(!beepOn());cpBeepToggleRender();if(beepOn())cpBeep(1046,0.18,BEEP_VOL);}
 async function cpCloud(ep,wavBlob){try{var fd=new FormData();fd.append('file',wavBlob,'rec.wav');var ac=new AbortController();var to=setTimeout(function(){ac.abort();},20000);var r=await fetch('https://jaideeprao-cardiopulmo-api.hf.space/'+ep,{method:'POST',body:fd,signal:ac.signal});clearTimeout(to);if(!r.ok)return null;return await r.json();}catch(e){return null;}}
@@ -1438,6 +1460,8 @@ async function loadThresholds(){
   }catch(e){}
 }
 loadThresholds();
+setTimeout(function(){loadThresholds();refreshBeepVol();},1500);
+setTimeout(function(){refreshBeepVol();},4000);
 applyLang((function(){try{return localStorage.getItem('cardiopulmo_lang')||'en';}catch(e){return 'en';}})());
 
 /* ===== report store + positive-retest + PDF ===== */
@@ -1924,24 +1948,30 @@ $('eStop').onclick=function(){
 };
 
 /* ===================== BLOW TEST — FORCED EXPIRATORY TIME (/fet) ===================== */
+var ftArmed=false;
 var ftRunning=false,ftStream=null,ftCtx=null,ftProc=null,ftZg=null,ftBuf=[],ftSr=16000,ftTimer=null,ftLeft=12;
 function ftSt(m){var e=$('ftStatus');if(e)e.textContent=m;}
 $('ftRec').onclick=function(){
   if(ftRunning)return;
   $('ftResCard').style.display='none';(function(){var w=$('ftWake');if(w)w.style.display='none';})();$('ftRec').style.display='none';$('ftStop').disabled=false;ftSt('Get ready\u2026');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
-    ftRunning=true;ftStream=stream;ftCtx=new (window.AudioContext||window.webkitAudioContext)();ftSr=ftCtx.sampleRate;ftBuf=[];
+    ftRunning=true;ftArmed=false;ftStream=stream;ftCtx=new (window.AudioContext||window.webkitAudioContext)();ftSr=ftCtx.sampleRate;ftBuf=[];
     var src=ftCtx.createMediaStreamSource(stream);
     ftProc=ftCtx.createScriptProcessor(4096,1,1);ftZg=ftCtx.createGain();ftZg.gain.value=0;
-    ftProc.onaudioprocess=function(ev){if(!ftRunning)return;ftBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+    ftProc.onaudioprocess=function(ev){if(!ftRunning||!ftArmed)return;ftBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
     src.connect(ftProc);ftProc.connect(ftZg);ftZg.connect(ftCtx.destination);
     cpBeepStart();
-    ftLeft=12;ftSt('\u25CF BLOW HARD now\u2026 keep going ('+ftLeft+'s)');
-    ftTimer=setInterval(function(){ftLeft--;ftSt('\u25CF Blowing\u2026 ('+ftLeft+'s) \u2014 press Stop when empty');if(ftLeft<=0)ftStopRec();},1000);
+    ftSt('Get ready\u2026');
+    setTimeout(function(){
+      if(!ftRunning)return;
+      ftBuf=[];ftArmed=true;
+      ftLeft=12;ftSt('\u25CF BLOW HARD now\u2026 keep going ('+ftLeft+'s)');
+      ftTimer=setInterval(function(){ftLeft--;ftSt('\u25CF Blowing\u2026 ('+ftLeft+'s) \u2014 press Stop when empty');if(ftLeft<=0)ftStopRec();},1000);
+    },900);
   }).catch(function(){$('ftRec').style.display='';$('ftStop').disabled=true;ftSt('Microphone blocked. Allow mic and reload.');});
 };
 $('ftStop').onclick=function(){ if(ftRunning)ftStopRec(); };
-function ftStopRec(){setTimeout(cpBeepDone,350);
+function ftStopRec(){ftArmed=false;setTimeout(cpBeepDone,350);
   ftRunning=false;clearInterval(ftTimer);try{ftProc.disconnect();}catch(e){}
   if(ftStream)ftStream.getTracks().forEach(function(t){t.stop();});
   $('ftStop').disabled=true;$('ftRec').style.display='';ftSt('Measuring\u2026');
@@ -1967,24 +1997,30 @@ function ftStopRec(){setTimeout(cpBeepDone,350);
 }
 
 /* ===================== SINGLE-BREATH COUNT TEST (/sbct) ===================== */
+var sbArmed=false;
 var sbRunning=false,sbStream=null,sbCtx=null,sbProc=null,sbZg=null,sbBuf=[],sbSr=16000,sbTimer=null,sbLeft=30;
 function sbSt(m){var e=$('sbStatus');if(e)e.textContent=m;}
 $('sbRec').onclick=function(){
   if(sbRunning)return;
   $('sbResCard').style.display='none';(function(){var w=$('sbWake');if(w)w.style.display='none';})();$('sbRec').style.display='none';$('sbStop').disabled=false;sbSt('Get ready\u2026');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
-    sbRunning=true;sbStream=stream;sbCtx=new (window.AudioContext||window.webkitAudioContext)();sbSr=sbCtx.sampleRate;sbBuf=[];
+    sbRunning=true;sbArmed=false;sbStream=stream;sbCtx=new (window.AudioContext||window.webkitAudioContext)();sbSr=sbCtx.sampleRate;sbBuf=[];
     var src=sbCtx.createMediaStreamSource(stream);
     sbProc=sbCtx.createScriptProcessor(4096,1,1);sbZg=sbCtx.createGain();sbZg.gain.value=0;
-    sbProc.onaudioprocess=function(ev){if(!sbRunning)return;sbBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+    sbProc.onaudioprocess=function(ev){if(!sbRunning||!sbArmed)return;sbBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
     src.connect(sbProc);sbProc.connect(sbZg);sbZg.connect(sbCtx.destination);
     cpBeepStart();
-    sbLeft=30;sbSt('\u25CF Deep breath, then COUNT out loud\u2026 ('+sbLeft+'s)');
-    sbTimer=setInterval(function(){sbLeft--;sbSt('\u25CF Counting\u2026 ('+sbLeft+'s) \u2014 press Stop when you must breathe');if(sbLeft<=0)sbStopRec();},1000);
+    sbSt('Get ready\u2026');
+    setTimeout(function(){
+      if(!sbRunning)return;
+      sbBuf=[];sbArmed=true;
+      sbLeft=30;sbSt('\u25CF Deep breath, then COUNT out loud\u2026 ('+sbLeft+'s)');
+      sbTimer=setInterval(function(){sbLeft--;sbSt('\u25CF Counting\u2026 ('+sbLeft+'s) \u2014 press Stop when you must breathe');if(sbLeft<=0)sbStopRec();},1000);
+    },900);
   }).catch(function(){$('sbRec').style.display='';$('sbStop').disabled=true;sbSt('Microphone blocked. Allow mic and reload.');});
 };
 $('sbStop').onclick=function(){ if(sbRunning)sbStopRec(); };
-function sbStopRec(){setTimeout(cpBeepDone,350);
+function sbStopRec(){sbArmed=false;setTimeout(cpBeepDone,350);
   sbRunning=false;clearInterval(sbTimer);try{sbProc.disconnect();}catch(e){}
   if(sbStream)sbStream.getTracks().forEach(function(t){t.stop();});
   $('sbStop').disabled=true;$('sbRec').style.display='';sbSt('Measuring\u2026');
@@ -2010,24 +2046,30 @@ function sbStopRec(){setTimeout(cpBeepDone,350);
 }
 
 /* ===================== MAXIMUM PHONATION TIME (/mpt) ===================== */
+var mpArmed=false;
 var mpRunning=false,mpStream=null,mpCtx=null,mpProc=null,mpZg=null,mpBuf=[],mpSr=16000,mpTimer=null,mpLeft=40;
 function mpSt(m){var e=$('mpStatus');if(e)e.textContent=m;}
 $('mpRec').onclick=function(){
   if(mpRunning)return;
   $('mpResCard').style.display='none';(function(){var w=$('mpWake');if(w)w.style.display='none';})();$('mpRec').style.display='none';$('mpStop').disabled=false;mpSt('Get ready\u2026');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
-    mpRunning=true;mpStream=stream;mpCtx=new (window.AudioContext||window.webkitAudioContext)();mpSr=mpCtx.sampleRate;mpBuf=[];
+    mpRunning=true;mpArmed=false;mpStream=stream;mpCtx=new (window.AudioContext||window.webkitAudioContext)();mpSr=mpCtx.sampleRate;mpBuf=[];
     var src=mpCtx.createMediaStreamSource(stream);
     mpProc=mpCtx.createScriptProcessor(4096,1,1);mpZg=mpCtx.createGain();mpZg.gain.value=0;
-    mpProc.onaudioprocess=function(ev){if(!mpRunning)return;mpBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+    mpProc.onaudioprocess=function(ev){if(!mpRunning||!mpArmed)return;mpBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
     src.connect(mpProc);mpProc.connect(mpZg);mpZg.connect(mpCtx.destination);
     cpBeepStart();
-    mpLeft=40;mpSt('\u25CF Deep breath, then say "aaahhh"\u2026 ('+mpLeft+'s)');
-    mpTimer=setInterval(function(){mpLeft--;mpSt('\u25CF "aaahhh"\u2026 ('+mpLeft+'s) \u2014 press Stop when you must breathe');if(mpLeft<=0)mpStopRec();},1000);
+    mpSt('Get ready\u2026');
+    setTimeout(function(){
+      if(!mpRunning)return;
+      mpBuf=[];mpArmed=true;
+      mpLeft=40;mpSt('\u25CF Deep breath, then say "aaahhh"\u2026 ('+mpLeft+'s)');
+      mpTimer=setInterval(function(){mpLeft--;mpSt('\u25CF "aaahhh"\u2026 ('+mpLeft+'s) \u2014 press Stop when you must breathe');if(mpLeft<=0)mpStopRec();},1000);
+    },900);
   }).catch(function(){$('mpRec').style.display='';$('mpStop').disabled=true;mpSt('Microphone blocked. Allow mic and reload.');});
 };
 $('mpStop').onclick=function(){ if(mpRunning)mpStopRec(); };
-function mpStopRec(){setTimeout(cpBeepDone,350);
+function mpStopRec(){mpArmed=false;setTimeout(cpBeepDone,350);
   mpRunning=false;clearInterval(mpTimer);try{mpProc.disconnect();}catch(e){}
   if(mpStream)mpStream.getTracks().forEach(function(t){t.stop();});
   $('mpStop').disabled=true;$('mpRec').style.display='';mpSt('Measuring\u2026');
@@ -2174,6 +2216,7 @@ async function cwOffline(s,fs){
 }
 
 /* ===================== COUGH ACOUSTIC (/tbcough + offline TF.js) ===================== */
+var tbArmed=false;
 var tbRunning=false,tbStream=null,tbCtx=null,tbProc=null,tbZg=null,tbBuf=[],tbSr=16000,tbTimer=null,tbLeft=6;
 function tbSt(m){var e=$('tbStatus');if(e)e.textContent=m;}
 var TBC_SR=16000,TBC_NFFT=1024,TBC_HOP=256,TBC_NMEL=128,TBC_NB=513,TBC_TW=128,TBC_WINN=32000;
@@ -2233,18 +2276,23 @@ $('tbRec').onclick=function(){
   $('tbResCard').style.display='none';(function(){var w=$('tbWake');if(w)w.style.display='none';})();
   $('tbRec').style.display='none';$('tbStop').disabled=false;tbSt('Get ready\u2026');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
-    tbRunning=true;tbStream=stream;tbCtx=new (window.AudioContext||window.webkitAudioContext)();tbSr=tbCtx.sampleRate;tbBuf=[];
+    tbRunning=true;tbArmed=false;tbStream=stream;tbCtx=new (window.AudioContext||window.webkitAudioContext)();tbSr=tbCtx.sampleRate;tbBuf=[];
     var src=tbCtx.createMediaStreamSource(stream);
     tbProc=tbCtx.createScriptProcessor(4096,1,1);tbZg=tbCtx.createGain();tbZg.gain.value=0;
-    tbProc.onaudioprocess=function(ev){if(!tbRunning)return;tbBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
+    tbProc.onaudioprocess=function(ev){if(!tbRunning||!tbArmed)return;tbBuf.push(new Float32Array(ev.inputBuffer.getChannelData(0)));};
     src.connect(tbProc);tbProc.connect(tbZg);tbZg.connect(tbCtx.destination);
     cpBeepStart();
-    tbLeft=6;tbSt('\u25CF COUGH HARD now\u2026 ('+tbLeft+'s)');
-    tbTimer=setInterval(function(){tbLeft--;tbSt('\u25CF Coughing\u2026 ('+tbLeft+'s) \u2014 press Stop when done');if(tbLeft<=0)tbStopRec();},1000);
+    tbSt('Get ready\u2026');
+    setTimeout(function(){
+      if(!tbRunning)return;
+      tbBuf=[];tbArmed=true;              // start capturing AFTER the beep, so the beep is not recorded
+      tbLeft=6;tbSt('\u25CF COUGH HARD now\u2026 ('+tbLeft+'s)');
+      tbTimer=setInterval(function(){tbLeft--;tbSt('\u25CF Coughing\u2026 ('+tbLeft+'s) \u2014 press Stop when done');if(tbLeft<=0)tbStopRec();},1000);
+    },900);
   }).catch(function(){$('tbRec').style.display='';$('tbStop').disabled=true;tbSt('Microphone blocked. Allow mic and reload.');});
 };
 $('tbStop').onclick=function(){ if(tbRunning)tbStopRec(); };
-function tbStopRec(){setTimeout(cpBeepDone,350);
+function tbStopRec(){tbArmed=false;setTimeout(cpBeepDone,350);
   tbRunning=false;clearInterval(tbTimer);try{tbProc.disconnect();}catch(e){}
   if(tbStream)tbStream.getTracks().forEach(function(t){t.stop();});
   $('tbStop').disabled=true;$('tbRec').style.display='';tbSt('Analysing\u2026');
@@ -2269,6 +2317,17 @@ function tbStopRec(){setTimeout(cpBeepDone,350);
     tbSt((res.offline?'Offline estimate. ':'Done. ')+'Press START to screen again.');
   })();
 }
+
+/* refresh beep volume on any record-button press, so the admin level is current before the beep */
+(function(){
+  function _hook(){
+    document.addEventListener('click', function(ev){
+      var t=ev.target;
+      if(t && t.classList && (t.classList.contains('rec')||t.classList.contains('stop'))) { _beepReady=refreshBeepVol(); }
+    }, true);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_hook);else _hook();
+})();
 
 /* beep toggle button (About page) */
 (function(){
