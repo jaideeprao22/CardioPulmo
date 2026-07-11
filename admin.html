@@ -235,8 +235,12 @@ async function saveThr(){
     tb_thr:num('setTb'),card_thr:num('setCard'),eff_thr:num('setEff'),pneu_thr:num('setPneu'),cons_thr:num('setCons'),nod_thr:num('setNod'),ptx_thr:num('setPtx'),fib_thr:num('setFib'),pth_thr:num('setPth'),
     updated_at:new Date().toISOString()};
   Object.keys(payload).forEach(function(k){if(payload[k]===null)delete payload[k];});
-  var {error}=await sb.from('app_settings').upsert(payload);
-  $('setMsg').textContent=error?('Error: '+error.message):'✓ Saved — every device uses these on next recording.';
+  delete payload.id;                                  // row id=1 already exists -> UPDATE only (avoids INSERT policy)
+  var {data,error}=await sb.from('app_settings').update(payload).eq('id',1).select();
+  if(error){ $('setMsg').style.color='#ff6b6b'; $('setMsg').textContent='Error: '+error.message; console.error(error); return; }
+  if(!data || !data.length){ $('setMsg').style.color='#ff6b6b'; $('setMsg').textContent='Not saved — 0 rows updated (RLS is blocking the UPDATE for this account).'; return; }
+  $('setMsg').style.color='';
+  $('setMsg').textContent='✓ Saved (beep_vol='+data[0].beep_vol+') — every device uses these on next recording.';
 }
 function renderFb(){
   var tb=$('fbTbl')&&$('fbTbl').querySelector('tbody');if(!tb)return;
