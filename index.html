@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Electrolize&family=Michroma&family=Sora:wght@400;600;700;800&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="pb-client.js?v=1"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="globals.css?v=15">
 <link rel="manifest" href="manifest.webmanifest">
@@ -739,7 +739,9 @@
 
     <div class="card" id="authBox" style="display:none">
       <div id="authWho" class="note" style="margin-bottom:8px">—</div>
-      <button id="authLogout" class="dl" style="margin-top:0" data-te='లాగ్ అవుట్' onclick="try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&(k.indexOf('sb-')===0||k.toLowerCase().indexOf('supabase')>=0))localStorage.removeItem(k);}}catch(e){}try{sessionStorage.clear();}catch(e){}location.href=location.pathname;">Log out</button>
+      <!-- The session is in HttpOnly cookies now, so there is nothing in localStorage to
+           clear; the server drops the cookies and the reload lands on the signed-out UI. -->
+      <button id="authLogout" class="dl" style="margin-top:0" data-te='లాగ్ అవుట్'>Log out</button>
     </div>
 
     <div class="card" id="notLoggedBox">

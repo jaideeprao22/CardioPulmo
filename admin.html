@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CardioPulmo — Admin</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="pb-client.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 :root{--bg:#0b0f14;--card:#131a23;--line:#26303d;--txt:#e6edf3;--mut:#8b98a5;--acc:#4aa3ff;--ok:#2fbf8f;--bad:#ff6b6b}
@@ -147,7 +147,7 @@ audio{height:34px;vertical-align:middle}
       </label>
     </div>
     <div id="valMsg" class="mut" style="font-size:12px"></div>
-    <div class="mut" style="font-size:11px;margin-top:4px">When ON, each VascAge scan in the app shows ECG: AF / Sinus / Other buttons that log the app's flag vs your ECG-confirmed truth to Supabase (af_validation table). Only you (admin) see this switch; frontline users never do.</div>
+    <div class="mut" style="font-size:11px;margin-top:4px">When ON, each VascAge scan in the app shows ECG: AF / Sinus / Other buttons that log the app's flag vs your ECG-confirmed truth to the af_validation table. Only you (admin) see this switch; frontline users never do.</div>
   </div>
   <script>try{var _v=localStorage.getItem('cp_valmode')==='1',_c=document.getElementById('valModeChk');if(_c){_c.checked=_v;document.getElementById('valMsg').textContent=_v?'ON — AF validation buttons appear after VascAge scans in the app.':'OFF';}}catch(e){}</script>
 
@@ -170,7 +170,7 @@ audio{height:34px;vertical-align:middle}
     <div class="tblwrap"><table id="usrTbl"><thead><tr>
       <th>Name</th><th>Email</th><th>Age</th><th>Sex</th><th>Role</th><th>Recordings</th><th>Actions</th>
     </tr></thead><tbody></tbody></table></div>
-    <div class="mut" style="font-size:11px;margin-top:6px">Edit updates the user's profile. "Delete data" removes all their recordings + profile (their login account is removed from Supabase → Authentication → Users). "Add user" → share the app link for self-signup, or Supabase → Authentication → Add user.</div>
+    <div class="mut" style="font-size:11px;margin-top:6px">Edit updates the user's profile. "Delete data" removes all their recordings + profile, and the audio goes with the rows; their login account itself is managed in Postbase and is not touched here. "Add user" → share the app link for self-signup.</div>
   </div>
 </div>
 
@@ -178,10 +178,11 @@ audio{height:34px;vertical-align:middle}
 
 <script>
 const $=id=>document.getElementById(id);
-const SB_URL='https://cxqvghjdqyvtxdavhzjw.supabase.co';
-const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cXZnaGpkcXl2dHhkYXZoemp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMDY5MzUsImV4cCI6MjA5ODU4MjkzNX0.vSEowF2M4Hv_j0LOSSJto_TulEce-wcA337ffK7kd5s';
 const GOOGLE_CLIENT_ID='533637534015-8eob9q94fecugvf6d4rm41hnc1fd6f4u.apps.googleusercontent.com';
-const sb=window.supabase.createClient(SB_URL,SB_ANON,{auth:{storageKey:"cp-admin-auth",autoRefreshToken:true,persistSession:true}});
+/* No database URL and no key. The dashboard talks only to /api/* on this origin; the
+   session is an HttpOnly cookie and every privileged read is re-authorised server-side
+   against the admins table. Gating the UI below is a convenience, not the control. */
+const sb=window.pb;
 let recs=[],profs={},profList=[],fbs=[];
 
 /* ---------- auth ---------- */
@@ -235,12 +236,15 @@ async function saveThr(){
     tb_thr:num('setTb'),card_thr:num('setCard'),eff_thr:num('setEff'),pneu_thr:num('setPneu'),cons_thr:num('setCons'),nod_thr:num('setNod'),ptx_thr:num('setPtx'),fib_thr:num('setFib'),pth_thr:num('setPth'),
     updated_at:new Date().toISOString()};
   Object.keys(payload).forEach(function(k){if(payload[k]===null)delete payload[k];});
-  delete payload.id;                                  // row id=1 already exists -> UPDATE only (avoids INSERT policy)
-  var {data,error}=await sb.from('app_settings').update(payload).eq('id',1).select();
+  delete payload.id;delete payload.updated_at;        // both are the server's to set
+  /* Postbase's native upsert is ON CONFLICT DO NOTHING, so the server emulates
+     update-on-conflict read-then-write and returns the row it actually stored. If the
+     write ever silently did nothing, the read-back is what catches it. */
+  var {data,error}=await sb.from('app_settings').upsert(payload);
   if(error){ $('setMsg').style.color='#ff6b6b'; $('setMsg').textContent='Error: '+error.message; console.error(error); return; }
-  if(!data || !data.length){ $('setMsg').style.color='#ff6b6b'; $('setMsg').textContent='Not saved — 0 rows updated (RLS is blocking the UPDATE for this account).'; return; }
+  if(!data){ $('setMsg').style.color='#ff6b6b'; $('setMsg').textContent='Not saved — the server wrote nothing.'; return; }
   $('setMsg').style.color='';
-  $('setMsg').textContent='✓ Saved (beep_vol='+data[0].beep_vol+') — every device uses these on next recording.';
+  $('setMsg').textContent='✓ Saved (beep_vol='+data.beep_vol+') — every device uses these on next recording.';
 }
 function renderFb(){
   var tb=$('fbTbl')&&$('fbTbl').querySelector('tbody');if(!tb)return;
@@ -259,7 +263,7 @@ function renderStats(){
   $('stUsers').textContent=profList.length;
   $('stRecs').textContent=recs.length;
   $('stPos').textContent=recs.filter(r=>r.verdict&&/pos|abnormal/i.test(r.verdict)).length;
-  $('stSize').textContent=recs.filter(r=>r.audio_path).length;
+  $('stSize').textContent=recs.filter(r=>r.has_audio).length;
 }
 function fmtDate(s){try{return new Date(s).toLocaleString();}catch(e){return s;}}
 function uname(id){var p=profs[id];return p?(p.full_name||'(no name)'):'(unknown)';}
@@ -282,9 +286,11 @@ function renderRecs(){
     var prob=(r.probability!=null)?Math.round(r.probability*100)+'%':'';
     tr.innerHTML='<td>'+fmtDate(r.created_at)+'</td><td>'+(r.subject_code||'')+'</td><td>'+uname(r.user_id)+'</td><td>'+(r.module||'')+'</td><td>'+(r.zone||'')+'</td><td>'+bpm+'</td><td>'+rhy+'</td><td>'+cf+'</td><td>'+ql+'</td><td>'+prob+'</td><td>'+vpill+'</td><td></td>';
     var td=tr.lastChild;
-    if(r.audio_path){
-      var b=document.createElement('button');b.textContent='▶ Play';b.onclick=function(){playAudio(r.audio_path,b);};td.appendChild(b);
-      var d=document.createElement('button');d.textContent='⬇';d.title='Download .wav';d.style.marginLeft='6px';d.onclick=function(){dlAudio(r.audio_path,d);};td.appendChild(d);
+    /* has_audio, not audio_path: the legacy rows still carry a path into the retired
+       bucket, and offering Play for bytes the app does not hold is a broken button. */
+    if(r.has_audio){
+      var b=document.createElement('button');b.textContent='▶ Play';b.onclick=function(){playAudio(r,b);};td.appendChild(b);
+      var d=document.createElement('button');d.textContent='⬇';d.title='Download clip';d.style.marginLeft='6px';d.onclick=function(){dlAudio(r,d);};td.appendChild(d);
       var x=document.createElement('button');x.className='danger';x.textContent='🗑';x.title='Delete';x.style.marginLeft='6px';x.onclick=function(){delRec(r,x);};td.appendChild(x);
     } else {var x2=document.createElement('button');x2.className='danger';x2.textContent='🗑';x2.title='Delete';x2.onclick=function(){delRec(r,x2);};td.appendChild(x2);}
     tb.appendChild(tr);
@@ -294,27 +300,33 @@ $('recFilter').oninput=renderRecs;
 if($('saveThrBtn'))$('saveThrBtn').onclick=saveThr;
 if($('fbFilter'))$('fbFilter').oninput=renderFb;
 
-async function dlAudio(path,btn){
+/* Audio is a column on the recording row, not an object in a bucket, so these ask for a
+   short-lived same-origin token instead of a signed bucket URL. Ownership is re-checked
+   when the token is redeemed, and the server sets the Content-Type from the bytes. */
+async function dlAudio(r,btn){
   var old=btn.textContent;btn.textContent='…';
   try{
-    var {data,error}=await sb.storage.from('recordings').createSignedUrl(path,3600,{download:true});
-    if(error||!data){btn.textContent='✕';return;}
-    var a=document.createElement('a');a.href=data.signedUrl;a.download=path.split('/').pop();document.body.appendChild(a);a.click();a.remove();
+    var {data,error}=await sb.audio.url(r.id);
+    if(error||!data){btn.textContent='✕';btn.title=(error&&error.message)||'Audio unavailable';return;}
+    /* No extension here: the download route names the file after what the bytes
+       actually are. Forcing .wav is how the mislabelled clips were made. */
+    var a=document.createElement('a');a.href=data+'&download=1';
+    document.body.appendChild(a);a.click();a.remove();
     btn.textContent=old;
   }catch(e){btn.textContent='✕';}
 }
 
-async function playAudio(path,btn){
+async function playAudio(r,btn){
   btn.textContent='…';
-  var {data,error}=await sb.storage.from('recordings').createSignedUrl(path,3600);
-  if(error||!data){btn.textContent='✕';alert('Could not load audio: '+((error&&error.message)||'no URL')+'\\n\\nIf this says permission/row-level, run the storage read policy SQL.');return;}
-  var p=$('player');p.src=data.signedUrl;p.style.display='block';p.controls=true;p.play().catch(function(e){alert('Playback blocked: '+e.message);});
+  var {data,error}=await sb.audio.url(r.id);
+  if(error||!data){btn.textContent='✕';alert('Could not load audio: '+((error&&error.message)||'no URL'));return;}
+  var p=$('player');p.src=data;p.style.display='block';p.controls=true;p.play().catch(function(e){alert('Playback blocked: '+e.message);});
   btn.textContent='▶ Play';
 }
 async function delRec(r,btn){
-  if(!confirm('Delete this recording + its audio file? This cannot be undone.'))return;
+  if(!confirm('Delete this recording + its audio? This cannot be undone.'))return;
   btn.textContent='…';
-  if(r.audio_path){try{await sb.storage.from('recordings').remove([r.audio_path]);}catch(e){}}
+  /* The clip is stored on the row, so deleting the row deletes the audio with it. */
   var {error}=await sb.from('recordings').delete().eq('id',r.id);
   if(error){alert('Delete failed: '+error.message);btn.textContent='🗑';return;}
   loadAll();
@@ -343,26 +355,26 @@ async function editUser(p){
   loadAll();
 }
 async function delUser(p){
-  if(!confirm('Delete ALL recordings + profile for '+(p.full_name||p.email||p.id)+'? This cannot be undone.\\n\\n(Their login account is removed separately in Supabase → Authentication → Users.)'))return;
-  var mine=recs.filter(function(r){return r.user_id===p.id&&r.audio_path;}).map(function(r){return r.audio_path;});
-  if(mine.length){try{await sb.storage.from('recordings').remove(mine);}catch(e){}}
-  await sb.from('recordings').delete().eq('user_id',p.id);
-  await sb.from('profiles').delete().eq('id',p.id);
+  if(!confirm('Delete ALL recordings + profile for '+(p.full_name||p.email||p.id)+'? This cannot be undone.\\n\\n(Their login account itself is managed in Postbase and is not removed here.)'))return;
+  /* One admin-only server call removes the recordings and the profile together, and the
+     clips go with the rows. */
+  var {error}=await sb.from('profiles').delete().eq('user_id',p.id);
+  if(error){alert('Delete failed: '+error.message);return;}
   loadAll();
 }
 $('addUserBtn').onclick=function(){
-  alert('To add a login account:\\n\\n1) Share the app link — the person signs up themselves (Google or email), or\\n2) Supabase → Authentication → Users → Add user.\\n\\nCreating accounts must be done there (secure); this dashboard manages their data and recordings.');
+  alert('To add a login account:\\n\\nShare the app link — the person signs up themselves with email and password (or Google, once it is enabled).\\n\\nThis dashboard manages their data and recordings, not their login. Note there is no password reset: a forgotten password needs a new account.');
 };
 
 /* ---------- export ---------- */
 function csvCell(v){v=(v==null?'':String(v));return '"'+v.replace(/"/g,'""')+'"';}
 function buildCsv(){
-  var head=['id','datetime','patient_code','user_name','user_email','user_age','user_sex','module','zone','bpm','rhythm','confidence','signal_quality','probability','verdict','audio_path'];
+  var head=['id','datetime','patient_code','user_name','user_email','user_age','user_sex','module','zone','bpm','rhythm','confidence','signal_quality','probability','verdict','audio_path','audio_mime','audio_in_app'];
   var lines=[head.join(',')];
   recs.forEach(function(r){
     var p=profs[r.user_id]||{};
     var ex=r.extra||{};if(typeof ex==='string'){try{ex=JSON.parse(ex);}catch(e){ex={};}}
-    lines.push([r.id,r.created_at,r.subject_code,uname(r.user_id),uemail(r.user_id),p.age||'',p.sex||'',r.module,r.zone,(ex.bpm!=null?ex.bpm:''),ex.rhythm||'',(ex.confidence!=null?ex.confidence:''),ex.signal_quality||ex.quality||'',(r.probability!=null?r.probability:''),r.verdict,r.audio_path].map(csvCell).join(','));
+    lines.push([r.id,r.created_at,r.subject_code,uname(r.user_id),uemail(r.user_id),p.age||'',p.sex||'',r.module,r.zone,(ex.bpm!=null?ex.bpm:''),ex.rhythm||'',(ex.confidence!=null?ex.confidence:''),ex.signal_quality||ex.quality||'',(r.probability!=null?r.probability:''),r.verdict,r.audio_path,r.audio_mime||'',(r.has_audio?'yes':'no')].map(csvCell).join(','));
   });
   return lines.join('\\n');
 }
@@ -370,18 +382,22 @@ $('expCsv').onclick=function(){
   var blob=new Blob([buildCsv()],{type:'text/csv'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cardiopulmo_recordings.csv';a.click();
 };
+/* Every exported clip used to be named `.wav` regardless of what it contained, which is
+   how WebM files ended up with a .wav extension in the first place. The extension now
+   comes from audio_mime, which the server derived from the bytes. */
+var ZIP_EXT={'audio/wav':'.wav','audio/webm':'.webm','audio/ogg':'.ogg','audio/flac':'.flac','audio/mp4':'.m4a','audio/mpeg':'.mp3'};
 $('expZip').onclick=async function(){
-  var withAudio=recs.filter(function(r){return r.audio_path;});
-  if(!withAudio.length){alert('No audio to export.');return;}
+  var withAudio=recs.filter(function(r){return r.has_audio;});
+  if(!withAudio.length){alert('No audio to export.\\n\\nRows recorded before the app stored audio itself keep their old audio_path, but those bytes are not in the app.');return;}
   if(!confirm('Export '+withAudio.length+' audio files + labels.csv as a ZIP? Large sets take a while.'))return;
   var btn=$('expZip');btn.disabled=true;
   var zip=new JSZip();var folder=zip.folder('audio');
   for(var i=0;i<withAudio.length;i++){
     var r=withAudio[i];btn.textContent='Zipping '+(i+1)+'/'+withAudio.length+'…';
     try{
-      var {data}=await sb.storage.from('recordings').createSignedUrl(r.audio_path,3600);
-      if(data&&data.signedUrl){var buf=await (await fetch(data.signedUrl)).arrayBuffer();
-        var fn=r.module+'_'+(r.zone||'x')+'_'+r.id+'.wav';folder.file(fn,buf);}
+      var {data}=await sb.audio.url(r.id);
+      if(data){var buf=await (await fetch(data,{credentials:'same-origin'})).arrayBuffer();
+        var fn=r.module+'_'+(r.zone||'x')+'_'+r.id+(ZIP_EXT[r.audio_mime]||'');folder.file(fn,buf);}
     }catch(e){}
   }
   zip.file('labels.csv',buildCsv());
