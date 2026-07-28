@@ -287,11 +287,57 @@ ground truth to anything. The same double-escape in the dialog strings (users sa
 - Google sign-in posts the GSI credential to `/api/auth?action=google`, which forwards it
   to `/oauth/id-token` with the service key. Same client ID
   `533637534015-8eob9q94fecugvf6d4rm41hnc1fd6f4u`. The browser never receives a Postbase
-  token. Until the provider is configured, Postbase answers 401 and the route reports
-  that as a configuration state, not a generic failure.
+  token. **There is no environment variable behind this route** — the client ID is a
+  public constant in `app.js`, and the one Postbase verifies against lives in its own
+  `provider_configs`. Nothing server-side reads `GOOGLE_CLIENT_ID`; setting one has no
+  effect. See "Do not assert a cause you have not established" below.
 - **There is no password reset.** `/magiclink` and `/recover` do not exist. The signup
   message no longer promises a confirmation email, says the password cannot be reset from
   the app, and the admin dashboard's "Add user" text says the same.
+
+## Do not assert a cause you have not established
+
+The Google route used to answer any 401 or 403 from Postbase's `/oauth/id-token` with:
+
+> Google sign-in is not enabled for this app yet — use email and password
+
+and a **503**. Both halves were wrong, and the combination cost hours of production
+debugging.
+
+A 401 there has at least two causes, and the far more common one is a bad or expired
+credential. Posting `{"credential":"invalid.token.here"}` — a string that is not even a
+JWT — produced that exact message. Read literally it says the provider is misconfigured,
+so the natural response is to go checking `provider_configs`, Vercel environment
+variables, and redeploys with the build cache off. None of which could have helped,
+because nothing was broken: a real browser sign-in with a genuine ID token had succeeded
+earlier the same day, on the same deployment, with no `GOOGLE_CLIENT_ID` set anywhere.
+Valid token → 200. Garbage token → 401 upstream → misleading message.
+
+The 503 compounded it by claiming the server was unavailable, a claim the code had no
+basis for.
+
+Worse, the branch `return`ed without logging, so `http.guard`'s `console.error` never ran
+and the upstream status and body were discarded. **The failure left no trace at all**,
+which is why there was nothing to diagnose from and the search moved to configuration.
+
+What it does now:
+
+- **Logs** the upstream status, the parsed message, and the raw body
+  (`err.upstreamBody`, added to `postbase.js` for exactly this — the parsed message
+  degrades to `"HTTP 401"` when the body is not JSON in the shape expected, and that is
+  precisely the case where the real reason matters). The credential is deliberately not
+  logged: it is a user's Google ID token.
+- **Passes the upstream status through** — 401 stays 401.
+- **Asserts no cause**: "Google sign-in failed — try again, or use email and password."
+
+A sharper message is deliberately deferred until a real log line shows whether Postbase
+distinguishes "provider disabled" from "credential rejected" in its response body. Until
+that is known, the honest message is the vague one.
+
+The general rule, worth keeping: an error message that names a cause is a claim. If the
+code cannot tell two causes apart it must not pick one — it should log what it saw and say
+only what it knows. A confidently wrong error message is more expensive than a vague one,
+because it is trusted.
 
 ## Grep report
 
