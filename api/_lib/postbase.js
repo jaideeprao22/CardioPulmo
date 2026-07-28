@@ -65,6 +65,12 @@ async function call(path, opts) {
     var err2 = httpError(r.status === 401 || r.status === 403 ? r.status : 502, String(m),
       'postbase ' + r.status + ': ' + String(m));
     err2.upstreamStatus = r.status;
+    /* The raw body, kept for server-side diagnostics only and never sent to the client.
+       `m` above is whatever we could parse out of it; when the body is not JSON, or is
+       JSON in a shape we did not expect, `m` degrades to "HTTP 401" and the actual reason
+       is lost. A caller that swallows an error still needs to be able to log what really
+       came back. Truncated so an error page cannot flood the log. */
+    err2.upstreamBody = String(text || '').slice(0, 400);
     throw err2;
   }
   return parsed;

@@ -14,9 +14,23 @@ var profile = require('../profile');
    ON CONFLICT (provider, provider_account_id) DO NOTHING, so a returning Google user
    resolves to their existing row instead of creating a duplicate.
 
-   Until the Google provider is configured for this project in provider_configs,
-   Postbase answers 401 here. That is a configuration state, not a bug in this route,
-   so it is reported to the user as such. */
+   There is NO environment variable behind this route. The Google client ID is a public
+   constant in the browser (app.js), and the client ID Postbase verifies against lives in
+   its own provider_configs. Nothing server-side reads GOOGLE_CLIENT_ID, so setting one
+   changes nothing here.
+
+   On the error message below — this cost real time, so it is worth writing down.
+   This route used to answer a 401 from Postbase with "Google sign-in is not enabled for
+   this app yet", asserting a configuration cause. A 401 has at least two causes, and the
+   far more common one is simply a bad or expired credential: posting `invalid.token.here`
+   produced exactly that message, which reads as "the provider is misconfigured" and sends
+   whoever is debugging into Vercel env vars and provider_configs for a system that was
+   working. It also returned 503, claiming the server was broken, which it was not.
+
+   So: no cause is asserted. The upstream status is passed through, the message says only
+   what is known, and the upstream status and body are LOGGED — the old branch swallowed
+   them entirely, which is why the failure left no trace to diagnose from. Once a real log
+   line shows how Postbase distinguishes the two cases, this can say something sharper. */
 module.exports = http.guard(async function (req, res) {
   if (!http.methodAllowed(req, res, ['POST'])) return;
 
@@ -29,8 +43,14 @@ module.exports = http.guard(async function (req, res) {
   try {
     result = await pb.signInGoogleIdToken(credential, nonce);
   } catch (e) {
-    if (e && (e.upstreamStatus === 401 || e.upstreamStatus === 403)) {
-      return http.fail(res, 503, 'Google sign-in is not enabled for this app yet — use email and password');
+    var status = e && e.upstreamStatus;
+    if (status === 401 || status === 403) {
+      /* The credential itself is deliberately NOT logged — it is a user's Google ID
+         token. The upstream status and body are what identify the failure. */
+      console.error('[api] google sign-in rejected by postbase — status ' + status +
+        ' — ' + ((e && e.message) || 'no message') +
+        ' — body: ' + ((e && e.upstreamBody) || '(empty)'));
+      return http.fail(res, status, 'Google sign-in failed — try again, or use email and password');
     }
     throw e;
   }
