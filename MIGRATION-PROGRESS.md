@@ -43,7 +43,8 @@ Vercel Hobby caps a deployment at 12. One file per route came to well over that,
 routes are dispatched by query parameter from four entry points:
 
 ```
-api/auth.js            → /api/auth?action=signup|signin|google|session|signout
+api/auth.js            → /api/auth?action=signup|signin|google|session|signout|
+                                          forgot|otp-send|otp-verify|set-password|verify-email
 api/data.js            → /api/data?resource=recordings|profiles|feedback|af-validation|
                                           outcomes|app-settings|admins
 api/storage/sign.js    → mints a playback token
@@ -291,8 +292,10 @@ ground truth to anything. The same double-escape in the dialog strings (users sa
   public constant in `app.js`, and the one Postbase verifies against lives in its own
   `provider_configs`. Nothing server-side reads `GOOGLE_CLIENT_ID`; setting one has no
   effect. See "Do not assert a cause you have not established" below.
-- **There is no password reset.** `/magiclink` and `/recover` do not exist. The signup
-  message no longer promises a confirmation email, says the password cannot be reset from
+- **Password reset now exists** — built, not found. See "Password reset, code sign-in
+  and email verification" below. The signup message still says nothing about a
+  confirmation email, because `/signup` still sends none; it no longer says the password
+  cannot be reset from
   the app, and the admin dashboard's "Add user" text says the same.
 
 ## Do not assert a cause you have not established
@@ -338,6 +341,105 @@ The general rule, worth keeping: an error message that names a cause is a claim.
 code cannot tell two causes apart it must not pick one — it should log what it saw and say
 only what it knows. A confidently wrong error message is more expensive than a vague one,
 because it is trusted.
+
+## Password reset, code sign-in and email verification
+
+Postbase has **no** password-reset endpoint — no reset, forgot or recover anywhere in its
+source. So this is built out of the two primitives it does have, and the password write is
+ours.
+
+Five new **actions on the existing `/api/auth` function**, not new files. Vercel Hobby caps
+a deployment at 12 serverless functions and a 13th fails the build outright with no useful
+error; the deployment stays at **4**.
+
+| Action | Does |
+|---|---|
+| `forgot` | `POST /otp {type:"magic_link", redirectTo:.../set-password.html}` |
+| `otp-send` | `POST /otp {type:"otp"}` — 6-digit code |
+| `otp-verify` | `POST /email-otp/verify {email, code}` → session |
+| `set-password` | the password write, scoped to the session |
+| `verify-email` | `POST /otp {type:"magic_link"}` for a signed-in user |
+
+The magic link **is** the email verification: Postbase's `/verify` consumes the token,
+stamps `email_verified`, issues a session and redirects. So a password reset verifies the
+address as a side effect, and `verify-email` is the same call pointed at `/`.
+
+### Where this becomes account takeover, and what stops it
+
+`set-password` changes **the session's** account. There is no email, no id, no user_id read
+from the request, and `sql.setUserPassword(userId, plaintext)` has no signature that
+accepts one. If a later edit adds `req.body.email` here, anyone with a session can
+overwrite any password by typing an address. **The absence of that parameter is the
+control**, which is why the route and the SQL helper both say so in comments and the test
+suite posts `email`, `user_id`, `id` and `userId` at it and asserts none reach the
+statement.
+
+The password is a bound parameter to `crypt($1, gen_salt('bf',10))`. Never interpolated,
+never logged, never echoed. `RETURNING id` proves a row was updated — without it an id
+matching nothing succeeds silently and the user is told their password changed when it did
+not, locking them out with a cheerful message.
+
+### Enumeration
+
+`forgot` and `otp-send` return a byte-identical 200 whether or not the address is
+registered. An upstream "user not found" is swallowed into that 200 and logged. The UI
+copy matches: "if that address has an account, a link is on its way" — never "sent".
+
+The two *configuration* failures are not hidden and not merged: 403 means that provider row
+is disabled, 500 means SMTP is unset. Different fixes, different messages, logged
+distinctly. Neither reveals anything about who is registered. (Collapsing two causes into
+one message is the mistake documented in "Do not assert a cause you have not established".)
+
+### The magic link's host is not taken from the request
+
+A link that mints a session must not point wherever a forged `Host` header says. The host
+is matched against an allowlist — `cardiopulmo.com`, `*.vercel.app` for previews,
+localhost — and anything else falls back to the canonical origin, logged. Without this,
+anyone could trigger a real email to a victim's real address carrying a link to a site they
+control.
+
+`redirectTo` names `/set-password.html` explicitly rather than `/set-password`, because the
+clean URL would depend on Vercel's `cleanUrls`, and turning that on changes routing for
+every page in the app. Not something a reset link should quietly rest on.
+
+### The 6-digit code path keeps the address server-side
+
+`otp-send` writes the address to a short-lived HttpOnly cookie; `otp-verify` reads it from
+there and takes only the code from the browser. Postbase does bind each code to its
+address, so this is belt-and-braces — but a flow where the client names the target account
+is the same shape as the takeover hole above, and closing it costs nothing.
+
+The consequence is stated rather than hidden: the code must be entered in the browser that
+requested it. For a code typed on a phone that is the normal case, and it is the same
+constraint the session cookie already has. A user who switches browsers is told to request
+a new code.
+
+### Rate limiting is best-effort, and here is exactly how
+
+In-memory, per serverless instance. Vercel runs many instances and recycles them, so a cold
+instance starts empty and a distributed caller outruns it. It stops one browser, one
+script, or one stuck retry loop from burning SMTP quota — it is **not** a control against a
+determined attacker. Doing it properly needs a durable shared store, which means a table,
+which is out of scope here. **Known gap, deliberately not papered over.**
+
+Two design points the test suite forced out, both real:
+
+- **Per-IP has to be loose** (30 / 15 min) while per-address is tight (3 / 15 min). This
+  app runs in clinics where every device shares one connection, so an IP is a site, not a
+  person. A tight per-IP limit does not stop an attacker — they have many source addresses
+  — it just locks out the second nurse who forgets her password that morning.
+- **Sends and verification attempts need separate buckets.** Sharing one meant three
+  mistyped codes consumed the mail budget, so a user who fumbled the code could not request
+  a fresh one and sat locked out for fifteen minutes by their own typos.
+
+### Confirmed from source, not from a live probe
+
+`POST /email-otp/verify` takes `{ email, code, remember_me? }` with `code` exactly 6
+characters, answering `{ user, session }` like `/token`. That is read from the Postbase
+source (`apps/web/src/app/api/auth/v1/[projectId]/email-otp/verify/route.ts`), **not** from
+a call against the live instance — no credentials were available where this was written.
+If the deployed build differs, it surfaces as a 400 with the upstream body logged, which is
+why `otp-verify` logs `err.upstreamBody`.
 
 ## Grep report
 

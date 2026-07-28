@@ -36,6 +36,23 @@
     <input id="authPass" type="password" placeholder="Password" autocomplete="current-password">
     <button id="authLogin" class="pbtn">Log in</button>
     <button id="authSignup" class="sbtn">Create new account</button>
+
+    <!-- Both paths prove the same thing — that you can read email at that address.
+         The code is the better one on a phone: a magic link opens in whatever browser
+         the mail app picks, which is often not the one you were using. -->
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:2px">
+      <a href="#" id="authForgot" class="note" style="text-decoration:underline" data-te='పాస్‌వర్డ్ మర్చిపోయారా?'>Forgot password?</a>
+      <a href="#" id="authOtpLink" class="note" style="text-decoration:underline" data-te='బదులుగా కోడ్ పంపండి'>Email me a code instead</a>
+    </div>
+
+    <!-- 6-digit code entry. The address is held server-side in an HttpOnly cookie from
+         the send step, so only the code is submitted from here. -->
+    <div id="authOtpBox" style="display:none;flex-direction:column;gap:8px;margin-top:4px">
+      <input id="authOtpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code">
+      <button id="authOtpVerify" class="pbtn">Sign in with code</button>
+      <a href="#" id="authOtpResend" class="note" style="text-decoration:underline">Send another code</a>
+    </div>
+
     <div id="authMsg" class="ovlmsg"></div>
     <div class="ovlfoot" data-te='రీసెర్చ్ పరికరం · AI-ఆధారిత స్క్రీనింగ్'>Research instrument · AI-assisted screening</div>
   </div>
@@ -739,6 +756,16 @@
 
     <div class="card" id="authBox" style="display:none">
       <div id="authWho" class="note" style="margin-bottom:8px">—</div>
+
+      <!-- Shown only while emailVerified is false. Sign-up sends no verification mail —
+           Postbase has no transport in that route — so every email/password account
+           starts unverified and this is the only way to clear it. -->
+      <div id="verifyBox" style="display:none;margin-bottom:10px">
+        <div class="note" style="margin-bottom:6px" data-te='మీ ఇమెయిల్ ఇంకా ధృవీకరించబడలేదు.'>Your email address is not verified yet.</div>
+        <button id="verifyBtn" class="sbtn" style="margin-top:0" data-te='ధృవీకరణ లింక్ పంపండి'>Send me a verification link</button>
+        <div id="verifyMsg" class="note" style="margin-top:6px"></div>
+      </div>
+
       <!-- The session is in HttpOnly cookies now, so there is nothing in localStorage to
            clear; the server drops the cookies and the reload lands on the signed-out UI. -->
       <button id="authLogout" class="dl" style="margin-top:0" data-te='లాగ్ అవుట్'>Log out</button>
