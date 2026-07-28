@@ -147,6 +147,39 @@ async function signInGoogleIdToken(idToken, nonce) {
   return { user: readUser(payload, 'oauth/id-token'), session: readSession(payload, 'oauth/id-token') };
 }
 
+/* ---------------------------------------------------------------- otp ---- */
+
+/* POST /otp — sends either a magic link or a 6-digit code to `email`.
+   Body: { email, type: "magic_link" | "otp", redirectTo? }. Success is { message }.
+
+   Two distinct failures that must never be merged:
+     403 — that provider row is disabled for this project
+     500 — no SMTP configured for this project
+   One is "turn the provider on", the other is "configure mail". Collapsing them into a
+   single message is how the Google 503 wasted an afternoon; see routes/google.js. */
+async function sendOtp(email, type, redirectTo) {
+  var b = { email: email, type: type };
+  if (redirectTo) b.redirectTo = redirectTo;
+  await call(authBase() + '/otp', { body: b });
+  return true;
+}
+
+/* POST /email-otp/verify — redeems the 6-digit code.
+   Body: { email, code, remember_me? }; `code` is exactly 6 characters.
+   Returns { user, session } exactly like /token, so the session is adopted the same way.
+
+   Shape confirmed against the Postbase source
+   (apps/web/src/app/api/auth/v1/[projectId]/email-otp/verify/route.ts), NOT against the
+   live instance — no credentials were available where this was written. If the deployed
+   build differs, the mismatch surfaces as a 400 with the upstream body logged, which is
+   why the caller logs err.upstreamBody. */
+async function verifyEmailOtp(email, code, rememberMe) {
+  var b = { email: email, code: code };
+  if (rememberMe) b.remember_me = true;
+  var payload = await call(authBase() + '/email-otp/verify', { body: b });
+  return { user: readUser(payload, 'email-otp/verify'), session: readSession(payload, 'email-otp/verify') };
+}
+
 /* Identity resolution. GET /session on this instance returns 200 {"session":null} with
    no key and with a garbage token — it fails OPEN, so a 200 from it proves nothing.
    GET /user fails closed with 401, so all server-side identity is derived from here. */
@@ -207,6 +240,8 @@ module.exports = {
   signUp: signUp,
   signInPassword: signInPassword,
   signInGoogleIdToken: signInGoogleIdToken,
+  sendOtp: sendOtp,
+  verifyEmailOtp: verifyEmailOtp,
   refresh: refresh,
   getUser: getUser,
   signOut: signOut,

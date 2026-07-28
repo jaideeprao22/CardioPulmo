@@ -1646,7 +1646,7 @@ async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
     return {ok:false,reason:ins.error.message};
   }catch(e){console.warn('upload failed',e);return {ok:false,reason:(e&&e.message)||'unknown error'};}
 }
-function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if($('authBox'))$('authBox').style.display='block';if($('notLoggedBox'))$('notLoggedBox').style.display='none';cpLoadMine();if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
+function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if(typeof cpSyncVerifyBox==='function')cpSyncVerifyBox();if($('authBox'))$('authBox').style.display='block';if($('notLoggedBox'))$('notLoggedBox').style.display='none';cpLoadMine();if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
 async function cpLoadMine(){
   if(!sb||!sbUser){if($('myRecCard'))$('myRecCard').style.display='none';cpOutcomeSync();return;}
   if($('myRecCard'))$('myRecCard').style.display='block';
@@ -1813,7 +1813,7 @@ async function sbInit(){
   sb.auth.onAuthStateChange(function(_e,session){
     sbUser=session?session.user:null;
     if(sbUser){sbShowApp();sbMaybeProfile();}
-    else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';if($('myRecCard'))$('myRecCard').style.display='none';if($('outcomeCard'))$('outcomeCard').style.display='none';}
+    else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';if($('myRecCard'))$('myRecCard').style.display='none';if($('outcomeCard'))$('outcomeCard').style.display='none';if($('verifyBox'))$('verifyBox').style.display='none';}
   });
 }
 
@@ -1840,6 +1840,80 @@ if($('profileSave'))$('profileSave').onclick=async function(){
   if($('age')&&pfA){$('age').value=pfA;localStorage.setItem('cp_age',pfA);}
   if($('sex')&&pfS){var sv2=(pfS==='Male')?'M':(pfS==='Female')?'F':'';if(sv2){$('sex').value=sv2;localStorage.setItem('cp_sex',sv2);}}
   $('profileOverlay').style.display='none';
+};
+
+/* ===== Password reset, code sign-in, email verification =====
+   Postbase has no password-reset endpoint, so both paths here are built on its
+   magic-link and email-OTP primitives. Neither ever names an account: the reset lands on
+   set-password.html holding a session, and the code path keeps the address in an
+   HttpOnly cookie the browser cannot read. See api/_lib/routes/set-password.js. */
+function authMsg(t,bad){var e=$('authMsg');if(!e)return;e.textContent=t||'';e.style.color=bad?'#ff6b6b':'#2FBF8F';}
+
+if($('authForgot'))$('authForgot').onclick=async function(ev){
+  ev.preventDefault();
+  if(!sb)return;
+  var email=($('authEmail').value||'').trim();
+  if(!email||email.indexOf('@')<1){authMsg('Type your email address above first, then tap this.',true);return;}
+  authMsg('Sending…');
+  var r=await sb.auth.forgotPassword(email);
+  if(r.error){authMsg(r.error.message,true);return;}
+  /* Deliberately does not confirm the address exists — the server answers the same way
+     either way, and saying "we sent it" would leak what the server refused to. */
+  authMsg('If '+email+' has an account, a reset link is on its way. Open it on this device.');
+};
+
+async function authSendCode(email){
+  authMsg('Sending…');
+  var r=await sb.auth.sendOtp(email);
+  if(r.error){authMsg(r.error.message,true);return false;}
+  if($('authOtpBox'))$('authOtpBox').style.display='flex';
+  authMsg('If '+email+' has an account, a 6-digit code is on its way. Enter it here in this browser.');
+  return true;
+}
+if($('authOtpLink'))$('authOtpLink').onclick=async function(ev){
+  ev.preventDefault();
+  if(!sb)return;
+  var email=($('authEmail').value||'').trim();
+  if(!email||email.indexOf('@')<1){authMsg('Type your email address above first, then tap this.',true);return;}
+  await authSendCode(email);
+};
+if($('authOtpResend'))$('authOtpResend').onclick=async function(ev){
+  ev.preventDefault();
+  if(!sb)return;
+  var email=($('authEmail').value||'').trim();
+  if(!email){authMsg('Type your email address above first.',true);return;}
+  await authSendCode(email);
+};
+if($('authOtpVerify'))$('authOtpVerify').onclick=async function(){
+  if(!sb)return;
+  var code=($('authOtpCode').value||'').replace(/\s+/g,'');
+  if(!/^[0-9]{6}$/.test(code)){authMsg('Enter the 6-digit code from the email.',true);return;}
+  this.disabled=true;authMsg('Checking…');
+  var r=await sb.auth.verifyOtp(code);
+  this.disabled=false;
+  if(r.error){authMsg(r.error.message,true);return;}
+  /* onAuthStateChange closes the overlay and loads the dashboard. */
+  authMsg('');
+  if($('authOtpCode'))$('authOtpCode').value='';
+};
+
+/* Verification prompt, driven by the session's emailVerified flag. */
+function cpSyncVerifyBox(){
+  var box=$('verifyBox');if(!box)return;
+  box.style.display=(sbUser&&sbUser.emailVerified===false)?'block':'none';
+}
+if($('verifyBtn'))$('verifyBtn').onclick=async function(){
+  if(!sb||!sbUser)return;
+  var m=$('verifyMsg');this.disabled=true;
+  if(m){m.textContent='Sending…';m.style.color='';}
+  var r=await sb.auth.sendVerificationEmail();
+  this.disabled=false;
+  if(!m)return;
+  if(r.error){m.textContent=r.error.message;m.style.color='#ff6b6b';return;}
+  m.style.color='#2FBF8F';
+  m.textContent=(r.data&&r.data.alreadyVerified)
+    ?'✓ Already verified.'
+    :'✓ Sent — open the link in the email to finish verifying.';
 };
 
 /* ===== Google native sign-in (GSI) (no redirect page) =====

@@ -22,7 +22,12 @@ module.exports = http.guard(async function (req, res) {
      before this migration, when the auth.users trigger still existed. */
   await profile.ensureProfileSafe(user);
 
+  /* emailVerified drives the "Verify your email" prompt. Postbase's /signup sends no
+     verification mail, so every email/password account starts false. */
   http.ok(res, {
-    user: { id: user.id, email: user.email, name: user.name }
+    user: {
+      id: user.id, email: user.email, name: user.name,
+      emailVerified: !!user.emailVerified
+    }
   });
 });

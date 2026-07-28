@@ -22,7 +22,8 @@ var mime = require('./mime');
 var TABLES = Object.freeze({
   recordings: 'recordings',
   admins: 'admins',
-  profiles: 'profiles'
+  profiles: 'profiles',
+  users: 'users'
 });
 
 var TIMEOUT_MS = 20000;
@@ -230,7 +231,42 @@ async function adminDeleteUserData(targetUserId, adminUserId) {
   return { recordings: recs.length, profiles: profs.length };
 }
 
+/* ------------------------------------------------------------- password ---- */
+
+/* Set the password for ONE user, identified only by an id the caller proved out of a
+   session. Postbase has no password-reset endpoint — zero occurrences of reset, forgot or
+   recover anywhere in its source — so this is the whole mechanism.
+
+   Three things this signature enforces by construction:
+     - There is no variant that takes an email, so a reset can never be pointed at an
+       account by naming it. The id must come from a verified session.
+     - The password is a BOUND PARAMETER. It is never interpolated, never logged, never
+       returned. crypt()/gen_salt() run server-side in Postgres, so the plaintext exists
+       only in the parameter array for the life of the statement.
+     - RETURNING id proves a row was actually updated. Without it, an id that matches
+       nothing succeeds silently and the user is told their password changed when it did
+       not — which would lock them out of their own account with a cheerful message.
+
+   pgcrypto is already installed on this database; bf/10 matches what Postbase itself
+   writes at signup, so a password set here verifies through the normal /token path. */
+async function setUserPassword(userId, plaintext) {
+  if (!userId) throw httpError(500, 'Server error', 'setUserPassword requires a user id');
+  if (typeof plaintext !== 'string' || !plaintext) {
+    throw httpError(500, 'Server error', 'setUserPassword requires a password');
+  }
+  var rows = await run(
+    'UPDATE ' + TABLES.users + ' SET password_hash = crypt($1, gen_salt(\'bf\', 10)), ' +
+    'updated_at = now() WHERE id = $2 RETURNING id',
+    [plaintext, userId]
+  );
+  if (!rows.length) {
+    throw httpError(404, 'Could not update that account', 'password update matched no user row');
+  }
+  return { id: rows[0].id };
+}
+
 module.exports = {
+  setUserPassword: setUserPassword,
   insertRecordingWithAudio: insertRecordingWithAudio,
   writeRecordingAudio: writeRecordingAudio,
   readRecordingAudioForOwner: readRecordingAudioForOwner,

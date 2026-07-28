@@ -232,6 +232,35 @@
         method: 'POST', body: { credential: (args && args.token) || '', nonce: (args && args.nonce) || undefined }
       }), 'SIGNED_IN');
     },
+    /* --- password reset, code sign-in, email verification ---
+       Postbase has no reset endpoint; these are built on its magic-link and email-OTP
+       primitives, with the actual password write done server-side against the session.
+       See api/_lib/routes/set-password.js for why no target account is ever named. */
+
+    /* Always resolves 200 for a well-formed address, whether or not it is registered —
+       a different answer would let anyone test which emails have accounts. */
+    forgotPassword: async function (email) {
+      return await request(authUrl('forgot'), { method: 'POST', body: { email: email || '' } });
+    },
+    /* Sends a 6-digit code. The address is remembered server-side in an HttpOnly cookie,
+       so verifyOtp below takes only the code — the browser never names the account. */
+    sendOtp: async function (email) {
+      return await request(authUrl('otp-send'), { method: 'POST', body: { email: email || '' } });
+    },
+    verifyOtp: async function (code) {
+      return adopt(await request(authUrl('otp-verify'), {
+        method: 'POST', body: { code: code || '' }
+      }), 'SIGNED_IN');
+    },
+    /* Changes the password of whoever the session belongs to. There is deliberately no
+       parameter for which account — that absence is what stops this being a takeover. */
+    setPassword: async function (password) {
+      return await request(authUrl('set-password'), { method: 'POST', body: { password: password || '' } });
+    },
+    sendVerificationEmail: async function () {
+      return await request(authUrl('verify-email'), { method: 'POST', body: {} });
+    },
+
     signOut: async function () {
       var r = await request(authUrl('signout'), { method: 'POST' });
       currentUser = null;
