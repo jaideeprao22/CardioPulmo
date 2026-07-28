@@ -21,6 +21,11 @@ var otpCookie = require('../otp-cookie');
 module.exports = http.guard(async function (req, res) {
   if (!http.methodAllowed(req, res, ['POST'])) return;
 
+  /* DO NOT normalise this. Every other route runs client-supplied addresses through
+     ../email.js, but this one is not client-supplied: otp-send wrote the address AS
+     STORED into the cookie, precisely so the exact-matching upstream gets the exact
+     string the code was minted against. A legacy row stored as `Foo@bar.com` would be
+     lowercased into a miss, and the user's correct code would be rejected. */
   var email = otpCookie.read(req);
   if (!email) {
     return http.fail(res, 400, 'That code has expired, or was requested in a different browser — send a new one');

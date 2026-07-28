@@ -2,6 +2,7 @@
 var http = require('../http');
 var pb = require('../postbase');
 var sql = require('../sql');
+var emails = require('../email');
 var rl = require('../ratelimit');
 var otpCookie = require('../otp-cookie');
 
@@ -20,8 +21,8 @@ var otpCookie = require('../otp-cookie');
 module.exports = http.guard(async function (req, res) {
   if (!http.methodAllowed(req, res, ['POST'])) return;
 
-  var email = String(http.body(req).email || '').trim().toLowerCase();
-  if (!email || email.indexOf('@') < 1) return http.fail(res, 400, 'Enter a valid email address');
+  var email = emails.normalize(http.body(req).email);
+  if (!emails.looksLikeAddress(email)) return http.fail(res, 400, 'Enter a valid email address');
 
   var gate = rl.checkEmailAndIp(req, email);
   if (!gate.ok) {
@@ -32,16 +33,16 @@ module.exports = http.guard(async function (req, res) {
   /* Same gate as forgot, and for the same reason: /otp creates a user row for an unknown
      address, so calling it unauthenticated is an open account-creation endpoint. See
      routes/forgot.js for the full note, including the timing side-channel this leaves. */
-  var exists = false;
+  var account = null;
   try {
-    exists = await sql.userExistsByEmail(email);
+    account = await sql.findUserByEmail(email);
   } catch (e) {
     console.error('[api] otp-send: user lookup failed, not sending — ' + ((e && e.message) || e));
     otpCookie.set(res, email);
     return http.ok(res, { sent: true });
   }
 
-  if (!exists) {
+  if (!account) {
     /* Cookie is still set and the body is unchanged, so an unknown address is
        indistinguishable from a known one right through to the code-entry screen. */
     otpCookie.set(res, email);
@@ -49,7 +50,8 @@ module.exports = http.guard(async function (req, res) {
   }
 
   try {
-    await pb.sendOtp(email, 'otp');
+    /* Stored address, not the typed one — see routes/forgot.js. */
+    await pb.sendOtp(account.email, 'otp');
   } catch (e) {
     var status = e && e.upstreamStatus;
     if (status === 403) {
@@ -64,8 +66,9 @@ module.exports = http.guard(async function (req, res) {
       ((e && e.message) || 'no message') + ' — body: ' + ((e && e.upstreamBody) || '(empty)'));
   }
 
-  /* Set regardless of whether the send succeeded: the cookie says which address a code
-     WOULD have gone to, and setting it only on success would leak existence. */
-  otpCookie.set(res, email);
+  /* The CANONICAL address, so /email-otp/verify — which also matches exactly — is given
+     the same string the code was minted against. Set regardless of whether the send
+     succeeded: setting it only on success would leak existence. */
+  otpCookie.set(res, account.email);
   http.ok(res, { sent: true });
 });

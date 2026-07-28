@@ -391,10 +391,29 @@ So both `forgot` and `otp-send` look the address up first, through a parameteris
 **without calling `/otp` at all** when there is no account. No row created, no mail sent,
 response unchanged.
 
-Matched case-insensitively deliberately: if an address is ever stored with different
-casing from what the user types, an exact match would report "no such user" for a real
-account and silently stop their reset from ever arriving. That failure is far worse than
-the index this costs, and the table is small.
+Two halves, and **both** are needed — the first without the second is worse than no gate
+at all:
+
+1. **The lookup is case-insensitive.** An exact match would report "no such user" for a
+   real account stored as `Foo@bar.com` when its owner types `foo@bar.com`, silently
+   stopping their reset from ever arriving.
+2. **The address forwarded to `/otp` is the one read back out of the `email` column, never
+   the string the user typed.** Postbase matches EXACTLY. A case-insensitive gate that
+   forwards raw input finds the real account, then hands Postbase an address it does not
+   hold — so Postbase creates a **duplicate row** and mails the code to the empty one. The
+   user is then reset into an account containing none of their data. `findUserByEmail`
+   returns the row rather than a boolean specifically so this cannot be got wrong at the
+   call site.
+
+Addresses are normalised (trim + lowercase) at every edge that accepts one from a browser
+— signup, signin, forgot, otp-send — through the single helper in `api/_lib/email.js`, so
+rows created from now on are always lowercase and the mismatch stops arising for anything
+new. It still has to be handled, because existing rows predate that rule.
+
+`otp-verify` deliberately does **not** normalise: its address comes from the cookie
+`otp-send` wrote, which holds the canonical stored value. Lowercasing it there would turn
+a legacy `Foo@bar.com` into a miss and reject the user's correct code. The rule is
+*normalise input, preserve stored*, and both routes say so in comments.
 
 A lookup that *fails* deliberately does not fall through to the send. Guessing "probably
 exists" and calling `/otp` anyway is exactly the account creation the gate exists to

@@ -2,6 +2,7 @@
 var http = require('../http');
 var pb = require('../postbase');
 var sql = require('../sql');
+var emails = require('../email');
 var rl = require('../ratelimit');
 var origin = require('../origin');
 
@@ -24,9 +25,9 @@ var origin = require('../origin');
 module.exports = http.guard(async function (req, res) {
   if (!http.methodAllowed(req, res, ['POST'])) return;
 
-  var email = String(http.body(req).email || '').trim().toLowerCase();
+  var email = emails.normalize(http.body(req).email);
   /* A malformed address is a client error and reveals nothing about who is registered. */
-  if (!email || email.indexOf('@') < 1) return http.fail(res, 400, 'Enter a valid email address');
+  if (!emails.looksLikeAddress(email)) return http.fail(res, 400, 'Enter a valid email address');
 
   var gate = rl.checkEmailAndIp(req, email);
   if (!gate.ok) {
@@ -44,9 +45,9 @@ module.exports = http.guard(async function (req, res) {
      after a query plus an SMTP round trip. That is a weaker oracle than a body
      difference and strictly better than the account creation it replaces; noted in
      MIGRATION-PROGRESS.md rather than papered over. */
-  var exists = false;
+  var account = null;
   try {
-    exists = await sql.userExistsByEmail(email);
+    account = await sql.findUserByEmail(email);
   } catch (e) {
     /* Fail towards NOT sending. Guessing "probably exists" and calling /otp anyway is
        exactly the account creation this gate exists to prevent, so a lookup failure must
@@ -57,13 +58,16 @@ module.exports = http.guard(async function (req, res) {
     return http.ok(res, { sent: true });
   }
 
-  if (!exists) {
+  if (!account) {
     /* Identical body, no row created, no mail sent. */
     return http.ok(res, { sent: true });
   }
 
   try {
-    await pb.sendOtp(email, 'magic_link', origin.setPasswordUrl(req));
+    /* account.email, NOT the typed string. Postbase matches exactly, so forwarding what
+       the user typed would make it create a duplicate row for the differently-cased
+       address and mail the link to the empty one. */
+    await pb.sendOtp(account.email, 'magic_link', origin.setPasswordUrl(req));
   } catch (e) {
     var status = e && e.upstreamStatus;
     /* Distinct causes, distinctly reported — both are ours to fix, neither is the
