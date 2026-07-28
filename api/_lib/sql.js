@@ -231,6 +231,46 @@ async function adminDeleteUserData(targetUserId, adminUserId) {
   return { recordings: recs.length, profiles: profs.length };
 }
 
+/* ----------------------------------------------------------- user lookup ---- */
+
+/* Find an account by address, and return THE ADDRESS AS STORED.
+
+   This gate exists because Postbase's /otp auto-creates a user row for any address it
+   has not seen — it selects by email and INSERTs when absent. Calling it from an
+   unauthenticated route turns that route into an open account-creation endpoint: POST a
+   thousand addresses at "forgot password", get a thousand rows in `users`.
+
+   Two halves, and BOTH are needed:
+
+   1. The lookup is case-INSENSITIVE. An exact match would answer "no such user" for a
+      real account stored as `Foo@bar.com` when the owner types `foo@bar.com`, silently
+      stopping their reset from ever being sent.
+
+   2. It returns the stored `email` column, and that — never the typed string — is what
+      the caller forwards to /otp. Postbase matches EXACTLY. Finding the account
+      case-insensitively and then handing Postbase the user's raw input is worse than
+      having no gate at all: it locates the real account, then makes Postbase create a
+      duplicate row for the differently-cased address and mail the code to the empty one,
+      so the person is reset into an account that has none of their data.
+
+   Returning the id alone would make (2) impossible to get right at the call site, which
+   is why this returns the row rather than a boolean. */
+async function findUserByEmail(email) {
+  if (!email) return null;
+  var rows = await run(
+    'SELECT id, email FROM ' + TABLES.users + ' WHERE lower(email) = lower($1) LIMIT 1',
+    [String(email)]
+  );
+  if (!rows.length) return null;
+  if (!rows[0].email) {
+    /* A row with no address cannot be mailed, and forwarding the typed string instead is
+       the duplicate-creating mistake above. Refuse rather than improvise. */
+    console.error('[api] user ' + rows[0].id + ' has no email column value; not forwarding');
+    return null;
+  }
+  return { id: rows[0].id, email: rows[0].email };
+}
+
 /* ------------------------------------------------------------- password ---- */
 
 /* Set the password for ONE user, identified only by an id the caller proved out of a
@@ -266,6 +306,7 @@ async function setUserPassword(userId, plaintext) {
 }
 
 module.exports = {
+  findUserByEmail: findUserByEmail,
   setUserPassword: setUserPassword,
   insertRecordingWithAudio: insertRecordingWithAudio,
   writeRecordingAudio: writeRecordingAudio,

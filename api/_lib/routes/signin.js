@@ -3,6 +3,7 @@ var http = require('../http');
 var pb = require('../postbase');
 var session = require('../auth');
 var profile = require('../profile');
+var emails = require('../email');
 
 /* POST /api/auth?action=signin  { email, password }
    grant_type travels in the body; as a query parameter Postbase rejects it. */
@@ -10,7 +11,7 @@ module.exports = http.guard(async function (req, res) {
   if (!http.methodAllowed(req, res, ['POST'])) return;
 
   var b = http.body(req);
-  var email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
+  var email = emails.normalize(b.email);
   var password = typeof b.password === 'string' ? b.password : '';
   if (!email || !password) return http.fail(res, 400, 'Enter your email and password');
 

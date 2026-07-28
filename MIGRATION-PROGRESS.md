@@ -379,6 +379,57 @@ never logged, never echoed. `RETURNING id` proves a row was updated — without 
 matching nothing succeeds silently and the user is told their password changed when it did
 not, locking them out with a cheerful message.
 
+### /otp auto-creates users, so the address is checked first
+
+Postbase's `/otp` selects a user by email and **INSERTs one when absent**. Calling it
+straight from an unauthenticated route therefore does not merely send mail to a stranger —
+it makes that route an **open account-creation endpoint**. POST a thousand addresses at
+"forgot password", get a thousand rows in `users`.
+
+So both `forgot` and `otp-send` look the address up first, through a parameterised
+`SELECT id FROM users WHERE lower(email) = lower($1)`, and return the standard 200
+**without calling `/otp` at all** when there is no account. No row created, no mail sent,
+response unchanged.
+
+Two halves, and **both** are needed — the first without the second is worse than no gate
+at all:
+
+1. **The lookup is case-insensitive.** An exact match would report "no such user" for a
+   real account stored as `Foo@bar.com` when its owner types `foo@bar.com`, silently
+   stopping their reset from ever arriving.
+2. **The address forwarded to `/otp` is the one read back out of the `email` column, never
+   the string the user typed.** Postbase matches EXACTLY. A case-insensitive gate that
+   forwards raw input finds the real account, then hands Postbase an address it does not
+   hold — so Postbase creates a **duplicate row** and mails the code to the empty one. The
+   user is then reset into an account containing none of their data. `findUserByEmail`
+   returns the row rather than a boolean specifically so this cannot be got wrong at the
+   call site.
+
+Addresses are normalised (trim + lowercase) at every edge that accepts one from a browser
+— signup, signin, forgot, otp-send — through the single helper in `api/_lib/email.js`, so
+rows created from now on are always lowercase and the mismatch stops arising for anything
+new. It still has to be handled, because existing rows predate that rule.
+
+`otp-verify` deliberately does **not** normalise: its address comes from the cookie
+`otp-send` wrote, which holds the canonical stored value. Lowercasing it there would turn
+a legacy `Foo@bar.com` into a miss and reject the user's correct code. The rule is
+*normalise input, preserve stored*, and both routes say so in comments.
+
+A lookup that *fails* deliberately does not fall through to the send. Guessing "probably
+exists" and calling `/otp` anyway is exactly the account creation the gate exists to
+prevent. The cost is that resets stop working while the database is unreachable, which is
+why that path logs loudly rather than swallowing — a silent stop here is a user who never
+receives their email and cannot say why.
+
+**Residual: this leaves a timing side-channel.** A miss returns after one query; a hit
+returns after a query plus an SMTP round trip, which is measurably longer. The response
+body is identical, so this is a weaker oracle than a body difference, and it is strictly
+better than the account creation it replaces — but it is not nothing. Closing it properly
+means not awaiting the send (risky on a serverless runtime that may freeze the instance
+once the response is written, silently dropping the mail) or padding every response to a
+fixed floor (latency for everyone). Neither is obviously worth it at this scale; recorded
+so the choice is visible rather than accidental.
+
 ### Enumeration
 
 `forgot` and `otp-send` return a byte-identical 200 whether or not the address is
