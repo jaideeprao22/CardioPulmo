@@ -55,6 +55,12 @@ module.exports = http.guard(async function (req, res) {
     var b = http.body(req);
     var row = tables.pick(b, tables.WRITABLE.recordings);
 
+    /* `app` is the column the two apps sharing this lineage were split on, and all 107
+       existing rows carry 'cardiopulmo'. Set here rather than accepted from the body —
+       it is not in WRITABLE, so a client cannot stamp a row as another app's. Assigned
+       after pick() so both insert paths below inherit it. */
+    row.app = tables.APP;
+
     var audioB64 = typeof b.audio_base64 === 'string' ? b.audio_base64 : '';
 
     if (audioB64) {

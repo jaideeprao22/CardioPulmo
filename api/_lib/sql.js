@@ -92,12 +92,14 @@ async function insertRecordingWithAudio(ownerUserId, row, base64, mimeType) {
   var bytes = Buffer.byteLength(base64, 'base64');
   var rows = await run(
     'INSERT INTO ' + TABLES.recordings +
-    ' (user_id, module, zone, subject_code, audio_path, probability, verdict, extra,' +
+    ' (user_id, app, module, zone, subject_code, audio_path, probability, verdict, extra,' +
     '  audio, audio_bytes, audio_mime)' +
-    ' VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,decode($9,\'base64\'),$10,$11)' +
+    ' VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,decode($10,\'base64\'),$11,$12)' +
     ' RETURNING id, audio_bytes, octet_length(audio) AS actual_bytes',
     [
       ownerUserId,
+      /* Never taken from a request body — the caller sets it from a fixed constant. */
+      row.app || null,
       row.module || null,
       row.zone || null,
       row.subject_code || null,

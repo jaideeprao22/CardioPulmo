@@ -18,10 +18,15 @@ function freeze(o) {
   return Object.freeze(o);
 }
 
+/* Which app a recording belongs to. `recordings` shares its lineage with a sibling app
+   and `app` is the column the two were split on; every existing row here carries this
+   value. Deliberately a server-side constant, never a client-supplied field. */
+var APP = 'cardiopulmo';
+
 var SELECTABLE = freeze({
   profiles: ['id', 'full_name', 'age', 'sex', 'phone', 'role', 'email', 'height', 'weight',
              'smoker', 'condition', 'symptoms', 'consent', 'consent_at', 'created_at'],
-  recordings: ['id', 'user_id', 'module', 'zone', 'subject_code', 'audio_path',
+  recordings: ['id', 'user_id', 'app', 'module', 'zone', 'subject_code', 'audio_path',
                'probability', 'verdict', 'extra', 'created_at', 'audio_bytes', 'audio_mime'],
   feedback: ['id', 'user_id', 'module', 'rating', 'comment', 'context', 'subject_code', 'created_at'],
   af_validation: ['id', 'user_id', 'subject_code', 'app_af', 'rmssd_mean', 'shannon_entropy',
@@ -39,9 +44,10 @@ var SELECTABLE = freeze({
 var WRITABLE = freeze({
   profiles: ['full_name', 'age', 'sex', 'phone', 'role', 'email', 'height', 'weight',
              'smoker', 'condition', 'symptoms', 'consent', 'consent_at'],
-  /* audio_mime is NOT writable by a client: the type is derived from the bytes.
-     audio_path is kept writable only so the legacy column can still be set; new rows
-     leave it null because there is no bucket to point at. */
+  /* `app`, `user_id` and `audio_mime` are all absent by design: the first two are server
+     constants and the third is derived from the bytes. audio_path is kept writable only
+     so the legacy column can still be set; new rows leave it null because there is no
+     bucket to point at. */
   recordings: ['module', 'zone', 'subject_code', 'audio_path', 'probability', 'verdict', 'extra'],
   feedback: ['module', 'rating', 'comment', 'context', 'subject_code'],
   af_validation: ['subject_code', 'app_af', 'rmssd_mean', 'shannon_entropy', 'heart_rate', 'ecg_truth'],
@@ -93,6 +99,7 @@ function project(row, allowed) {
 }
 
 module.exports = {
+  APP: APP,
   SELECTABLE: SELECTABLE,
   WRITABLE: WRITABLE,
   ADMIN_PROFILE_FIELDS: ADMIN_PROFILE_FIELDS,

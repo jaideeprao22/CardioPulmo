@@ -64,7 +64,7 @@ configured on this instance — there is no bucket to write to and no `createSig
 to call. Audio is a `bytea` column on the recording row (`audio`, `audio_bytes`,
 `audio_mime`, all already present).
 
-- **Write** goes through `/api/db/sql` with `decode($9,'base64')`. Writing base64
+- **Write** goes through `/api/db/sql` with `decode($10,'base64')`. Writing base64
   through the structured `/api/db/query` endpoint stores the base64 **text**; the tell
   is `octet_length` at exactly 4/3 of the true size. The insert's `RETURNING` clause
   re-reads `octet_length` and deletes the row if it disagrees, so a bad write fails at
@@ -82,8 +82,13 @@ to call. Audio is a `bytea` column on the recording row (`audio`, `audio_bytes`,
 
 The old uploader hardcoded `path + '.wav'` and `contentType:'audio/wav'` for every clip
 regardless of what the recorder produced. That is how, in the sibling app's files, two
-recordings named `*.wav` turned out to hold `1a45dfa3` — WebM. These 107 files came from
-this app, so the same mislabel is in them.
+recordings named `*.wav` turned out to hold `1a45dfa3` — WebM.
+
+Checked since: **this app's own 107 files are all genuine WAV**, so the mislabel does not
+appear in this dataset. That does not make the rule optional. The uploader that produced
+it was this one, the sibling app's clips were made by the same code, and the admin ZIP
+export here was still naming every file `.wav` on the way out — so the mechanism was
+live in this repo even though the symptom happened to land in the other dataset.
 
 `api/_lib/mime.js` sniffs magic bytes (`1a45dfa3` → `audio/webm`, `RIFF` → `audio/wav`,
 plus Ogg / FLAC / MP4 / MPEG). It is applied in three places:
@@ -96,10 +101,18 @@ plus Ogg / FLAC / MP4 / MPEG). It is applied in three places:
 3. **On download and export** — the filename extension comes from the sniffed type. The
    admin ZIP export used to name every file `.wav`, which is the mistake being undone.
 
-The 107 legacy files are being loaded into `bytea` separately. `audio_path` is left
-intact, rows with no bytes are treated as audio-unavailable (`has_audio: false` — they
-still list, they just carry "no audio" instead of a broken play button), and there is
-**no fallback fetch to the old Supabase bucket**.
+The 107 legacy files were loaded into `bytea` separately, before this change. Verified
+state of that load: **107/107 with `audio_bytes = octet_length(audio)`, 107/107 with a
+RIFF header matching `audio/wav`, 0 rows missing bytes.** So CardioPulmo's own files are
+all genuine WAV — the `.wav`-named-but-actually-WebM clips are in the sibling app's set,
+not this one.
+
+The read-path rule still earns its keep for that cross-app case, and more importantly the
+export fix removes the mechanism rather than the symptom. `audio_path` is left intact,
+rows with no bytes are treated as audio-unavailable (`has_audio: false` — they still
+list, they just carry "no audio" instead of a broken play button; there are none today,
+but the path is exercised by the test suite), and there is **no fallback fetch to the old
+Supabase bucket**.
 
 ## Other contract differences handled
 
@@ -147,21 +160,22 @@ URL are gone from `app.js` and `admin.html`.
 
 ## Verified
 
-`/tmp` harness, 49 assertions against a stubbed Postbase (authorisation, ownership,
-token replay, integrity, MIME):
+Harness of 53 assertions against a stubbed Postbase (authorisation, ownership, token
+replay, integrity, MIME):
 
 - unauthenticated → 401; unknown resource → 404
 - `scope=all` → 403 for a non-admin on recordings, af_validation, profiles
 - `scope=mine` returns only the caller's rows
 - `user_id` and `id` in a request body are ignored; the session user is bound instead
-- insert uses `decode($9,'base64')` and declares the true byte length
+- insert uses `decode($10,'base64')` and declares the true byte length
+- both insert paths stamp `app='cardiopulmo'`, and a client-supplied `app` is ignored
 - a 4/3 `octet_length` mismatch refuses to serve
 - a row labelled `audio/wav` holding WebM bytes is served as `audio/webm`
 - a playback token replayed by another user → 403; a tampered token → 403
 - `sign` refuses a legacy row with no stored bytes rather than handing back a dead token
 - non-admin `app_settings` read → 200, write → 403, and the row is unchanged after
-- an `app_settings` column this project does not have is dropped, and the rest of the
-  save still lands (see "Open questions" below)
+- an `app_settings` column a deployment does not have is dropped, and the rest of the
+  save still lands
 - `tb-track` and `v_tb_training_set` do not exist as routes
 
 Syntax-checked: all 24 `api/**` modules, `pb-client.js`, `app.js`, and every inline
@@ -169,42 +183,47 @@ Syntax-checked: all 24 `api/**` modules, `pb-client.js`, `app.js`, and every inl
 
 ## Where the brief and the repo disagreed — repo won
 
-Four things, flagged rather than coded around:
+Four things, flagged rather than coded around. All four were since checked against the
+live schema; two were errors in the brief, and the two that were real are now fixed.
 
 1. **`vercel.json` did not exist here.** The brief said to keep
    `{"regions":["bom1"]}`; there was no such file in this repo. Created with exactly
    that content.
 
-2. **`app_settings` columns.** The brief lists CardioPulmo as reading `cardio_thr`,
-   `murmur_thr`, `lung_thr`, `crackle_thr`, `wheeze_thr`, `card_thr`, `eff_thr`,
-   `pneu_thr`, `cons_thr`, `nod_thr`, `ptx_thr`, `fib_thr`, `pth_thr`, `af_validation`,
-   `beep_vol`. The repo also reads and writes **`cough_delta`, `fet_cutoff`,
-   `sbct_cutoff`, `mpt_cutoff`, `tbcough_thr`, `tb_thr`** — `loadThresholds()` in
-   `app.js` names them explicitly and the admin dashboard has an input for each.
+2. **`app_settings` columns — resolved: all six exist, nothing removed.** The repo
+   reads and writes `cough_delta`, `fet_cutoff`, `sbct_cutoff`, `mpt_cutoff`,
+   `tbcough_thr` and `tb_thr` in addition to the cardio-side thresholds. Checked against
+   the live schema: **all six are present and the id=1 row has real values in every one**
+   (`cough_delta` 0.15, `fet_cutoff` 6, `sbct_cutoff` 25, `mpt_cutoff` 10,
+   `tbcough_thr` 0.6, `tb_thr` 0.5, `af_validation` false). `app_settings` is a shared
+   row carrying both apps' thresholds. Nothing is writing into the void; every admin
+   input stays.
 
-   I could not probe the database (no credentials in this environment), so rather than
-   guess which set is real, `routes/app-settings.js` **reads the row without naming any
-   columns** and projects the result onto the allowlist. Naming a column the table does
-   not have would fail the whole `SELECT` and take every threshold down, not just the
-   missing one. Writes are filtered the same way against the row that exists, so a
-   threshold with no column is dropped and logged while the rest of the save lands.
+   `routes/app-settings.js` still **reads the row without naming any columns** and
+   projects onto the allowlist, and still drops absent columns on write. That is not
+   load-bearing today, but naming a column the table lacks would fail the whole `SELECT`
+   and take every threshold down rather than just the missing one — a failure mode worth
+   designing out and keeping designed out.
 
-   **Please confirm** which of those six columns exist. If they are absent, six admin
-   inputs are writing into the void (silently, by design) and should be removed from
-   `admin.html`.
-
-3. **`app_settings.af_validation` is not wired to anything in this app.** The brief says
+3. **`app_settings.af_validation` is not wired to anything in this app** (confirmed,
+   left as is). The brief says
    CardioPulmo reads it. It does not: the AF validation toggle in `admin.html` writes
    `cp_valmode` to **localStorage**, and `cpValOn()` in `app.js` reads it back from
    localStorage. So the switch is per-device, not global — an admin turning it on does
    not turn it on for field users. The column stays in the allowlist so it can be wired
    up, but I did not change the behaviour, since that is a product decision.
 
-4. **`recordings` columns.** TB FIRST's table carries `app`, `subject_age` and
-   `subject_sex`. Nothing in this repo reads or writes any of the three, and I could not
-   confirm they exist in this project's schema, so the insert does not name them. If
-   they do exist and rows should be stamped `app='cardiopulmo'`, that is a one-line
-   change in `api/_lib/sql.js` — say the word.
+4. **`recordings` columns — resolved: `app` is now stamped.** All three of `app`,
+   `subject_age` and `subject_sex` exist. All 107 existing rows carry
+   `app = 'cardiopulmo'`; `subject_age` and `subject_sex` are populated on **zero** of
+   them.
+
+   So new rows are stamped `app = 'cardiopulmo'` on both insert paths (with audio and
+   metadata-only), from the `tables.APP` constant. `app` is deliberately **not** in the
+   writable allowlist, so a client cannot stamp a row as the sibling app's — the value is
+   assigned server-side after the body is filtered. `subject_age` and `subject_sex` are
+   left alone: nothing has ever written them, and inventing a writer for them is not this
+   migration's job.
 
 ## Files
 
