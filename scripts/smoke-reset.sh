@@ -9,7 +9,12 @@
 # (Vercel → Project → Settings → Deployment Protection → Protection Bypass for Automation)
 #
 # This exercises everything up to the point mail is sent. The click-through needs a real
-# inbox, so the last two steps are manual and listed at the end.
+# inbox, so the last steps are manual and listed at the end.
+#
+# NOTE ON RE-RUNNING: sends are rate-limited to 3 per address per 15 minutes, and this
+# script spends two of them on the address you pass. Run it twice in quick succession and
+# the known-address checks will be rate-limited — reported as SKIP, not FAIL, with the
+# remaining window. Use a different registered address, or wait it out.
 
 set -u
 BASE="${BASE:-}"
@@ -38,12 +43,33 @@ echo
 echo "== forgot-password =="
 c=$(code -X POST "$BASE/api/auth?action=forgot" -d "{\"email\":\"$EMAIL\"}")
 known_body=$(body)
-chk "known address -> 200" 200 "$c" "$known_body"
+known_429=no
+if [ "$c" = "429" ]; then
+  # The per-address limit is 3 / 15 min, so a recent run (or a manual probe) spends it.
+  # That is the limiter working, not a defect — report it as SKIP rather than a failure
+  # you would waste time chasing, and say how long the window has left.
+  ra=$(curl -s -D - -o /dev/null "${H[@]}" -X POST "$BASE/api/auth?action=forgot" \
+        -d "{\"email\":\"$EMAIL\"}" | tr -d '\r' | awk 'tolower($1)=="retry-after:"{print $2}')
+  printf 'SKIP  known address -> 200  (rate-limited from an earlier run; ~%ss left in the window)\n' "${ra:-?}"
+  known_429=yes
+else
+  chk "known address -> 200" 200 "$c" "$known_body"
+fi
 
 c=$(code -X POST "$BASE/api/auth?action=forgot" -d '{"email":"definitely-not-a-user-9f3a@example.invalid"}')
 unknown_body=$(body)
 chk "unknown address -> 200" 200 "$c" "$unknown_body"
-chk "responses are byte-identical (no enumeration oracle)" "$known_body" "$unknown_body"
+if [ "$known_429" = yes ]; then
+  printf 'SKIP  responses are byte-identical  (needs a non-rate-limited known address)\n'
+else
+  chk "responses are byte-identical (no enumeration oracle)" "$known_body" "$unknown_body"
+fi
+
+# The gate added in PR #6: an address with no account must not reach /otp, because
+# /otp INSERTs a user row for anything it has not seen. Externally the tell is that the
+# body is unchanged — the absence of the row is asserted in the offline suite.
+c=$(code -X POST "$BASE/api/auth?action=forgot" -d '{"email":"gate-probe-5c7d@example.invalid"}')
+chk "an unknown address is answered without creating anything" 200 "$c" "$(body)"
 
 c=$(code -X POST "$BASE/api/auth?action=forgot" -d '{"email":"not-an-email"}')
 chk "malformed address -> 400" 400 "$c" "$(body)"
@@ -59,7 +85,11 @@ chk "no session, naming a victim -> still 401" 401 "$c" "$(body)"
 echo
 echo "== email OTP =="
 c=$(code -X POST "$BASE/api/auth?action=otp-send" -d "{\"email\":\"$EMAIL\"}")
-chk "otp-send -> 200" 200 "$c" "$(body)"
+if [ "$c" = "429" ]; then
+  printf 'SKIP  otp-send -> 200  (shares the per-address send budget with forgot above)\n'
+else
+  chk "otp-send -> 200" 200 "$c" "$(body)"
+fi
 c=$(code -X POST "$BASE/api/auth?action=otp-verify" -d '{"code":"000000"}')
 chk "otp-verify with no address cookie -> 400" 400 "$c" "$(body)"
 c=$(code -X POST "$BASE/api/auth?action=otp-verify" -d '{"code":"abc"}')
