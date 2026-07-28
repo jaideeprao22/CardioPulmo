@@ -1,6 +1,7 @@
 'use strict';
 var http = require('../http');
 var pb = require('../postbase');
+var sql = require('../sql');
 var rl = require('../ratelimit');
 var otpCookie = require('../otp-cookie');
 
@@ -26,6 +27,25 @@ module.exports = http.guard(async function (req, res) {
   if (!gate.ok) {
     res.setHeader('Retry-After', String(gate.retryAfter));
     return http.fail(res, 429, 'Too many requests — wait a few minutes and try again');
+  }
+
+  /* Same gate as forgot, and for the same reason: /otp creates a user row for an unknown
+     address, so calling it unauthenticated is an open account-creation endpoint. See
+     routes/forgot.js for the full note, including the timing side-channel this leaves. */
+  var exists = false;
+  try {
+    exists = await sql.userExistsByEmail(email);
+  } catch (e) {
+    console.error('[api] otp-send: user lookup failed, not sending — ' + ((e && e.message) || e));
+    otpCookie.set(res, email);
+    return http.ok(res, { sent: true });
+  }
+
+  if (!exists) {
+    /* Cookie is still set and the body is unchanged, so an unknown address is
+       indistinguishable from a known one right through to the code-entry screen. */
+    otpCookie.set(res, email);
+    return http.ok(res, { sent: true });
   }
 
   try {

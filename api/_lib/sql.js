@@ -231,6 +231,29 @@ async function adminDeleteUserData(targetUserId, adminUserId) {
   return { recordings: recs.length, profiles: profs.length };
 }
 
+/* ----------------------------------------------------------- user lookup ---- */
+
+/* Does an account exist for this address?
+
+   This gate exists because Postbase's /otp AUTO-CREATES a user row for any address it
+   has not seen — it selects by email and INSERTs when absent. Calling it from an
+   unauthenticated route therefore turns that route into an open account-creation
+   endpoint: anyone could POST a thousand addresses at "forgot password" and get a
+   thousand rows in `users`. Checking first is what stops it.
+
+   Matched case-insensitively on purpose. If Postbase ever stores an address with
+   different casing from what the user types, an exact match would answer "no such user"
+   for a real account and silently stop their reset from ever being sent — a far worse
+   failure than the index this costs. The table is small. */
+async function userExistsByEmail(email) {
+  if (!email) return false;
+  var rows = await run(
+    'SELECT id FROM ' + TABLES.users + ' WHERE lower(email) = lower($1) LIMIT 1',
+    [String(email)]
+  );
+  return rows.length > 0;
+}
+
 /* ------------------------------------------------------------- password ---- */
 
 /* Set the password for ONE user, identified only by an id the caller proved out of a
@@ -266,6 +289,7 @@ async function setUserPassword(userId, plaintext) {
 }
 
 module.exports = {
+  userExistsByEmail: userExistsByEmail,
   setUserPassword: setUserPassword,
   insertRecordingWithAudio: insertRecordingWithAudio,
   writeRecordingAudio: writeRecordingAudio,

@@ -379,6 +379,38 @@ never logged, never echoed. `RETURNING id` proves a row was updated — without 
 matching nothing succeeds silently and the user is told their password changed when it did
 not, locking them out with a cheerful message.
 
+### /otp auto-creates users, so the address is checked first
+
+Postbase's `/otp` selects a user by email and **INSERTs one when absent**. Calling it
+straight from an unauthenticated route therefore does not merely send mail to a stranger —
+it makes that route an **open account-creation endpoint**. POST a thousand addresses at
+"forgot password", get a thousand rows in `users`.
+
+So both `forgot` and `otp-send` look the address up first, through a parameterised
+`SELECT id FROM users WHERE lower(email) = lower($1)`, and return the standard 200
+**without calling `/otp` at all** when there is no account. No row created, no mail sent,
+response unchanged.
+
+Matched case-insensitively deliberately: if an address is ever stored with different
+casing from what the user types, an exact match would report "no such user" for a real
+account and silently stop their reset from ever arriving. That failure is far worse than
+the index this costs, and the table is small.
+
+A lookup that *fails* deliberately does not fall through to the send. Guessing "probably
+exists" and calling `/otp` anyway is exactly the account creation the gate exists to
+prevent. The cost is that resets stop working while the database is unreachable, which is
+why that path logs loudly rather than swallowing — a silent stop here is a user who never
+receives their email and cannot say why.
+
+**Residual: this leaves a timing side-channel.** A miss returns after one query; a hit
+returns after a query plus an SMTP round trip, which is measurably longer. The response
+body is identical, so this is a weaker oracle than a body difference, and it is strictly
+better than the account creation it replaces — but it is not nothing. Closing it properly
+means not awaiting the send (risky on a serverless runtime that may freeze the instance
+once the response is written, silently dropping the mail) or padding every response to a
+fixed floor (latency for everyone). Neither is obviously worth it at this scale; recorded
+so the choice is visible rather than accidental.
+
 ### Enumeration
 
 `forgot` and `otp-send` return a byte-identical 200 whether or not the address is
