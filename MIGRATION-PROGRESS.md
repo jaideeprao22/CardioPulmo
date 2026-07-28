@@ -114,6 +114,67 @@ list, they just carry "no audio" instead of a broken play button; there are none
 but the path is exercised by the test suite), and there is **no fallback fetch to the old
 Supabase bucket**.
 
+## Cough acoustic (`tbcough`) — the module that never saved
+
+Separate from the migration, found while tracing a reported bug and fixed here.
+
+CardioPulmo's `tbStopRec()` had **no save call at all**. The WAV it built had one
+consumer — the `FormData` posted to the Hugging Face inference endpoint — and once the
+result card rendered, the function returned and the audio was discarded. That is why
+`recordings` holds zero rows with `module='tbcough'` across the app's entire history,
+Supabase era included: not a migration regression, not a mislabel, not an API or auth
+problem. The browser never had code that could issue the write.
+
+For comparison, in the same file `pcStopRec` reaches `uploadRecording('cardioscope',…)`
+and `lgStopRec` reaches `uploadRecording('pulmoscope',…)`. Those were the only two
+modules wired to the save path; cough acoustic is now the third.
+
+The sibling app's equivalent routes through an offline queue (`cpStoreOpus` →
+`cpQueueUpload`). **None of that infrastructure exists here** — CardioPulmo has no
+offline queue — so the fix uses this repo's own path, `uploadRecording`, exactly as the
+heart and lung modules do.
+
+Three decisions carried across from the sibling implementation, each for a reason:
+
+- **Stored before inference, and independently of it.** The HF Space going to sleep is a
+  routine state in this module — there is a wake link in the UI for it. A sleeping Space
+  must not cost a clip. This also matches what `pcUploadSafe` already does for
+  cardioscope, which saves even on `processing_error` with a null probability.
+- **16 kHz (`TBC_SR`, the model's native rate) and NOT peak-normalised** —
+  `makeSmallWav`, not `makeSmallWavNorm`. Normalising at capture destroys device-gain
+  information irreversibly; it can be done at train time, but it cannot be undone.
+- **No probability and no verdict are written.** Those are the model's own output. A
+  pseudo-label stored in the column that means "the answer" is how a model gets retrained
+  on its own bias. `extra` carries provenance only — `dur_sec`, `sr`, `codec`,
+  `normalised` — never a prediction.
+
+### Open: these clips have no label source in this app
+
+The sibling app withholds the pseudo-label because it has a real one to join to —
+`tb_track.sputum_result`, on `subject_code`. **`tb_track` does not exist in CardioPulmo**
+and was deliberately not migrated.
+
+So cough clips saved here are, as of today, an unlabelled corpus: the audio and its
+`subject_code`, and nothing that says what the subject actually had. That is still
+strictly better than discarding them, and storing the model's own score instead would be
+worse than useless. But before these clips are used for training, a label source has to
+exist. Options, none of them chosen here:
+
+1. a labels table in this project keyed on `subject_code`;
+2. an export joined against the sibling app's `tb_track` where subject codes overlap;
+3. clinician adjudication captured through the app.
+
+Worth settling before the corpus grows, because a subject code that is not resolvable to
+an outcome later is not resolvable at all.
+
+### Not touched
+
+Percussion and the other measurement modules (cough counter, resp rate, FET, breath
+count, MPT) do not save audio, which is intentional — they keep a scalar and the audio is
+an intermediate. One module, `lungtype` (`ltStopRec`), is structurally identical to cough
+acoustic — an acoustic classifier with a probability, an offline TF.js fallback and a
+threshold verdict — and also saves nothing. Flagged, not changed.
+
 ## Other contract differences handled
 
 - Responses are camelCase — `accessToken` / `refreshToken` / `expiresAt` / `metadata`.

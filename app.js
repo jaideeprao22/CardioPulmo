@@ -2297,7 +2297,12 @@ async function cwOffline(s,fs){
 /* ===================== COUGH ACOUSTIC (/tbcough + offline TF.js) ===================== */
 var tbArmed=false;
 var tbRunning=false,tbStream=null,tbCtx=null,tbProc=null,tbZg=null,tbBuf=[],tbSr=16000,tbTimer=null,tbLeft=6;
-function tbSt(m){var e=$('tbStatus');if(e)e.textContent=m;}
+/* The clip is saved in parallel with inference, so either can finish first. Both write to
+   the same status line, so the save note is kept separate and re-applied rather than
+   overwriting whatever the analysis last said. */
+var tbLastMsg='',tbSaveNote='';
+function tbSt(m){tbLastMsg=m;var e=$('tbStatus');if(e)e.textContent=m+tbSaveNote;}
+function tbSaveSt(note){tbSaveNote=note||'';tbSt(tbLastMsg);}
 var TBC_SR=16000,TBC_NFFT=1024,TBC_HOP=256,TBC_NMEL=128,TBC_NB=513,TBC_TW=128,TBC_WINN=32000;
 var TBC_HANN=new Float32Array(TBC_NFFT);for(var _tn=0;_tn<TBC_NFFT;_tn++)TBC_HANN[_tn]=0.5-0.5*Math.cos(2*Math.PI*_tn/TBC_NFFT);
 var tbcModel=null,tbcMel=null,tbcLoading=null;
@@ -2353,6 +2358,7 @@ async function tbcOffline(s,fs){
 $('tbRec').onclick=function(){
   if(tbRunning)return;
   $('tbResCard').style.display='none';(function(){var w=$('tbWake');if(w)w.style.display='none';})();
+  tbSaveNote='';                       // a previous run's save warning must not follow this one
   $('tbRec').style.display='none';$('tbStop').disabled=false;tbSt('Get ready\u2026');
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}}).then(function(stream){
     tbRunning=true;tbArmed=false;tbStream=stream;tbCtx=new (window.AudioContext||window.webkitAudioContext)();tbSr=tbCtx.sampleRate;tbBuf=[];
@@ -2379,6 +2385,29 @@ function tbStopRec(){tbArmed=false;setTimeout(cpBeepDone,350);
   if(n<tbSr){tbSt('Too short \u2014 try again, cough clearly.');try{tbCtx.close();}catch(e){}return;}
   var s=new Float32Array(n),o=0;tbBuf.forEach(function(b){s.set(b,o);o+=b.length;});try{tbCtx.close();}catch(e){}
   var wav=encodeWAV(s,tbSr);
+
+  /* TRAINING CORPUS: store the cough BEFORE any inference, and independently of it. This
+     module had no save call at all until now, so every cough it has ever recorded was
+     discarded. The HF Space going to sleep is a routine state here — there is a wake link
+     in the UI for it — and a sleeping Space must never cost us the clip.
+
+     Stored at TBC_SR (16 kHz, the model's native rate) and deliberately NOT peak-normalised:
+     makeSmallWav, not makeSmallWavNorm. Normalising at capture destroys device-gain
+     information irreversibly, and that can be done at train time instead.
+
+     No probability and no verdict are written. Those would be the model's OWN output, and a
+     pseudo-label stored in the column that means "the answer" is how a model gets retrained
+     on its own bias. `extra` carries provenance only — duration, rate, codec — never a
+     prediction. See MIGRATION-PROGRESS.md for where the real label has to come from. */
+  var tbDur=Math.round(s.length/tbSr*10)/10;
+  uploadRecording('tbcough',null,makeSmallWav(s,tbSr,TBC_SR),null,null,
+    {dur_sec:tbDur,sr:TBC_SR,codec:'wav',normalised:false})
+    .then(function(r){
+      if(!r.ok)tbSaveSt(' · ⚠ clip not saved — '+r.reason);
+      else if(r.reason)tbSaveSt(' · ⚠ '+r.reason);
+    })
+    .catch(function(e){tbSaveSt(' · ⚠ clip not saved — '+((e&&e.message)||'unknown error'));});
+
   (async function(){
     try{await loadThresholds();}catch(e){}
     var res=null;
