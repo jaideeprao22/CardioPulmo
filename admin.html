@@ -61,6 +61,7 @@ audio{height:34px;vertical-align:middle}
     <div><div class="stat" id="stRecs">—</div><div class="statl">Recordings</div></div>
     <div><div class="stat" id="stPos">—</div><div class="statl">Flagged abnormal</div></div>
     <div><div class="stat" id="stSize">—</div><div class="statl">Audio files</div></div>
+    <div><div class="stat" id="stLabelled">—</div><div class="statl">With a confirmed result</div></div>
   </div>
 
   <div class="card">
@@ -71,7 +72,7 @@ audio{height:34px;vertical-align:middle}
         <button class="primary" id="expZip">⬇ All audio + labels (ZIP)</button>
       </div>
     </div>
-    <div class="mut" style="font-size:11px;margin-top:6px" id="expNote">CSV = one row per recording with labels. ZIP = every audio file + a labels.csv inside, ready for training.</div>
+    <div class="mut" style="font-size:11px;margin-top:6px" id="expNote">CSV = one row per recording, with the subject's confirmed reference-test result joined on where one has been entered. ZIP = every audio file + that same labels.csv inside. Rows with an empty outcome_result are unlabelled — nothing is inferred or backfilled.</div>
   </div>
 
   <div class="card">
@@ -183,7 +184,32 @@ const GOOGLE_CLIENT_ID='533637534015-8eob9q94fecugvf6d4rm41hnc1fd6f4u.apps.googl
    session is an HttpOnly cookie and every privileged read is re-authorised server-side
    against the admins table. Gating the UI below is a convenience, not the control. */
 const sb=window.pb;
-let recs=[],profs={},profList=[],fbs=[];
+let recs=[],profs={},profList=[],fbs=[],outs=[],outIdx={};
+
+/* Ground truth, keyed on user_id + subject_code — NOT on subject_code alone.
+   Subject codes come from a per-device counter, so 'U001' exists for every user who
+   has ever run the app. Joining on the code by itself would attach one user's lab
+   result to another user's recording, which is worse than having no outcome at all. */
+function outKey(userId,code){return String(userId)+'\u0000'+String(code||'').trim();}
+function buildOutcomeIndex(){
+  outIdx={};
+  (outs||[]).forEach(function(o){
+    var k=outKey(o.user_id,o.subject_code);
+    (outIdx[k]=outIdx[k]||[]).push(o);
+  });
+  Object.keys(outIdx).forEach(function(k){
+    outIdx[k].sort(function(a,b){return String(b.tested_on||b.created_at||'').localeCompare(String(a.tested_on||a.created_at||''));});
+  });
+}
+/* Prefer an outcome recorded against this specific module; otherwise the most recent
+   module-agnostic one. Never guess across subjects. */
+function outcomeFor(r){
+  var all=outIdx[outKey(r.user_id,r.subject_code)]||[];
+  if(!all.length)return {row:null,count:0};
+  var exact=all.filter(function(o){return o.module&&r.module&&o.module===r.module;});
+  var loose=all.filter(function(o){return !o.module;});
+  return {row:exact[0]||loose[0]||all[0],count:all.length};
+}
 
 /* ---------- auth ---------- */
 $('loginBtn').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value});if(error)$('msg').textContent=error.message;};
@@ -213,6 +239,7 @@ async function loadAll(){
   const {data:rc}=await sb.from('recordings').select('*').order('created_at',{ascending:false});
   recs=rc||[];
   try{const {data:fb}=await sb.from('feedback').select('*').order('created_at',{ascending:false});fbs=fb||[];}catch(e){fbs=[];}
+  try{const {data:oc}=await sb.from('outcomes').select('*');outs=oc||[];buildOutcomeIndex();}catch(e){outs=[];outIdx={};}
   try{const {data:st,error:stErr}=await sb.from('app_settings').select('*').eq('id',1).maybeSingle();
     if(stErr){var _m=$('setMsg');if(_m){_m.style.color='#ff6b6b';_m.textContent='Load error: '+stErr.message;}console.error('app_settings load',stErr);}
     if(st && st.beep_vol===undefined){var _m2=$('setMsg');if(_m2){_m2.style.color='#ff6b6b';_m2.textContent='Column beep_vol is MISSING — run the ALTER TABLE SQL.';}}
@@ -264,6 +291,8 @@ function renderStats(){
   $('stRecs').textContent=recs.length;
   $('stPos').textContent=recs.filter(r=>r.verdict&&/pos|abnormal/i.test(r.verdict)).length;
   $('stSize').textContent=recs.filter(r=>r.has_audio).length;
+  var lab=recs.filter(function(r){return outcomeFor(r).row;}).length;
+  var st=$('stLabelled');if(st)st.textContent=lab+' / '+recs.length;
 }
 function fmtDate(s){try{return new Date(s).toLocaleString();}catch(e){return s;}}
 function uname(id){var p=profs[id];return p?(p.full_name||'(no name)'):'(unknown)';}
@@ -355,7 +384,7 @@ async function editUser(p){
   loadAll();
 }
 async function delUser(p){
-  if(!confirm('Delete ALL recordings + profile for '+(p.full_name||p.email||p.id)+'? This cannot be undone.\\n\\n(Their login account itself is managed in Postbase and is not removed here.)'))return;
+  if(!confirm('Delete ALL recordings + profile for '+(p.full_name||p.email||p.id)+'? This cannot be undone.\n\n(Their login account itself is managed in Postbase and is not removed here.)'))return;
   /* One admin-only server call removes the recordings and the profile together, and the
      clips go with the rows. */
   var {error}=await sb.from('profiles').delete().eq('user_id',p.id);
@@ -363,20 +392,21 @@ async function delUser(p){
   loadAll();
 }
 $('addUserBtn').onclick=function(){
-  alert('To add a login account:\\n\\nShare the app link — the person signs up themselves with email and password (or Google, once it is enabled).\\n\\nThis dashboard manages their data and recordings, not their login. Note there is no password reset: a forgotten password needs a new account.');
+  alert('To add a login account:\n\nShare the app link — the person signs up themselves with email and password (or Google, once it is enabled).\n\nThis dashboard manages their data and recordings, not their login. Note there is no password reset: a forgotten password needs a new account.');
 };
 
 /* ---------- export ---------- */
 function csvCell(v){v=(v==null?'':String(v));return '"'+v.replace(/"/g,'""')+'"';}
 function buildCsv(){
-  var head=['id','datetime','patient_code','user_name','user_email','user_age','user_sex','module','zone','bpm','rhythm','confidence','signal_quality','probability','verdict','audio_path','audio_mime','audio_in_app'];
+  var head=['id','datetime','patient_code','user_name','user_email','user_age','user_sex','module','zone','bpm','rhythm','confidence','signal_quality','probability','verdict','audio_path','audio_mime','audio_in_app','outcome_reference_test','outcome_result','outcome_result_detail','outcome_tested_on','outcome_module','outcomes_on_record'];
   var lines=[head.join(',')];
   recs.forEach(function(r){
     var p=profs[r.user_id]||{};
     var ex=r.extra||{};if(typeof ex==='string'){try{ex=JSON.parse(ex);}catch(e){ex={};}}
-    lines.push([r.id,r.created_at,r.subject_code,uname(r.user_id),uemail(r.user_id),p.age||'',p.sex||'',r.module,r.zone,(ex.bpm!=null?ex.bpm:''),ex.rhythm||'',(ex.confidence!=null?ex.confidence:''),ex.signal_quality||ex.quality||'',(r.probability!=null?r.probability:''),r.verdict,r.audio_path,r.audio_mime||'',(r.has_audio?'yes':'no')].map(csvCell).join(','));
+    var oc=outcomeFor(r),o=oc.row||{};
+    lines.push([r.id,r.created_at,r.subject_code,uname(r.user_id),uemail(r.user_id),p.age||'',p.sex||'',r.module,r.zone,(ex.bpm!=null?ex.bpm:''),ex.rhythm||'',(ex.confidence!=null?ex.confidence:''),ex.signal_quality||ex.quality||'',(r.probability!=null?r.probability:''),r.verdict,r.audio_path,r.audio_mime||'',(r.has_audio?'yes':'no'),o.reference_test||'',o.result||'',o.result_detail||'',o.tested_on||'',o.module||'',oc.count].map(csvCell).join(','));
   });
-  return lines.join('\\n');
+  return lines.join('\n');   // real newline: this was a literal \n, so every export was one line
 }
 $('expCsv').onclick=function(){
   var blob=new Blob([buildCsv()],{type:'text/csv'});
@@ -388,7 +418,7 @@ $('expCsv').onclick=function(){
 var ZIP_EXT={'audio/wav':'.wav','audio/webm':'.webm','audio/ogg':'.ogg','audio/flac':'.flac','audio/mp4':'.m4a','audio/mpeg':'.mp3'};
 $('expZip').onclick=async function(){
   var withAudio=recs.filter(function(r){return r.has_audio;});
-  if(!withAudio.length){alert('No audio to export.\\n\\nRows recorded before the app stored audio itself keep their old audio_path, but those bytes are not in the app.');return;}
+  if(!withAudio.length){alert('No audio to export.\n\nRows recorded before the app stored audio itself keep their old audio_path, but those bytes are not in the app.');return;}
   if(!confirm('Export '+withAudio.length+' audio files + labels.csv as a ZIP? Large sets take a while.'))return;
   var btn=$('expZip');btn.disabled=true;
   var zip=new JSZip();var folder=zip.folder('audio');

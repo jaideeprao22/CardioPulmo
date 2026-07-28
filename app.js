@@ -1648,8 +1648,9 @@ async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
 }
 function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if($('authBox'))$('authBox').style.display='block';if($('notLoggedBox'))$('notLoggedBox').style.display='none';cpLoadMine();if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
 async function cpLoadMine(){
-  if(!sb||!sbUser){if($('myRecCard'))$('myRecCard').style.display='none';return;}
+  if(!sb||!sbUser){if($('myRecCard'))$('myRecCard').style.display='none';cpOutcomeSync();return;}
   if($('myRecCard'))$('myRecCard').style.display='block';
+  cpOutcomeSync();
   var body=$('myRecBody');if(!body)return;
   body.innerHTML='<span class="note">Loading…</span>';
   try{
@@ -1707,6 +1708,89 @@ async function cpDeleteMine(id){
   /* Audio lives on the row, so deleting the row takes the clip with it. */
   try{await sb.from('recordings').delete().eq('id',id);cpLoadMine();}catch(e){}
 }
+
+/* ===== GROUND TRUTH =========================================================
+   A recording stores what the app thought. An outcome row stores what a reference
+   test actually found. The join between them, on (user_id, subject_code), is the
+   only thing that makes the stored audio trainable — without it the corpus is just
+   sound files.
+
+   Subject codes are generated per device from a local counter, so 'U001' exists on
+   every phone that has ever run this app. The code alone is NOT a key. The server
+   scopes every read and write to the session user, which is what makes the pair
+   unique; nothing here should ever join on subject_code by itself.
+
+   Nothing is backfilled and nothing is inferred. A row appears here only because a
+   person typed a real result. */
+var OUT_RESULTS={positive:'Positive / abnormal',negative:'Negative / normal',indeterminate:'Indeterminate'};
+function cpEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function cpOutToday(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function cpOutMsg(t,bad){var e=$('outMsg');if(!e)return;e.textContent=t||'';e.style.color=bad?'#ff6b6b':'#2FBF8F';}
+
+/* Show the card only when signed in, and prefill the subject code from the one on
+   screen. Typing the code by hand is the single easiest way to orphan a result from
+   the recordings it belongs to, so the prefill is the main correctness feature here. */
+function cpOutcomeSync(){
+  var card=$('outcomeCard');if(!card)return;
+  if(!sb||!sbUser){card.style.display='none';return;}
+  card.style.display='block';
+  var subj=$('outSubject');
+  if(subj&&!subj.value){var pid=$('pid');if(pid&&pid.value)subj.value=pid.value;}
+  var dt=$('outDate');if(dt&&!dt.value)dt.value=cpOutToday();
+  cpLoadOutcomes();
+}
+async function cpLoadOutcomes(){
+  var box=$('outList');if(!box)return;
+  if(!sb||!sbUser){box.textContent='—';return;}
+  var code=($('outSubject')?$('outSubject').value:'').trim();
+  if(!code){box.textContent='Enter a subject code to see what is already recorded.';return;}
+  box.textContent='Loading…';
+  try{
+    var r=await sb.from('outcomes').select('*').eq('subject_code',code);
+    if(r.error){box.textContent='Could not load — '+r.error.message;return;}
+    var rows=r.data||[];
+    if(!rows.length){box.textContent='Nothing recorded for '+code+' yet.';return;}
+    box.innerHTML=rows.map(function(o){
+      return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)">'
+        +'<b>'+cpEsc(o.reference_test)+'</b> — '+cpEsc(OUT_RESULTS[o.result]||o.result)
+        +(o.tested_on?' · '+cpEsc(o.tested_on):'')
+        +(o.module?' · '+cpEsc(o.module):'')
+        +(o.result_detail?'<br><span style="color:var(--mut)">'+cpEsc(o.result_detail)+'</span>':'')
+        +'</div>';
+    }).join('');
+  }catch(e){box.textContent='Could not load.';}
+}
+if($('outSubject')){
+  $('outSubject').addEventListener('change',cpLoadOutcomes);
+  $('outSubject').addEventListener('blur',cpLoadOutcomes);
+}
+if($('outSave'))$('outSave').onclick=async function(){
+  if(!sb||!sbUser){cpOutMsg('Log in first (open Cardio, Pulmo or Vasc).',true);return;}
+  var code=($('outSubject').value||'').trim();
+  var test=$('outTest').value||'';
+  var result=$('outResult').value||'';
+  /* The server re-checks all three — this is only so the person gets told which field
+     is missing without a round trip. */
+  if(!code){cpOutMsg('Enter the subject code this result belongs to.',true);return;}
+  if(!test){cpOutMsg('Choose which reference test was done.',true);return;}
+  if(!result){cpOutMsg('Choose what the test found.',true);return;}
+  var btn=this;btn.disabled=true;cpOutMsg('Saving…');
+  try{
+    var r=await sb.from('outcomes').insert({
+      subject_code:code,reference_test:test,result:result,
+      result_detail:($('outDetail').value||'').trim()||null,
+      tested_on:$('outDate').value||null,
+      module:$('outModule').value||null
+    });
+    if(r.error){cpOutMsg('Not saved — '+r.error.message,true);return;}
+    cpOutMsg('✓ Saved for '+code+'.');
+    /* Clear only the answer fields. The subject code and date stay, because entering
+       several reference tests for the same person in one sitting is the normal case. */
+    $('outTest').value='';$('outResult').value='';$('outDetail').value='';
+    cpLoadOutcomes();
+  }catch(e){cpOutMsg('Not saved — check your connection.',true);
+  }finally{btn.disabled=false;}
+};
 function sbShowLogin(){var o=$('authOverlay');if(o)o.style.display='flex';initGoogleBtn();}
 async function sbMaybeProfile(){
   if(!sb||!sbUser)return;
@@ -1729,7 +1813,7 @@ async function sbInit(){
   sb.auth.onAuthStateChange(function(_e,session){
     sbUser=session?session.user:null;
     if(sbUser){sbShowApp();sbMaybeProfile();}
-    else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';if($('myRecCard'))$('myRecCard').style.display='none';}
+    else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';if($('myRecCard'))$('myRecCard').style.display='none';if($('outcomeCard'))$('outcomeCard').style.display='none';}
   });
 }
 
@@ -1802,6 +1886,8 @@ function cpSyncProfile(){
     if($('newPatientBtn'))$('newPatientBtn').onclick=function(){
       var c2=parseInt(localStorage.getItem('cp_pid_counter')||'1')+1;
       localStorage.setItem('cp_pid_counter',c2);$('pid').value=cpPad(c2);
+      /* Follow the new subject, so a result entered next is not filed under the old code. */
+      if($('outSubject')){$('outSubject').value=cpPad(c2);if(typeof cpLoadOutcomes==='function')cpLoadOutcomes();}
     };
   }catch(e){}
 })();

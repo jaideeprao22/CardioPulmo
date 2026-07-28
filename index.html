@@ -755,6 +755,70 @@
       </details>
     </div>
 
+    <!-- ============ GROUND TRUTH: what the reference test actually found ============ -->
+    <div class="card" id="outcomeCard" style="display:none">
+      <details class="tech">
+        <summary style="font-weight:700" data-te='నిర్ధారణ ఫలితం నమోదు చేయండి'>Record a confirmed result</summary>
+        <div class="note" style="margin-top:8px" data-te='ఒక సబ్జెక్ట్‌కు ECG, ఎక్స్-రే, స్పుటం లేదా ఇతర నిర్ధారణ పరీక్ష ఫలితం వచ్చినప్పుడు దాన్ని ఇక్కడ నమోదు చేయండి.'>
+          When a reference test comes back for someone you screened — ECG, X-ray, sputum, echo —
+          record it here. This is what the app's own result gets checked against.
+        </div>
+
+        <div class="note" style="margin-top:10px;font-size:12px;color:var(--acc)" id="outSubjLabel">Subject code</div>
+        <input id="outSubject" placeholder="Subject code" autocomplete="off">
+        <div class="note" style="font-size:11px;margin-top:2px" id="outSubjHint">
+          Prefilled from the code on screen, so it matches the recordings you just took.
+        </div>
+
+        <div class="note" style="margin-top:10px;font-size:12px;color:var(--acc)">Which test was done</div>
+        <select id="outTest">
+          <option value="">— choose the reference test —</option>
+          <option>ECG (12-lead)</option>
+          <option>Echocardiography</option>
+          <option>Chest X-ray</option>
+          <option>Chest CT</option>
+          <option>Sputum Xpert MTB/RIF</option>
+          <option>Sputum smear microscopy</option>
+          <option>Sputum culture</option>
+          <option>Spirometry</option>
+          <option>Auscultation by clinician</option>
+          <option>Laboratory blood test</option>
+          <option>Clinical diagnosis</option>
+          <option>Other</option>
+        </select>
+
+        <div class="note" style="margin-top:10px;font-size:12px;color:var(--acc)">What it found</div>
+        <select id="outResult">
+          <option value="">— choose the result —</option>
+          <option value="positive">Positive / abnormal</option>
+          <option value="negative">Negative / normal</option>
+          <option value="indeterminate">Indeterminate</option>
+        </select>
+
+        <div class="note" style="margin-top:10px;font-size:12px;color:var(--acc)">Detail (optional)</div>
+        <input id="outDetail" placeholder="e.g. MTB detected, RIF sensitive" autocomplete="off">
+
+        <div class="note" style="margin-top:10px;font-size:12px;color:var(--acc)">Date of the test</div>
+        <input id="outDate" type="date">
+
+        <div class="note" style="margin-top:10px;font-size:12px;color:var(--acc)">Which screen is this the truth for (optional)</div>
+        <select id="outModule">
+          <option value="">— any / not specific —</option>
+          <option value="cardioscope">Heart sound (CardioScope)</option>
+          <option value="pulmoscope">Lung sound (PulmoScope)</option>
+          <option value="tbcough">Cough acoustic</option>
+          <option value="vasc">Rhythm / VascAge</option>
+          <option value="xray">Chest X-ray screen</option>
+        </select>
+
+        <button id="outSave" class="pbtn" style="margin-top:12px" data-te='ఫలితాన్ని సేవ్ చేయండి'>Save result</button>
+        <div id="outMsg" class="note" style="margin-top:8px"></div>
+
+        <div class="note" style="margin-top:12px;font-size:12px;color:var(--acc)">Already recorded for this code</div>
+        <div id="outList" class="note" style="font-size:12px">—</div>
+      </details>
+    </div>
+
     <!-- warm intro -->
     <div class="card">
       <div class="note" data-te='మీ జేబులోని ఫోన్‌నే CardioPulmo మీ గుండె, ఊపిరితిత్తుల కోసం ఒక సున్నితమైన మొదటి పరీక్షగా మారుస్తుంది — గుండె శబ్దాలు, ఊపిరితిత్తుల శబ్దాలు, లయ, పల్స్, మరియు ఛాతీ ఎక్స్‌రే రీడింగ్ — మీరు ఎక్కడ ఉన్నా. సమస్యలను ముందుగానే గుర్తించి, డాక్టర్‌ను ఎప్పుడు కలవాలో తెలుసుకోవడంలో ఇది సహాయపడుతుంది. ఇది ఒక శ్రద్ధగల స్క్రీనింగ్ తోడు — నిర్ధారణ కాదు.'>CardioPulmo turns the phone already in your pocket into a gentle first check for your heart and lungs — heart sounds, lung sounds, rhythm, pulse, and a chest X-ray read — wherever you are, not just at a hospital. It is here to help you notice things early and know when to see a doctor. A caring screening companion — not a diagnosis.</div>
