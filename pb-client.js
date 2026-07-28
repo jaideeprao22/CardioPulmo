@@ -25,6 +25,7 @@
   var RESOURCE = {
     af_validation: 'af-validation',
     app_settings: 'app-settings',
+    outcomes: 'outcomes',
     recordings: 'recordings',
     profiles: 'profiles',
     feedback: 'feedback',
@@ -124,7 +125,15 @@
         return await request(dataUrl(this.resource), { method: 'GET' });
       }
       var scope = this.filters.length ? 'mine' : 'all';
-      out = await request(dataUrl(this.resource, { scope: scope }), { method: 'GET' });
+      var params = { scope: scope };
+      /* outcomes is the only resource that narrows by subject: the entry form shows what
+         is already recorded for a code so the same result is not entered twice. It only
+         narrows a scope the caller already has. */
+      if (this.table === 'outcomes') {
+        var subj = this.find('subject_code');
+        if (subj !== undefined) params.subject_code = subj;
+      }
+      out = await request(dataUrl(this.resource, params), { method: 'GET' });
 
       if (this.table === 'admins') {
         /* The route answers a boolean about the caller and never lists other admins.

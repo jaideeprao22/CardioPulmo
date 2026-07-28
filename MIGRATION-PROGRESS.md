@@ -28,6 +28,7 @@ Where the old policy lived → where it lives now (`api/_lib/auth.js` header lis
 | `recordings` | insert/read/delete own; admin read/delete any | `routes/recordings.js` — `scope=all` calls `requireAdmin` |
 | `feedback` | insert own; read own or admin | `routes/feedback.js` |
 | `af_validation` | insert own; read own or admin | `routes/af-validation.js` |
+| `outcomes` | (new table) | `routes/outcomes.js` — insert own; read own or admin; update/delete own or admin |
 | `app_settings` | any signed-in user reads; admin writes | `routes/app-settings.js` |
 | `admins` | read only own row | `routes/admins.js` — answers a boolean about the caller, never lists admins |
 | `is_admin()` | SQL function on `auth.uid()` | `auth.isAdmin()` — a lookup against `admins`; throws on failure, never returns `false` on an error path |
@@ -43,7 +44,8 @@ routes are dispatched by query parameter from four entry points:
 
 ```
 api/auth.js            → /api/auth?action=signup|signin|google|session|signout
-api/data.js            → /api/data?resource=recordings|profiles|feedback|af-validation|app-settings|admins
+api/data.js            → /api/data?resource=recordings|profiles|feedback|af-validation|
+                                          outcomes|app-settings|admins
 api/storage/sign.js    → mints a playback token
 api/storage/audio.js   → streams the bytes
 ```
@@ -148,32 +150,122 @@ Three decisions carried across from the sibling implementation, each for a reaso
   on its own bias. `extra` carries provenance only — `dur_sec`, `sr`, `codec`,
   `normalised` — never a prediction.
 
-### Open: these clips have no label source in this app
+### Resolved: ground truth now has a home
 
-The sibling app withholds the pseudo-label because it has a real one to join to —
-`tb_track.sputum_result`, on `subject_code`. **`tb_track` does not exist in CardioPulmo**
-and was deliberately not migrated.
+That gap is closed by the `outcomes` table and `/api/data?resource=outcomes`. See
+**Ground truth (`outcomes`)** below. Cough clips are still saved without a pseudo-label;
+the label now comes from a human entering a real reference-test result.
 
-So cough clips saved here are, as of today, an unlabelled corpus: the audio and its
-`subject_code`, and nothing that says what the subject actually had. That is still
-strictly better than discarding them, and storing the model's own score instead would be
-worse than useless. But before these clips are used for training, a label source has to
-exist. Options, none of them chosen here:
+### Deliberately not saving audio — do not "fix" these
 
-1. a labels table in this project keyed on `subject_code`;
-2. an export joined against the sibling app's `tb_track` where subject codes overlap;
-3. clinician adjudication captured through the app.
+Percussion and the measurement modules (cough counter, resp rate, FET, breath count, MPT)
+do not save audio. **This is a product decision, not an oversight**: they keep a scalar —
+a rate, a count, a number of seconds — and the audio is an intermediate. Storing it would
+cost storage for no analytical gain.
 
-Worth settling before the corpus grows, because a subject code that is not resolvable to
-an outcome later is not resolvable at all.
+`lungtype` (`ltStopRec`) is **also deliberately left not saving**, and this one is worth
+spelling out because it does not look like the others. It is structurally identical to
+cough acoustic — an acoustic classifier with a probability, an offline TF.js fallback and
+a threshold verdict — so a reader comparing the two will reasonably conclude that
+`ltStopRec` is the same bug that `tbStopRec` was. It is not. It was reviewed alongside the
+cough fix and deliberately left as is.
 
-### Not touched
+If lung-type clips are ever wanted, wiring them up is the same one-call change made for
+cough acoustic. Until someone asks for that, leave it alone.
 
-Percussion and the other measurement modules (cough counter, resp rate, FET, breath
-count, MPT) do not save audio, which is intentional — they keep a scalar and the audio is
-an intermediate. One module, `lungtype` (`ltStopRec`), is structurally identical to cough
-acoustic — an acoustic classifier with a probability, an offline TF.js fallback and a
-threshold verdict — and also saves nothing. Flagged, not changed.
+
+## Ground truth (`outcomes`)
+
+A recording stores what the app thought. An `outcomes` row stores what a reference test
+actually found. The join between them is the only thing that makes any of the stored
+audio trainable.
+
+Route: `/api/data?resource=outcomes` — GET (`scope=mine|all`), POST, PATCH, DELETE.
+Policy shape follows `af_validation` — insert own, read own or admin — extended with
+update and delete (own or admin), because a lab result gets revised and a mistyped entry
+has to be removable. `user_id` is the session user and is not in the writable allowlist,
+the same rule as `app` on recordings.
+
+Two validation decisions, deliberately asymmetric:
+
+- **`result` is a closed vocabulary** — `positive` / `negative` / `indeterminate` —
+  enforced server-side, not merely offered as a `<select>`. This is the column a model
+  would eventually train against, and a free-text label column is how a corpus quietly
+  becomes unusable.
+- **`reference_test` is NOT a closed set.** The entry form offers a fixed list so the
+  common cases stay canonical, but the server only trims and length-caps it. A reference
+  test this list has not heard of turning up in the field should not need a deploy to
+  record.
+
+`subject_code`, `reference_test` and `result` are `NOT NULL` in the schema and are checked
+in the route as well, so a missing one reads as "Choose which reference test was done"
+rather than an opaque upstream constraint error. `tested_on` is validated as a real
+calendar date — `2026-02-31` is refused.
+
+### The join key is (user_id, subject_code) — never subject_code alone
+
+Subject codes are generated from a **per-device counter** (`cp_pid_counter` in
+localStorage → `U001`, `U002`, …). `U001` therefore exists for every user who has ever run
+the app. Joining on the code by itself would attach one clinician's lab result to another
+clinician's recording — silently, and in the direction that produces a confidently wrong
+training label.
+
+So `admin.html` indexes outcomes on `user_id + subject_code`, and the CSV export joins on
+that pair. Where a subject has several outcomes, an outcome recorded against the
+recording's own `module` wins; otherwise the most recent module-agnostic one is used, and
+`outcomes_on_record` reports how many exist so a reader can tell when a single column is
+hiding several results. A recording with no outcome for **its own** user gets empty
+outcome columns, never a stranger's.
+
+The dashboard shows a "With a confirmed result" count, so how much of the corpus is
+actually labelled is visible without exporting anything.
+
+### Entry UI
+
+In the About tab, under "Record a confirmed result", next to the recordings dashboard.
+The subject code is **prefilled from the code currently on screen** and follows the "new
+patient" button — hand-typing the code is the easiest way to orphan a result from the
+recordings it belongs to, so the prefill is the main correctness feature. Reference test,
+result and module are `<select>`s; the date defaults to today. Saving clears only the
+answer fields and keeps the subject and date, because entering several reference tests for
+one person in a sitting is the normal case. What is already recorded for that code is
+listed underneath so the same result is not entered twice.
+
+### Nothing is backfilled
+
+The 107 existing clips stay unlabelled. No outcome is inferred, defaulted, or created for
+them. A row appears in `outcomes` only because a person typed a real result.
+
+## Known and accepted: thresholds fall back silently
+
+`loadThresholds()` wraps its read in `try{}catch(e){}` and only assigns when a row comes
+back. If `/api/data?resource=app-settings` fails — say the transient upstream 404s that
+surfaced as 502s around 19:13 on 2026-07-28 — the device keeps its compiled-in defaults
+(`PC_THR` 0.25, `TBC_THR` 0.40, …) **with no message and nothing in the console**. Any
+device that started up in that window scored with default thresholds rather than the
+admin's configured values, and nothing said so.
+
+`postbase.call()` and `sql.run()` also have **no retry** — a single fetch with a timeout —
+so one transient upstream blip becomes a user-visible failure.
+
+**Both are known and accepted.** They were reviewed, the trade-off was understood, and the
+decision was to leave them. Recorded here so a future reader does not mistake either for
+an oversight and "fix" it without knowing it was a choice. If that decision is ever
+revisited, the shape would be: bounded retry with jitter on idempotent reads only, never
+on writes (a timeout is ambiguous about whether an insert landed), plus surfacing the
+threshold-read failure instead of swallowing it.
+
+## Fixed in passing: the CSV export was never line-separated
+
+`buildCsv()` ended with `lines.join('\\n')` — a literal backslash-n, not a newline. Every
+"Metadata CSV" download and every `labels.csv` inside the training ZIP was therefore a
+**single line** with two-character `\n` sequences between rows.
+
+This is present in the first commit of `admin.html` and predates the migration entirely.
+It was found while testing the outcome join, and fixed here because the CSV is precisely
+the artefact that now carries that join — an export that cannot be parsed does not deliver
+ground truth to anything. The same double-escape in the dialog strings (users saw a literal
+`\n` in confirm/alert boxes) is fixed with it; same cause, cosmetic rather than data loss.
 
 ## Other contract differences handled
 

@@ -31,6 +31,8 @@ var SELECTABLE = freeze({
   feedback: ['id', 'user_id', 'module', 'rating', 'comment', 'context', 'subject_code', 'created_at'],
   af_validation: ['id', 'user_id', 'subject_code', 'app_af', 'rmssd_mean', 'shannon_entropy',
                   'heart_rate', 'ecg_truth', 'created_at'],
+  outcomes: ['id', 'user_id', 'subject_code', 'module', 'reference_test', 'result',
+             'result_detail', 'tested_on', 'notes', 'created_at', 'updated_at'],
   /* app_settings is read WITHOUT a column list — see routes/app-settings.js. This list
      is the projection applied to the row that comes back, not a request for columns. */
   app_settings: ['id', 'cardio_thr', 'murmur_thr', 'lung_thr', 'crackle_thr', 'wheeze_thr',
@@ -51,6 +53,9 @@ var WRITABLE = freeze({
   recordings: ['module', 'zone', 'subject_code', 'audio_path', 'probability', 'verdict', 'extra'],
   feedback: ['module', 'rating', 'comment', 'context', 'subject_code'],
   af_validation: ['subject_code', 'app_af', 'rmssd_mean', 'shannon_entropy', 'heart_rate', 'ecg_truth'],
+  /* user_id is absent by design — it is the session user, never the body. */
+  outcomes: ['subject_code', 'module', 'reference_test', 'result', 'result_detail',
+             'tested_on', 'notes'],
   app_settings: ['cardio_thr', 'murmur_thr', 'lung_thr', 'crackle_thr', 'wheeze_thr',
                  'cough_delta', 'fet_cutoff', 'sbct_cutoff', 'mpt_cutoff', 'tbcough_thr',
                  'tb_thr', 'card_thr', 'eff_thr', 'pneu_thr', 'cons_thr', 'nod_thr',
