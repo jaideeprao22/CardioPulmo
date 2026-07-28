@@ -5,7 +5,7 @@ document.addEventListener('click',function(e){
   if(t){e.preventDefault();
     (async function(){
       try{if(typeof sb!=='undefined'&&sb)await sb.auth.signOut();}catch(_){}
-      try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.indexOf('sb-')===0)localStorage.removeItem(k);}}catch(_){}
+      /* Nothing to clear locally: the session is an HttpOnly cookie the server drops. */
       location.reload();
     })();
   }
@@ -422,7 +422,9 @@ async function cpLogAFval(truth){
   var A=window.vLastAF||{},st=document.getElementById('vValSt');
   if(!sb||!sbUser){if(st)st.textContent='Log in first (open Cardio/Pulmo/Vasc) to save validation data.';return;}
   try{
-    var ins=await sb.from('af_validation').insert({user_id:sbUser.id,subject_code:($('pid')?$('pid').value:null)||null,app_af:!!A.af,rmssd_mean:(A.rmssdN!=null?+Number(A.rmssdN).toFixed(4):null),shannon_entropy:(A.she!=null?+Number(A.she).toFixed(4):null),heart_rate:(A.hr||null),ecg_truth:truth});
+    /* user_id is not sent: the server takes it from the session, and a user_id in the
+       body is ignored. The old RLS insert-own policy is that server-side check now. */
+    var ins=await sb.from('af_validation').insert({subject_code:($('pid')?$('pid').value:null)||null,app_af:!!A.af,rmssd_mean:(A.rmssdN!=null?+Number(A.rmssdN).toFixed(4):null),shannon_entropy:(A.she!=null?+Number(A.she).toFixed(4):null),heart_rate:(A.hr||null),ecg_truth:truth});
     if(st)st.textContent=ins.error?('Save failed: '+ins.error.message):('Saved \u2713  app='+(A.af?'AF':'no-AF')+'  vs  ECG='+truth);
   }catch(e){if(st)st.textContent='Save failed \u2014 check connection.';}
 }
@@ -1106,6 +1108,8 @@ function cpBeep(freq,dur,vol){try{
   o.start(t);o.stop(t+dur+0.03);
 }catch(e){}}
 function _sbClient(){ try{ return sb; }catch(e){ return null; } }   // sb is a const declared later (TDZ-safe)
+/* app_settings is one shared row every signed-in user may read; only an admin may
+   write it. Both halves of that are enforced server-side now, not by RLS. */
 async function refreshBeepVol(){
   try{
     var c=_sbClient(); if(!c)return;
@@ -1438,7 +1442,8 @@ async function fbSend(btn){
   if(!sb||!sbUser){msg.style.color='#ff6b6b';msg.textContent='Please log in (Cardio/Pulmo/Vasc) to send feedback.';return;}
   msg.style.color='var(--mut)';msg.textContent='Sending…';
   try{
-    var r=await sb.from('feedback').insert({user_id:sbUser.id,module:mod,rating:rating,comment:comment,context:context,subject_code:subj});
+    /* user_id comes from the session server-side; sending it here would be ignored. */
+    var r=await sb.from('feedback').insert({module:mod,rating:rating,comment:comment,context:context,subject_code:subj});
     if(r.error){msg.style.color='#ff6b6b';msg.textContent='Could not send — '+r.error.message;return;}
     msg.style.color='#2FBF8F';msg.textContent='✓ Thank you! Feedback sent.';
     c.querySelector('.fbcomment').value='';c.querySelectorAll('.fbbtn').forEach(function(b){b.classList.remove('sel');});c.removeAttribute('data-rating');
@@ -1590,23 +1595,55 @@ topTab('home');
 try{var _vp=new URLSearchParams(location.search).get('val');if(_vp==='1')localStorage.setItem('cp_valmode','1');else if(_vp==='0')localStorage.setItem('cp_valmode','0');}catch(e){}
 
 
-/* ===== Supabase: login (Google + email), one-time profile, audio upload ===== */
-const SB_URL='https://cxqvghjdqyvtxdavhzjw.supabase.co';
-const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cXZnaGpkcXl2dHhkYXZoemp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMDY5MzUsImV4cCI6MjA5ODU4MjkzNX0.vSEowF2M4Hv_j0LOSSJto_TulEce-wcA337ffK7kd5s';
-const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_ANON):null;
+/* ===== Login (Google + email), one-time profile, audio upload =====
+   There is no database URL and no key here any more. Postbase does not enforce RLS, so
+   a key in this file would publish every recording to anyone who opened dev tools.
+   Every call goes to /api/* on this origin; the session is in HttpOnly cookies this
+   script cannot read, and the server derives row ownership from it. See pb-client.js. */
+const sb=(window.pb||null);
 let sbUser=null;
 function makeSmallWav(s,fs,targetSR){return encodeWAV(pcResample(s,fs,targetSR),targetSR);}
 function makeSmallWavNorm(s,fs,targetSR){var r=pcResample(s,fs,targetSR),mx=1e-6;for(var i=0;i<r.length;i++){var a=Math.abs(r[i]);if(a>mx)mx=a;}var g=0.9/mx,o=new Float32Array(r.length);for(var j=0;j<r.length;j++)o[j]=r[j]*g;return encodeWAV(o,targetSR);}
+/* The clip and its row are now saved in ONE request. Audio is a bytea column on the
+   recording, not an object in a bucket, and the server writes both in a single INSERT —
+   so a dropped connection can no longer commit the row but not the clip.
+
+   No file name and no content type are sent. Both used to be invented here ('.wav' and
+   contentType:'audio/wav', whatever the recorder had produced), which is exactly how
+   WebM clips ended up named .wav in the old bucket. The server reads the type off the
+   leading bytes instead. */
 async function uploadRecording(module,zone,wavBlob,probability,verdict,extra){
   if(!sb||!sbUser)return {ok:false,reason:'not logged in'};
+  if(!wavBlob)return {ok:false,reason:'no audio'};
   try{
-    const path=sbUser.id+'/'+module+'_'+(zone||'x')+'_'+Date.now()+'.wav';
-    const up=await sb.storage.from('recordings').upload(path,wavBlob,{contentType:'audio/wav',upsert:false});
-    const ins=await sb.from('recordings').insert({user_id:sbUser.id,module:module,zone:zone||null,audio_path:up.error?null:path,probability:(probability==null?null:probability),verdict:verdict||null,extra:extra||null,subject_code:(document.getElementById('pid')?document.getElementById('pid').value:null)||null});
-    if(ins.error){console.warn('recordings insert failed',ins.error);return {ok:false,reason:ins.error.message};}
-    if(typeof cpLoadMine==='function')cpLoadMine();
-    if(up.error){console.warn('audio upload failed',up.error);return {ok:true,reason:'audio file not saved — '+up.error.message};}
-    return {ok:true};
+    const row={module:module,zone:zone||null,
+      probability:(probability==null?null:probability),
+      verdict:verdict||null,extra:extra||null,
+      subject_code:(document.getElementById('pid')?document.getElementById('pid').value:null)||null};
+
+    let b64='';
+    try{b64=await sb.audio.toBase64(wavBlob);}catch(e){b64='';}
+    if(!b64)return {ok:false,reason:'could not read the clip off the phone'};
+
+    const ins=await sb.from('recordings').insert(Object.assign({},row,{audio_base64:b64}));
+    if(!ins.error){
+      if(typeof cpLoadMine==='function')cpLoadMine();
+      return {ok:true};
+    }
+
+    /* A clip too large for one request would otherwise lose the whole reading. The
+       clinical record is the part that must not be lost, so save the row without its
+       audio and say plainly that the audio did not survive. */
+    if(ins.error.status===413){
+      const meta=await sb.from('recordings').insert(row);
+      if(!meta.error){
+        if(typeof cpLoadMine==='function')cpLoadMine();
+        return {ok:true,reason:'clip too large — result saved, audio not kept'};
+      }
+      return {ok:false,reason:meta.error.message};
+    }
+    console.warn('recording save failed',ins.error);
+    return {ok:false,reason:ins.error.message};
   }catch(e){console.warn('upload failed',e);return {ok:false,reason:(e&&e.message)||'unknown error'};}
 }
 function sbShowApp(){var o=$('authOverlay');if(o)o.style.display='none';if(sbUser&&$('authWho'))$('authWho').textContent='Logged in as '+(sbUser.email||'user');if($('authBox'))$('authBox').style.display='block';if($('notLoggedBox'))$('notLoggedBox').style.display='none';cpLoadMine();if(pendingTab){var t=pendingTab;pendingTab=null;topTab(t);}}
@@ -1634,29 +1671,41 @@ async function cpLoadMine(){
       groups[d].forEach(function(r){
         var mod=(r.module||'').indexOf('cardio')>=0?'Heart':((r.module||'').indexOf('lung')>=0?'Lung':(r.module||''));
         var s12=r._ex.s1s2!=null?(r._ex.s1s2+' ms'+((r._ex.timing_flag&&r._ex.timing_flag.indexOf('outside')>=0)?' ⚠':'')):'—';
-        h+='<tr><td style="padding:6px">'+new Date(r.created_at).toLocaleTimeString()+'</td><td style="padding:6px">'+mod+(r.zone?' ('+r.zone+')':'')+'</td><td style="padding:6px">'+(r.verdict||'')+'</td><td style="padding:6px">'+(r._ex.bpm!=null?r._ex.bpm:'—')+'</td><td style="padding:6px">'+s12+'</td><td style="padding:6px;white-space:nowrap" data-id="'+r.id+'" data-path="'+(r.audio_path||'')+'"></td></tr>';
+        h+='<tr><td style="padding:6px">'+new Date(r.created_at).toLocaleTimeString()+'</td><td style="padding:6px">'+mod+(r.zone?' ('+r.zone+')':'')+'</td><td style="padding:6px">'+(r.verdict||'')+'</td><td style="padding:6px">'+(r._ex.bpm!=null?r._ex.bpm:'—')+'</td><td style="padding:6px">'+s12+'</td><td style="padding:6px;white-space:nowrap" data-id="'+r.id+'" data-audio="'+(r.has_audio?'1':'')+'"></td></tr>';
       });
       h+='</table></div>';
     });
     body.innerHTML=h;
+    /* has_audio distinguishes a clip stored in the app from one of the older rows whose
+       audio_path still points at the retired bucket. Those bytes are not in the app, so
+       the row still lists — it just carries no play button instead of a broken one. */
     body.querySelectorAll('td[data-id]').forEach(function(td){
-      var path=td.getAttribute('data-path');
-      if(path){var pb=document.createElement('button');pb.className='sbtn';pb.textContent='▶';pb.onclick=function(){cpPlayMine(path,pb);};td.appendChild(pb);}
+      var id=td.getAttribute('data-id');
+      if(td.getAttribute('data-audio')){
+        var btn=document.createElement('button');btn.className='sbtn';btn.textContent='▶';
+        btn.onclick=function(){cpPlayMine(id,btn);};td.appendChild(btn);
+      }else{
+        var na=document.createElement('span');na.className='note';na.style.fontSize='11px';
+        na.textContent='no audio';na.title='This recording was made before the app stored audio itself.';
+        td.appendChild(na);
+      }
     });
   }catch(e){body.innerHTML='<span class="note">Could not load your dashboard.</span>';}
 }
-async function cpPlayMine(path,btn){
+/* Playback asks the server for a short-lived, same-origin token bound to this recording
+   and this user. There is no signed-URL facility and no public bucket, and the stream
+   route re-checks ownership when the token is redeemed. */
+async function cpPlayMine(id,btn){
   var old=btn.textContent;btn.textContent='…';
-  try{var r=await sb.storage.from('recordings').createSignedUrl(path,3600);
-    if(r.error||!r.data){btn.textContent='✕';return;}
-    var a=new Audio(r.data.signedUrl);a.play();btn.textContent=old;
+  try{var r=await sb.audio.url(id);
+    if(r.error||!r.data){btn.textContent='✕';btn.title=(r.error&&r.error.message)||'Audio unavailable';return;}
+    var a=new Audio(r.data);a.play();btn.textContent=old;
   }catch(e){btn.textContent='✕';}
 }
-async function cpDeleteMine(id,path){
+async function cpDeleteMine(id){
   if(!confirm('Delete this recording? This cannot be undone.'))return;
-  try{if(path){try{await sb.storage.from('recordings').remove([path]);}catch(e){}}
-    await sb.from('recordings').delete().eq('id',id);cpLoadMine();
-  }catch(e){}
+  /* Audio lives on the row, so deleting the row takes the clip with it. */
+  try{await sb.from('recordings').delete().eq('id',id);cpLoadMine();}catch(e){}
 }
 function sbShowLogin(){var o=$('authOverlay');if(o)o.style.display='flex';initGoogleBtn();}
 async function sbMaybeProfile(){
@@ -1685,7 +1734,10 @@ async function sbInit(){
 }
 
 if($('authLogin'))$('authLogin').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signInWithPassword({email:$('authEmail').value.trim(),password:$('authPass').value});if(error)$('authMsg').textContent=error.message;};
-if($('authSignup'))$('authSignup').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signUp({email:$('authEmail').value.trim(),password:$('authPass').value});$('authMsg').textContent=error?error.message:'Account created — check your email to confirm, then log in.';};
+/* Sign-up signs you straight in — there is no confirmation email on this instance.
+   There is also no password reset (no /magiclink, no /recover), so the copy must not
+   promise one; a forgotten password needs an admin, not a self-service link. */
+if($('authSignup'))$('authSignup').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signUp({email:$('authEmail').value.trim(),password:$('authPass').value});$('authMsg').textContent=error?error.message:'Account created — you are signed in. Keep your password safe: it cannot be reset from the app.';};
 if($('authLogout'))$('authLogout').onclick=async function(){if(sb)await sb.auth.signOut();};
 if($('profileSave'))$('profileSave').onclick=async function(){
   if(!sb||!sbUser)return;
@@ -1706,7 +1758,10 @@ if($('profileSave'))$('profileSave').onclick=async function(){
   $('profileOverlay').style.display='none';
 };
 
-/* ===== Google native sign-in (GSI) -> Supabase (no redirect page) ===== */
+/* ===== Google native sign-in (GSI) (no redirect page) =====
+   GSI runs in the browser and the client ID is public, which is fine. The ID token is
+   posted to /api/auth?action=google, which forwards it with the service key. No
+   database token ever reaches this script. */
 const GOOGLE_CLIENT_ID='533637534015-8eob9q94fecugvf6d4rm41hnc1fd6f4u.apps.googleusercontent.com';
 let gsiDone=false;
 function initGoogleBtn(){
