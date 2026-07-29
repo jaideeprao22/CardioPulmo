@@ -9,7 +9,7 @@ var otpCookie = require('../otp-cookie');
 /* POST /api/auth?action=otp-verify  { code }
 
    Redeems the 6-digit code and signs the user in. The address comes from the HttpOnly
-   cookie set by otp-send, never from the request body — see ../otp-cookie.js.
+   cookie set by the forgot / verify-email routes, never from the request body — see ../otp-cookie.js.
 
    Upstream contract (POST /email-otp/verify): body { email, code, remember_me? } with
    `code` exactly 6 characters, answering { user, session } like /token. Confirmed from
@@ -22,7 +22,7 @@ module.exports = http.guard(async function (req, res) {
   if (!http.methodAllowed(req, res, ['POST'])) return;
 
   /* DO NOT normalise this. Every other route runs client-supplied addresses through
-     ../email.js, but this one is not client-supplied: otp-send wrote the address AS
+     ../email.js, but this one is not client-supplied: the send route wrote the address AS
      STORED into the cookie, precisely so the exact-matching upstream gets the exact
      string the code was minted against. A legacy row stored as `Foo@bar.com` would be
      lowercased into a miss, and the user's correct code would be rejected. */

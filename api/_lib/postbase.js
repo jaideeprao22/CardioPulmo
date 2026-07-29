@@ -149,19 +149,31 @@ async function signInGoogleIdToken(idToken, nonce) {
 
 /* ---------------------------------------------------------------- otp ---- */
 
-/* POST /otp — sends either a magic link or a 6-digit code to `email`.
-   Body: { email, type: "magic_link" | "otp", redirectTo? }. Success is { message }.
+/* POST /otp — sends a 6-digit code.
 
-   Two distinct failures that must never be merged:
-     403 — that provider row is disabled for this project
-     500 — no SMTP configured for this project
-   One is "turn the provider on", the other is "configure mail". Collapsing them into a
-   single message is how the Google 503 wasted an afternoon; see routes/google.js. */
-async function sendOtp(email, type, redirectTo) {
-  var b = { email: email, type: type };
-  if (redirectTo) b.redirectTo = redirectTo;
-  await call(authBase() + '/otp', { body: b });
-  return true;
+   CODE ONLY. The magic-link branch is gone, because Postbase's link handler is broken at
+   source and cannot be worked around from here:
+
+     apps/web/src/app/api/auth/v1/[projectId]/verify/route.ts
+       141:  const response = Response.redirect(new URL(redirectTo, req.url));
+       151:  response.headers.set("Set-Cookie", cookieOpts);
+
+   Response.redirect() returns a Response with immutable headers, so headers.set() throws
+   and Next.js answers 500 — confirmed live, the emailed link 500s at db.clinoble.com.
+   The verification token is DELETEd before the throw, so every click also burns the
+   token and retrying the same link cannot work.
+
+   `type` and `redirectTo` are removed as parameters rather than merely left uncalled, so
+   no future call site can pick the broken option.
+
+   403 = the email-otp provider row is disabled; 500 = SMTP is unset for the project.
+   Two different operational failures, never collapsed into one message.
+   Codes live 10 minutes. The route upserts the user, so callers must confirm the account
+   exists first — see sql.findUserByEmail. */
+async function sendOtp(storedEmail) {
+  /* NOT normalised: storedEmail is the address as it appears in users.email, and the
+     upstream exact-matches. Normalise input, preserve stored. */
+  return await call(authBase() + '/otp', { body: { email: storedEmail, type: 'otp' } });
 }
 
 /* POST /email-otp/verify — redeems the 6-digit code.

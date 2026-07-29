@@ -2,7 +2,7 @@
 /* One place that normalises a client-supplied email address.
 
    Every route that accepts an address from the browser runs it through here — signup,
-   signin, forgot, otp-send — so a row created today is always stored lowercase and
+   signin, forgot — so a row created today is always stored lowercase and
    trimmed, and the case-mismatch problem below stops arising for anything new.
 
    IMPORTANT, and the reason this is a named helper rather than an inline .toLowerCase():
