@@ -59,6 +59,11 @@
       <input id="authNewPw" type="password" autocomplete="new-password" placeholder="New password (min 6)" data-te-ph="కొత్త పాస్‌వర్డ్ (కనీసం 6)">
       <input id="authNewPw2" type="password" autocomplete="new-password" placeholder="Repeat new password" data-te-ph="పాస్‌వర్డ్‌ను మళ్లీ నమోదు చేయండి">
       <button id="authNewPwGo" class="pbtn" data-te='పాస్‌వర్డ్‌ను సేవ్ చేయండి'>Save password</button>
+      <!-- The code already signed them in. Someone who only wanted back into their
+           account must not be trapped on a step nobody told them was coming. -->
+      <div style="text-align:center;margin-top:2px">
+        <a href="#" id="authSkipPw" class="note" style="font-size:12px;text-decoration:underline" data-te='దాటవేయండి — నన్ను సైన్ ఇన్ చేయండి'>Skip — just sign me in</a>
+      </div>
     </div>
 
     <div id="authMsg" class="ovlmsg"></div>
@@ -1061,6 +1066,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=59"></script>
+<script src="app.js?v=60"></script>
 </body>
 </html>

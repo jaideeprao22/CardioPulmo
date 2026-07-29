@@ -648,3 +648,75 @@ separate rate-limit buckets.
 
 **24 offline checks pass**, including the suite-wide invariant that no route caused
 Postbase to auto-create a `users` row. Function count unchanged at 4 of 12.
+
+---
+
+## The reset had to survive the SIGNED_IN event it raises
+
+**Reported:** *"forgot password just signs me in."*
+
+A password reset signs you in as its **first** step, not its last: `verifyOtp` exchanges
+the code for a session. `pb-client` emits `SIGNED_IN` **synchronously** — `adopt(...,
+'SIGNED_IN')` runs the listener before `verifyOtp`'s promise resolves, so the listener
+fires while the handler that called it is still mid-flight. The listener calls
+`sbShowApp()`, which sets `authOverlay` to `display:none`. The handler then reveals
+`authNewPwBox`, which lives inside that overlay.
+
+So the password fields were shown into an already-hidden ancestor: in the DOM, correctly
+styled `display:flex`, unreachable on screen. The user asked to reset a password, was
+signed in instead, and never saw the step that was supposedly waiting for them.
+
+`pendingPasswordReset` is raised **before** the `await`, not after — setting it afterwards
+is too late by exactly the window that matters. The listener stands down while it is up,
+and the flag is lowered on a rejected code so a failed attempt cannot suppress the next
+legitimate sign-in.
+
+The handover the listener skipped now happens explicitly, in `finishPasswordReset()`:
+after the password saves (on a short delay, so the confirmation inside the overlay is
+readable before the overlay goes), or immediately when Skip is used. **Skip is new here** —
+it existed on the deleted `set-password.html` and had no equivalent in the overlay. The
+code has already signed them in, so someone who only wanted back into their account must
+not be trapped behind a password step nobody told them was coming.
+
+The flag is in-memory only. A reload mid-reset lands the user in the app, signed in, which
+is a fair outcome — they can start the reset again. Persisting it would risk stranding
+someone behind a step they can no longer dismiss.
+
+### Why the existing tests were green while this was live
+
+They asserted `el.style.display === 'block'` — true even when an ancestor is
+`display:none`. That is the assertion this shipped under.
+
+`scripts/test-reset-visibility.js` computes visibility **structurally**: walk `parentNode`
+looking for `display:none`. Not `offsetParent` — that is a layout property, and jsdom
+performs no layout, so `offsetParent` is `null` for every element: the check would fail on
+a correctly-shown box and its inverse would pass on everything. The weak style-property
+assertion is kept alongside, labelled, asserting "shown" — it passes both before and after
+the fix, which is the point.
+
+It also asserts on the **source**, because a replacement that silently fails to match
+leaves a flag that is declared but never set true — the guard then never fires and nothing
+observable at runtime distinguishes "never set" from "set and correctly cleared".
+
+Run against three mutations of the fixed file, the suite fails as it should:
+
+| mutation | result | notably |
+| --- | --- | --- |
+| guard deleted | 18/24 | fields not visible; `sbShowApp` ran mid-reset |
+| assignment removed (silent-patch failure) | 14/24 | + flag never true; no handover at all |
+| flag raised *after* the await (plausible wrong fix) | 17/24 | + flag false while `verifyOtp` ran |
+
+The weak style assertion passes in **all three**.
+
+`app.js?v=` bumped to 60 so the fix actually reaches browsers holding the old file.
+
+**24 offline checks pass** in this file's suite; the wider offline suite is green at
+77 / 15 / 14 / 13 / 66. Function count unchanged at 4 of 12.
+
+### Superseded work
+This branch previously carried its own magic-link removal. The same work merged first via
+PR #8 from a separate session, in a superset form — so that commit is dropped rather than
+rebased, and this branch now carries only the `SIGNED_IN` fix on top of it. The in-overlay
+password step this fix targets is PR #8's design; an earlier revision of this branch kept
+`set-password.html` instead, where the navigation always happened and the symptom was
+milder.

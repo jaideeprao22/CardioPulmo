@@ -1812,6 +1812,15 @@ async function sbInit(){
   else{if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';}
   sb.auth.onAuthStateChange(function(_e,session){
     sbUser=session?session.user:null;
+    /* A password reset signs you in as its FIRST step, not its last: verifyOtp exchanges
+       the code for a session and pb-client emits SIGNED_IN synchronously — this listener
+       runs before verifyOtp's promise resolves, so it fires while the handler that called
+       it is still mid-flight. Without this line sbShowApp() hides the overlay, and the
+       new-password fields the handler shows a moment later land inside a hidden ancestor:
+       present in the DOM, unreachable on screen. To the user, "forgot password" just
+       signs them in. The reset does its own handover once the password is saved or
+       skipped — see authSaveNewPassword and authSkipPw. */
+    if(sbUser&&pendingPasswordReset)return;
     if(sbUser){sbShowApp();sbMaybeProfile();}
     else{var o=$('authOverlay');if(o)o.style.display='none';pendingTab=null;topTab('home');if($('authBox'))$('authBox').style.display='none';if($('notLoggedBox'))$('notLoggedBox').style.display='block';if($('myRecCard'))$('myRecCard').style.display='none';if($('outcomeCard'))$('outcomeCard').style.display='none';if($('verifyBox'))$('verifyBox').style.display='none';}
   });
@@ -1858,6 +1867,14 @@ if($('profileSave'))$('profileSave').onclick=async function(){
    cookie. See api/_lib/otp-cookie.js and api/_lib/routes/set-password.js. */
 function authMsg(t,bad){var e=$('authMsg');if(!e)return;e.textContent=t||'';e.style.color=bad?'#ff6b6b':'#2FBF8F';}
 
+/* Raised for the window between "code accepted" and "password saved or skipped", which is
+   the window in which the user is signed in but has not yet got what they came for. The
+   listener above stands down while it is up. It is deliberately in-memory only: a reload
+   mid-reset lands them in the app, signed in, which is a fair outcome — they can start the
+   reset again from there. Persisting it would risk stranding someone behind a password
+   step they can no longer dismiss. */
+var pendingPasswordReset=false;
+
 async function authSendCode(email){
   authMsg('Sending…');
   var r=await sb.auth.forgotPassword(email);
@@ -1888,9 +1905,14 @@ if($('authOtpVerify'))$('authOtpVerify').onclick=async function(){
   var code=($('authOtpCode').value||'').replace(/\s+/g,'');
   if(!/^[0-9]{6}$/.test(code)){authMsg('Enter the 6-digit code from the email.',true);return;}
   this.disabled=true;authMsg('Checking…');
+  /* Raised BEFORE the await, not after. verifyOtp emits SIGNED_IN before it resolves, so
+     by the time control returns here the listener has already run and it is too late. */
+  pendingPasswordReset=true;
   var r=await sb.auth.verifyOtp(code);
   this.disabled=false;
-  if(r.error){authMsg(r.error.message,true);return;}
+  /* A rejected code signed nobody in, so lower it again rather than leaving a flag up that
+     would suppress the next legitimate sign-in. */
+  if(r.error){pendingPasswordReset=false;authMsg(r.error.message,true);return;}
   if($('authOtpCode'))$('authOtpCode').value='';
   /* Confirming the code has already signed them in, but the password is what they came
      for — show the fields rather than dropping them into the app half-done. */
@@ -1913,8 +1935,23 @@ async function authSaveNewPassword(){
   if($('authNewPwBox'))$('authNewPwBox').style.display='none';
   if($('authPass'))$('authPass').value='';
   authMsg('Password saved. You are signed in.');
+  /* Let them read that before the overlay goes. The confirmation lives inside the overlay,
+     so handing over the instant it is written erases the only acknowledgement they get. */
+  setTimeout(finishPasswordReset,1200);
+}
+
+/* Ends the reset and performs the handover the listener stood down from. Also what Skip
+   does: confirming the code already signed them in, so someone who only wanted back into
+   their account must not be trapped on a password step nobody told them was coming. */
+function finishPasswordReset(){
+  if(!pendingPasswordReset)return;
+  pendingPasswordReset=false;
+  if($('authNewPwBox'))$('authNewPwBox').style.display='none';
+  if($('authOtpBox'))$('authOtpBox').style.display='none';
+  if(sbUser){sbShowApp();sbMaybeProfile();}
 }
 if($('authNewPwGo'))$('authNewPwGo').onclick=function(){authSaveNewPassword();};
+if($('authSkipPw'))$('authSkipPw').onclick=function(ev){ev.preventDefault();finishPasswordReset();};
 if($('authNewPw2'))$('authNewPw2').addEventListener('keydown',function(e){if(e.key==='Enter')authSaveNewPassword();});
 
 /* Verification prompt, driven by the session's emailVerified flag. */
