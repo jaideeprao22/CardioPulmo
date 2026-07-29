@@ -10,8 +10,9 @@ module.exports = require('./_lib/dispatch').make('action', {
   /* Password reset, code sign-in and email verification are ACTIONS, not new files.
      Vercel Hobby caps a deployment at 12 serverless functions and a 13th fails the
      build outright; adding these here keeps the deployment at four. */
+  /* One code-sending route, not two. otp-send was the same mechanism under a second
+     name; the magic-link path it used to be distinguished from no longer exists. */
   'forgot':       require('./_lib/routes/forgot'),
-  'otp-send':     require('./_lib/routes/otp-send'),
   'otp-verify':   require('./_lib/routes/otp-verify'),
   'set-password': require('./_lib/routes/set-password'),
   'verify-email': require('./_lib/routes/verify-email')

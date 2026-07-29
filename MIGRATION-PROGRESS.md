@@ -593,3 +593,58 @@ copy, `user_id` no longer sent from the browser).
 `POSTBASE_URL`, `POSTBASE_PROJECT_ID`, `POSTBASE_SERVICE_KEY`. None of these are
 readable from the browser, and `api/_lib/env.js` throws on the first request if any is
 missing rather than failing intermittently deep in a data path.
+
+
+## The magic link is dead at source — reset and verification move to the code path
+
+Postbase's link handler cannot work, and it is not fixable from our side:
+
+```
+apps/web/src/app/api/auth/v1/[projectId]/verify/route.ts
+  141:  const response = Response.redirect(new URL(redirectTo, req.url));
+  151:  response.headers.set("Set-Cookie", cookieOpts);
+```
+
+`Response.redirect()` returns a Response whose headers are **immutable**, so
+`headers.set()` throws and Next.js answers **500**. Confirmed live: the emailed link 500s
+at db.clinoble.com. The verification token is `DELETE`d before the throw, so **every click
+also burns the token** — the same link cannot even be retried.
+
+That is upstream of any `redirectTo` we could pass. There is nothing to route around.
+
+### Changed
+- **`pb.sendOtp(storedEmail)`** — `type` and `redirectTo` are removed as parameters, not
+  merely left uncalled, so no future call site can pick the broken option. Arity asserted.
+- **`action=forgot`** now sends a 6-digit code and writes the canonical address into the
+  HttpOnly cookie, exactly as the old `otp-send` did.
+- **`action=otp-send` is deleted.** It was the same mechanism under a second name; the
+  magic-link path it used to be distinguished from no longer exists. Two names for one
+  thing is the confusion that was reported. The client's `sendOtp()` now posts to
+  `forgot`, and the retired action 404s.
+- **`action=verify-email`** sends a code too. Verification still happens: on success
+  `/email-otp/verify` runs
+  `UPDATE users SET email_verified = $1 WHERE id = $2 AND email_verified IS NULL`,
+  confirmed in that route's source. Only the delivery changed.
+- **Deleted `set-password.html`** — it existed only as the landing for the redirect, and
+  its whole design was "you arrive here already holding a session". The new password is
+  now set in the sign-in overlay after the code is confirmed. The `set-password` **route**
+  is unchanged and still session-scoped.
+- **Deleted `api/_lib/origin.js`** — its allowlist existed to stop a forged Host header
+  turning a real reset email into a link to an attacker's site. With no links built
+  anywhere, it had no remaining callers. That protection is not lost so much as
+  no longer applicable: there is no URL in the email to poison.
+- The sign-in card has one entry point; the About card's verification prompt gained a
+  6-digit field.
+
+### A stale promise, removed
+The signup copy said *"Keep your password safe: it cannot be reset from the app."* True
+when written, not any more — leaving it would send people to an administrator for
+something they can now do themselves.
+
+### Unchanged
+Canonical stored address forwarded to Postbase; address in the HttpOnly cookie;
+`set-password` scoped to the session only; `forgot` always 200 with a byte-identical body;
+separate rate-limit buckets.
+
+**24 offline checks pass**, including the suite-wide invariant that no route caused
+Postbase to auto-create a `users` row. Function count unchanged at 4 of 12.

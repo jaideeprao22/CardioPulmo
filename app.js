@@ -1819,9 +1819,10 @@ async function sbInit(){
 
 if($('authLogin'))$('authLogin').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signInWithPassword({email:$('authEmail').value.trim(),password:$('authPass').value});if(error)$('authMsg').textContent=error.message;};
 /* Sign-up signs you straight in — there is no confirmation email on this instance.
-   There is also no password reset (no /magiclink, no /recover), so the copy must not
-   promise one; a forgotten password needs an admin, not a self-service link. */
-if($('authSignup'))$('authSignup').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signUp({email:$('authEmail').value.trim(),password:$('authPass').value});$('authMsg').textContent=error?error.message:'Account created — you are signed in. Keep your password safe: it cannot be reset from the app.';};
+   The old copy also said the password could never be reset from the app. That was true
+   when written; "Forgot password?" now emails a code, so leaving it would send people to
+   an administrator for something they can do themselves. */
+if($('authSignup'))$('authSignup').onclick=async function(){if(!sb)return;const {error}=await sb.auth.signUp({email:$('authEmail').value.trim(),password:$('authPass').value});$('authMsg').textContent=error?error.message:'Account created — you are signed in.';};
 if($('authLogout'))$('authLogout').onclick=async function(){if(sb)await sb.auth.signOut();};
 if($('profileSave'))$('profileSave').onclick=async function(){
   if(!sb||!sbUser)return;
@@ -1842,35 +1843,33 @@ if($('profileSave'))$('profileSave').onclick=async function(){
   $('profileOverlay').style.display='none';
 };
 
-/* ===== Password reset, code sign-in, email verification =====
-   Postbase has no password-reset endpoint, so both paths here are built on its
-   magic-link and email-OTP primitives. Neither ever names an account: the reset lands on
-   set-password.html holding a session, and the code path keeps the address in an
-   HttpOnly cookie the browser cannot read. See api/_lib/routes/set-password.js. */
-function authMsg(t,bad){var e=$('authMsg');if(!e)return;e.textContent=t||'';e.style.color=bad?'#ff6b6b':'#2FBF8F';}
+/* ===== Password reset and email verification =====
+   ONE flow. "Forgot password?" emails a 6-digit code; confirming it exchanges the code
+   for a session; the new-password fields then post to set-password, which is scoped to
+   that session and cannot be aimed at another account.
 
-if($('authForgot'))$('authForgot').onclick=async function(ev){
-  ev.preventDefault();
-  if(!sb)return;
-  var email=($('authEmail').value||'').trim();
-  if(!email||email.indexOf('@')<1){authMsg('Type your email address above first, then tap this.',true);return;}
-  authMsg('Sending…');
-  var r=await sb.auth.forgotPassword(email);
-  if(r.error){authMsg(r.error.message,true);return;}
-  /* Deliberately does not confirm the address exists — the server answers the same way
-     either way, and saying "we sent it" would leak what the server refused to. */
-  authMsg('If '+email+' has an account, a reset link is on its way. Open it on this device.');
-};
+   It is a code and not a link because Postbase's link handler is broken at source:
+   verify/route.ts calls headers.set() on the immutable Response from
+   Response.redirect(), which throws, so the emailed link 500s at db.clinoble.com — and
+   the token is deleted before the throw, so each click burns it. set-password.html
+   existed only as the landing for that redirect and is gone with it.
+
+   The address is never named by the browser: the send route keeps it in an HttpOnly
+   cookie. See api/_lib/otp-cookie.js and api/_lib/routes/set-password.js. */
+function authMsg(t,bad){var e=$('authMsg');if(!e)return;e.textContent=t||'';e.style.color=bad?'#ff6b6b':'#2FBF8F';}
 
 async function authSendCode(email){
   authMsg('Sending…');
-  var r=await sb.auth.sendOtp(email);
+  var r=await sb.auth.forgotPassword(email);
   if(r.error){authMsg(r.error.message,true);return false;}
   if($('authOtpBox'))$('authOtpBox').style.display='flex';
+  if($('authNewPwBox'))$('authNewPwBox').style.display='none';
+  /* Deliberately does not confirm the address exists — the server answers the same way
+     either way, and saying "we sent it" would leak what the server refused to. */
   authMsg('If '+email+' has an account, a 6-digit code is on its way. Enter it here in this browser.');
   return true;
 }
-if($('authOtpLink'))$('authOtpLink').onclick=async function(ev){
+if($('authForgot'))$('authForgot').onclick=async function(ev){
   ev.preventDefault();
   if(!sb)return;
   var email=($('authEmail').value||'').trim();
@@ -1892,10 +1891,31 @@ if($('authOtpVerify'))$('authOtpVerify').onclick=async function(){
   var r=await sb.auth.verifyOtp(code);
   this.disabled=false;
   if(r.error){authMsg(r.error.message,true);return;}
-  /* onAuthStateChange closes the overlay and loads the dashboard. */
-  authMsg('');
   if($('authOtpCode'))$('authOtpCode').value='';
+  /* Confirming the code has already signed them in, but the password is what they came
+     for — show the fields rather than dropping them into the app half-done. */
+  if($('authOtpBox'))$('authOtpBox').style.display='none';
+  if($('authNewPwBox'))$('authNewPwBox').style.display='flex';
+  var np=$('authNewPw');if(np){np.value='';np.focus();}
+  var np2=$('authNewPw2');if(np2)np2.value='';
+  authMsg('Code confirmed. Now choose a new password.');
 };
+
+async function authSaveNewPassword(){
+  var a=($('authNewPw')&&$('authNewPw').value)||'',b=($('authNewPw2')&&$('authNewPw2').value)||'';
+  if(a.length<6){authMsg('Password must be at least 6 characters.',true);return;}
+  if(a!==b){authMsg('The two passwords do not match.',true);return;}
+  authMsg('Saving…');
+  /* No address or id is sent: set-password changes the password of whoever the session
+     says this is, and would ignore a target if one were supplied. */
+  var r=await sb.auth.setPassword(a);
+  if(r.error){authMsg(r.error.message,true);return;}
+  if($('authNewPwBox'))$('authNewPwBox').style.display='none';
+  if($('authPass'))$('authPass').value='';
+  authMsg('Password saved. You are signed in.');
+}
+if($('authNewPwGo'))$('authNewPwGo').onclick=function(){authSaveNewPassword();};
+if($('authNewPw2'))$('authNewPw2').addEventListener('keydown',function(e){if(e.key==='Enter')authSaveNewPassword();});
 
 /* Verification prompt, driven by the session's emailVerified flag. */
 function cpSyncVerifyBox(){
@@ -1910,11 +1930,27 @@ if($('verifyBtn'))$('verifyBtn').onclick=async function(){
   this.disabled=false;
   if(!m)return;
   if(r.error){m.textContent=r.error.message;m.style.color='#ff6b6b';return;}
-  m.style.color='#2FBF8F';
-  m.textContent=(r.data&&r.data.alreadyVerified)
-    ?'✓ Already verified.'
-    :'✓ Sent — open the link in the email to finish verifying.';
+  if(r.data&&r.data.alreadyVerified){m.style.color='#2FBF8F';m.textContent='✓ Already verified.';
+    if($('verifyBox'))$('verifyBox').style.display='none';return;}
+  /* A code, not a link — the link 500s at source. Confirming it is what stamps
+     email_verified, inside /email-otp/verify. */
+  if($('verifyCodeBox'))$('verifyCodeBox').style.display='block';
+  var vi=$('verifyCode');if(vi){vi.value='';vi.focus();}
+  m.style.color='';m.textContent='Sent — enter the 6-digit code from the email. It is good for 10 minutes.';
 };
+
+async function cpConfirmVerifyCode(){
+  var m=$('verifyMsg'),code=($('verifyCode')&&$('verifyCode').value||'').replace(/\s+/g,'');
+  if(!/^[0-9]{6}$/.test(code)){if(m){m.style.color='#ff6b6b';m.textContent='Enter the 6-digit code from the email.';}return;}
+  if(m){m.style.color='';m.textContent='Checking…';}
+  var r=await sb.auth.verifyOtp(code);
+  if(r.error){if(m){m.style.color='#ff6b6b';m.textContent=r.error.message;}return;}
+  if(sbUser)sbUser.emailVerified=true;
+  if($('verifyCodeBox'))$('verifyCodeBox').style.display='none';
+  if($('verifyBox'))$('verifyBox').style.display='none';
+}
+if($('verifyGo'))$('verifyGo').onclick=function(){cpConfirmVerifyCode();};
+if($('verifyCode'))$('verifyCode').addEventListener('keydown',function(e){if(e.key==='Enter')cpConfirmVerifyCode();});
 
 /* ===== Google native sign-in (GSI) (no redirect page) =====
    GSI runs in the browser and the client ID is public, which is fine. The ID token is

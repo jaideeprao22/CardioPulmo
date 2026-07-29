@@ -245,7 +245,7 @@
     /* Sends a 6-digit code. The address is remembered server-side in an HttpOnly cookie,
        so verifyOtp below takes only the code — the browser never names the account. */
     sendOtp: async function (email) {
-      return await request(authUrl('otp-send'), { method: 'POST', body: { email: email || '' } });
+      return await request(authUrl('forgot'), { method: 'POST', body: { email: email || '' } });
     },
     verifyOtp: async function (code) {
       return adopt(await request(authUrl('otp-verify'), {

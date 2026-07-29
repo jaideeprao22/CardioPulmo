@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Electrolize&family=Michroma&family=Sora:wght@400;600;700;800&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="pb-client.js?v=1"></script>
+<script src="pb-client.js?v=2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="globals.css?v=15">
 <link rel="manifest" href="manifest.webmanifest">
@@ -37,20 +37,28 @@
     <button id="authLogin" class="pbtn">Log in</button>
     <button id="authSignup" class="sbtn">Create new account</button>
 
-    <!-- Both paths prove the same thing — that you can read email at that address.
-         The code is the better one on a phone: a magic link opens in whatever browser
-         the mail app picks, which is often not the one you were using. -->
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:2px">
+    <!-- ONE entry point. It emails a 6-digit code; Postbase's magic link 500s at source
+         and cannot be used. Offering the same mechanism under two names was the
+         confusion this replaces. -->
+    <div style="display:flex;justify-content:center;margin-top:2px">
       <a href="#" id="authForgot" class="note" style="text-decoration:underline" data-te='పాస్‌వర్డ్ మర్చిపోయారా?'>Forgot password?</a>
-      <a href="#" id="authOtpLink" class="note" style="text-decoration:underline" data-te='బదులుగా కోడ్ పంపండి'>Email me a code instead</a>
     </div>
 
     <!-- 6-digit code entry. The address is held server-side in an HttpOnly cookie from
          the send step, so only the code is submitted from here. -->
     <div id="authOtpBox" style="display:none;flex-direction:column;gap:8px;margin-top:4px">
       <input id="authOtpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code">
-      <button id="authOtpVerify" class="pbtn">Sign in with code</button>
+      <button id="authOtpVerify" class="pbtn">Confirm code</button>
       <a href="#" id="authOtpResend" class="note" style="text-decoration:underline">Send another code</a>
+    </div>
+
+    <!-- Set a new password, in the overlay. This replaces set-password.html, which only
+         existed as a landing for the magic-link redirect that no longer works. -->
+    <div id="authNewPwBox" style="display:none;flex-direction:column;gap:8px;margin-top:4px">
+      <div class="note" data-te='కొత్త పాస్‌వర్డ్‌ను ఎంచుకోండి'>Choose a new password</div>
+      <input id="authNewPw" type="password" autocomplete="new-password" placeholder="New password (min 6)" data-te-ph="కొత్త పాస్‌వర్డ్ (కనీసం 6)">
+      <input id="authNewPw2" type="password" autocomplete="new-password" placeholder="Repeat new password" data-te-ph="పాస్‌వర్డ్‌ను మళ్లీ నమోదు చేయండి">
+      <button id="authNewPwGo" class="pbtn" data-te='పాస్‌వర్డ్‌ను సేవ్ చేయండి'>Save password</button>
     </div>
 
     <div id="authMsg" class="ovlmsg"></div>
@@ -762,7 +770,11 @@
            starts unverified and this is the only way to clear it. -->
       <div id="verifyBox" style="display:none;margin-bottom:10px">
         <div class="note" style="margin-bottom:6px" data-te='మీ ఇమెయిల్ ఇంకా ధృవీకరించబడలేదు.'>Your email address is not verified yet.</div>
-        <button id="verifyBtn" class="sbtn" style="margin-top:0" data-te='ధృవీకరణ లింక్ పంపండి'>Send me a verification link</button>
+        <button id="verifyBtn" class="sbtn" style="margin-top:0" data-te='ధృవీకరణ కోడ్ పంపండి'>Send me a verification code</button>
+        <div id="verifyCodeBox" style="display:none;margin-top:6px">
+          <input id="verifyCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" data-te-ph="6-అంకెల కోడ్">
+          <button id="verifyGo" class="pbtn" style="margin-top:6px" data-te='ధృవీకరించండి'>Confirm</button>
+        </div>
         <div id="verifyMsg" class="note" style="margin-top:6px"></div>
       </div>
 
@@ -1049,6 +1061,6 @@
   <button id="tAbout" class="dockbtn" onclick="topTab('about')"><span class="di">ℹ️</span><span class="dlabel" data-te='గురించి'>About</span></button>
 </nav>
 
-<script src="app.js?v=58"></script>
+<script src="app.js?v=59"></script>
 </body>
 </html>

@@ -13,11 +13,10 @@ var auth = require('../auth');
    `req.body.email` here, it hands anyone with a session the ability to overwrite any
    password by typing an address. The absence of that parameter is the control.
 
-   How a user without a password gets a session in the first place: the magic link from
-   action=forgot goes to Postbase's /verify, which consumes the token, stamps
-   email_verified, issues a session and redirects to set-password.html. So by the time
-   this route runs, the caller has proved they read email at that address, which is the
-   same proof any reset link provides.
+   How a user without a password gets a session in the first place: action=forgot emails
+   a 6-digit code, and action=otp-verify exchanges it for a session. So by the time this
+   route runs, the caller has proved they read email at that address — the same proof a
+   reset link would have provided, by a mechanism that actually works on this instance.
 
    The password is a bound parameter all the way to Postgres, where crypt() hashes it. It
    is never interpolated into SQL, never logged, and never echoed back. */

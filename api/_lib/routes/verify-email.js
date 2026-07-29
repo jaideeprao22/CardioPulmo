@@ -3,7 +3,7 @@ var http = require('../http');
 var pb = require('../postbase');
 var auth = require('../auth');
 var rl = require('../ratelimit');
-var origin = require('../origin');
+var otpCookie = require('../otp-cookie');
 
 /* POST /api/auth?action=verify-email   (no body)
 
@@ -15,9 +15,15 @@ var origin = require('../origin');
    same reason set-password does not read one: an address in the body would let a signed-in
    user aim a verification link, and the link mints a session.
 
-   The magic link IS the verification: Postbase's /verify consumes the token and stamps
-   email_verified before redirecting. So this sends the user home rather than to
-   set-password — they are not changing anything, just proving the address. */
+   The CODE is the verification now: /email-otp/verify consumes it and runs
+     UPDATE users SET email_verified = $1 WHERE id = $2 AND email_verified IS NULL
+   on success, confirmed in that route's source. So verification still happens; only the
+   delivery changed, from a link to a 6-digit code.
+
+   Why it had to change: Postbase's link handler calls headers.set() on the immutable
+   Response returned by Response.redirect(), which throws, so the emailed link 500s at
+   db.clinoble.com — and the token is DELETEd before the throw, so each click burns it.
+   Nothing about that is reachable from our side. */
 module.exports = http.guard(async function (req, res) {
   if (!http.methodAllowed(req, res, ['POST'])) return;
 
@@ -33,11 +39,16 @@ module.exports = http.guard(async function (req, res) {
   }
 
   try {
-    await pb.sendOtp(user.email, 'magic_link', origin.baseUrl(req) + '/');
+    /* A 6-digit code, not a link: Postbase's link handler throws on an immutable
+       Response and 500s, burning the token on the way. Verification still happens —
+       /email-otp/verify runs
+         UPDATE users SET email_verified = $1 WHERE id = $2 AND email_verified IS NULL
+       on success, confirmed in that route's source. Only the delivery changed. */
+    await pb.sendOtp(user.email);
   } catch (e) {
     var status = e && e.upstreamStatus;
     if (status === 403) {
-      console.error('[api] verify-email: magic link provider disabled — ' + ((e && e.upstreamBody) || ''));
+      console.error('[api] verify-email: email OTP provider disabled — ' + ((e && e.upstreamBody) || ''));
       return http.fail(res, 503, 'Email verification is switched off for this app right now');
     }
     if (status === 500) {
@@ -51,5 +62,7 @@ module.exports = http.guard(async function (req, res) {
     return http.fail(res, 502, 'Could not send the verification email — try again shortly');
   }
 
+  /* Same address cookie as the reset flow, so otp-verify can exact-match. */
+  otpCookie.set(res, user.email);
   http.ok(res, { sent: true });
 });

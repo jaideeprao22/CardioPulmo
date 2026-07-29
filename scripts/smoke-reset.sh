@@ -37,7 +37,11 @@ code() { curl -s -o /tmp/_sm_body -w '%{http_code}' "${H[@]}" "$@"; }
 body() { cat /tmp/_sm_body; }
 
 echo "== reachability =="
-c=$(code "$BASE/set-password.html"); chk "set-password.html is served" 200 "$c" "$(body | head -c 80)"
+c=$(code "$BASE/api/auth?action=session"); chk "auth function is reachable" 200 "$c" "$(body | head -c 80)"
+# set-password.html is deliberately gone: it existed only as the landing for the
+# magic-link redirect, and Postbase's link handler 500s at source. The new password is
+# set in the sign-in overlay after the code is confirmed.
+c=$(code "$BASE/set-password.html"); chk "set-password.html is NOT served any more" 404 "$c"
 
 echo
 echo "== forgot-password =="
@@ -84,12 +88,10 @@ chk "no session, naming a victim -> still 401" 401 "$c" "$(body)"
 
 echo
 echo "== email OTP =="
+# There is ONE send route now. otp-send was the same mechanism under a second name, and
+# the magic-link path it used to be distinguished from no longer exists.
 c=$(code -X POST "$BASE/api/auth?action=otp-send" -d "{\"email\":\"$EMAIL\"}")
-if [ "$c" = "429" ]; then
-  printf 'SKIP  otp-send -> 200  (shares the per-address send budget with forgot above)\n'
-else
-  chk "otp-send -> 200" 200 "$c" "$(body)"
-fi
+chk "the retired otp-send action -> 404" 404 "$c" "$(body)"
 c=$(code -X POST "$BASE/api/auth?action=otp-verify" -d '{"code":"000000"}')
 chk "otp-verify with no address cookie -> 400" 400 "$c" "$(body)"
 c=$(code -X POST "$BASE/api/auth?action=otp-verify" -d '{"code":"abc"}')
@@ -119,12 +121,15 @@ printf '\n%d passed, %d failed\n' "$pass" "$fail"
 cat <<'MANUAL'
 
 Manual steps (need a real inbox):
-  1. Open the reset link emailed to the address above. It should land on
-     /set-password.html already signed in, showing "Setting a new password for <you>".
-     Set a password, then sign in with it on the main app.
-  2. Sign in, open About, and use "Send me a verification link" if the prompt is shown.
-     After clicking that link the prompt should disappear on reload.
-  3. For the 6-digit path, request a code and enter it IN THE SAME BROWSER.
+  1. Tap "Forgot password?", enter the address above, and read the 6-digit code from the
+     email. Enter it IN THE SAME BROWSER — the address is held in an HttpOnly cookie from
+     the send step, so a different browser cannot complete it.
+  2. The new-password fields appear in the same overlay. Set one, then sign in with it.
+  3. Sign in, open About, and use "Send me a verification code" if the prompt is shown.
+     Confirming the code stamps email_verified and the prompt disappears.
+
+There is no link to click anywhere: Postbase's /verify handler calls headers.set() on the
+immutable Response from Response.redirect(), so the emailed link 500s and burns its token.
 MANUAL
 
 [ "$fail" -eq 0 ] || exit 1

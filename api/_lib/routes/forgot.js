@@ -4,15 +4,29 @@ var pb = require('../postbase');
 var sql = require('../sql');
 var emails = require('../email');
 var rl = require('../ratelimit');
-var origin = require('../origin');
+var otpCookie = require('../otp-cookie');
 
 /* POST /api/auth?action=forgot  { email }
 
-   Postbase has no password-reset endpoint, so this is built out of the magic-link
-   primitive: send a link, let /verify consume the token and mint a session, land the
-   browser on the set-password page, and change the password there against that session.
-   The session IS the proof of address ownership; there is no separate reset token to
-   store, expire or leak.
+   Postbase has no password-reset endpoint, so this is built out of the email-OTP
+   primitive: send a 6-digit code, let otp-verify exchange it for a session, and change
+   the password against that session. The session IS the proof of address ownership;
+   there is no separate reset token to store, expire or leak.
+
+   It used to send a magic link. That is no longer possible — Postbase's link handler is
+   broken at source:
+
+     apps/web/src/app/api/auth/v1/[projectId]/verify/route.ts
+       141:  const response = Response.redirect(new URL(redirectTo, req.url));
+       151:  response.headers.set("Set-Cookie", cookieOpts);
+
+   Response.redirect() returns immutable headers, so headers.set() throws and Next.js
+   answers 500 — confirmed live against db.clinoble.com. The token is DELETEd before the
+   throw, so every click burns it and the same link cannot be retried.
+
+   This is now the ONLY code-sending route for signed-out users. The separate otp-send
+   action is gone: it was the same mechanism under a second name, and offering both is
+   what confused people.
 
    ALWAYS 200. Answering differently for a known and an unknown address turns this into
    an account-enumeration oracle — anyone could test a list of emails against it. So the
@@ -55,25 +69,28 @@ module.exports = http.guard(async function (req, res) {
        database is unreachable — which is why this is logged loudly rather than swallowed:
        a silent stop here is a user who never gets their email and cannot say why. */
     console.error('[api] forgot: user lookup failed, not sending — ' + ((e && e.message) || e));
+    otpCookie.set(res, email);
     return http.ok(res, { sent: true });
   }
 
   if (!account) {
-    /* Identical body, no row created, no mail sent. */
+    /* Identical body, cookie still set, no row created, no mail sent — an unknown address
+       stays indistinguishable right through to the code-entry screen. */
+    otpCookie.set(res, email);
     return http.ok(res, { sent: true });
   }
 
   try {
     /* account.email, NOT the typed string. Postbase matches exactly, so forwarding what
        the user typed would make it create a duplicate row for the differently-cased
-       address and mail the link to the empty one. */
-    await pb.sendOtp(account.email, 'magic_link', origin.setPasswordUrl(req));
+       address and mail the code to the empty one. */
+    await pb.sendOtp(account.email);
   } catch (e) {
     var status = e && e.upstreamStatus;
     /* Distinct causes, distinctly reported — both are ours to fix, neither is the
        user's fault, and neither leaks whether the address exists. */
     if (status === 403) {
-      console.error('[api] forgot: magic link provider disabled — ' + ((e && e.upstreamBody) || ''));
+      console.error('[api] forgot: email OTP provider disabled — ' + ((e && e.upstreamBody) || ''));
       return http.fail(res, 503, 'Password reset by email is switched off for this app right now');
     }
     if (status === 500) {
@@ -88,5 +105,9 @@ module.exports = http.guard(async function (req, res) {
       ((e && e.message) || 'no message') + ' — body: ' + ((e && e.upstreamBody) || '(empty)'));
   }
 
+  /* The CANONICAL address, so otp-verify hands the exact-matching upstream the same
+     string the code was minted against. Set regardless of whether the send succeeded:
+     setting it only on success would leak existence. */
+  otpCookie.set(res, account.email);
   http.ok(res, { sent: true });
 });
